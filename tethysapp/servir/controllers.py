@@ -1,7 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
-from geoserver.catalog import Catalog
 from tethys_sdk.services import get_spatial_dataset_engine, list_spatial_dataset_engines
 from tethys_dataset_services.engines import GeoServerSpatialDatasetEngine
 from django.contrib.sites.shortcuts import get_current_site
