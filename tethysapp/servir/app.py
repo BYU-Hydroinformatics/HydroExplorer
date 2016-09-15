@@ -29,6 +29,9 @@ class ServirCatalog(TethysAppBase):
                     UrlMap(name='add-server',
                            url='servir/add-server',
                            controller='servir.controllers.add_server'),
+                    UrlMap(name='details',
+                           url='servir/details',
+                           controller='servir.controllers.details'),
         )
 
         return url_maps

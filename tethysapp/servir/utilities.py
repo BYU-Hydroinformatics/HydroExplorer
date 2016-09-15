@@ -34,6 +34,8 @@ def parseSites(xml):
                     if descriptor.find('siteCode') != -1:
                         site_code = location.text
                         #print "Site Code: "+site_code
+                        source = location.get('network')
+                        hs_json['network'] = source
                         hs_json["sitecode"] = site_code
                     if descriptor.find('elevation') != -1:
                         elevation = location.text
@@ -55,17 +57,21 @@ def parseSites(xml):
     return hs_sites
 
 
-def genShapeFile(input,title,url,username,password):
+def genShapeFile(input,title,geo_url,username,password,hs_url):
     try:
         file_name = 'hs_sites'
         temp_dir = tempfile.mkdtemp()
         file_location = temp_dir+"/"+file_name
         w = sf.Writer(sf.POINT)
-        w.field('location')
+        w.field('sitename')
+        w.field('sitecode')
+        w.field('network')
+        w.field('url','C',200)
+        # w.field('elevation')
 
         for item in input:
             w.point(float(item['longitude']),float(item['latitude']))
-            w.record(item['sitename'], 'Point')
+            w.record(item['sitename'],item['sitecode'],item['network'],hs_url, 'Point')
 
         w.save(file_location)
         prj = open("%s.prj" % file_location, "w")
@@ -84,7 +90,7 @@ def genShapeFile(input,title,url,username,password):
                 myzip.write(shapefile_fp, arcname=new_file_name)
 
         #Connecting to geoserver
-        spatial_dataset_engine = GeoServerSpatialDatasetEngine(endpoint=url, username=username, password=password)
+        spatial_dataset_engine = GeoServerSpatialDatasetEngine(endpoint=geo_url, username=username, password=password)
         layer_metadata = {}
 
         response = None
@@ -107,7 +113,7 @@ def genShapeFile(input,title,url,username,password):
 
 
         #find the bbox area
-        wms_rest_url = '{}workspaces/{}/datastores/{}/featuretypes/{}.json'.format(url,ws_name,title,title)
+        wms_rest_url = '{}workspaces/{}/datastores/{}/featuretypes/{}.json'.format(geo_url,ws_name,title,title)
         print wms_rest_url
         r = requests.get(wms_rest_url, auth=(username,password))
         if r.status_code != 200:

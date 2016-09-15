@@ -40,7 +40,8 @@ var SERVIR_PACKAGE = (function() {
         $modalAddHS,
         onClickZoomTo,
         onClickDeleteLayer,
-        $hs_list;
+        $hs_list,
+        location_search;
 
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
@@ -87,7 +88,7 @@ var SERVIR_PACKAGE = (function() {
 
     };
     init_jquery_var = function () {
-        $('#current-servers').empty();
+        //$('#current-servers').empty();
         $modalAddHS = $('#modalAddHS');
         $hs_list = $('#current-servers-list');
     };
@@ -107,7 +108,8 @@ var SERVIR_PACKAGE = (function() {
                     var wms_url = json_response.wms;
                     var extents = json_response.bounds;
                     var rest_url = json_response.rest_url;
-                    console.log(rest_url);
+
+
                     $('<li class="ui-state-default"'+'layer-name="'+title+'"'+'><input class="chkbx-layer" type="checkbox" checked><span class="server-name">'+title+'</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
 
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
@@ -150,6 +152,31 @@ var SERVIR_PACKAGE = (function() {
 
     $('#btn-add-server').on('click', add_server);
 
+    location_search = function(){
+        function geocoder_success(results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+                var r=results;
+                var flag_geocoded=true;
+                var Lat = results[0].geometry.location.lat();
+                var Lon = results[0].geometry.location.lng();
+                var dbPoint = {
+                    "type": "Point",
+                    "coordinates": [Lon, Lat]
+                };
+
+                var coords = ol.proj.transform(dbPoint.coordinates, 'EPSG:4326','EPSG:3857');
+                map.getView().setCenter(coords);
+                map.getView().setZoom(12);
+            } else {
+                alert("Geocode was not successful for the following reason: " + status);
+            }
+        }
+        var g = new google.maps.Geocoder();
+        var search_location = document.getElementById('location_input').value;
+        g.geocode({'address':search_location},geocoder_success);
+
+    };
+    $('#location_search').on('click',location_search);
 
     onClickZoomTo = function(e){
         var clickedElement = e.trigger.context;
@@ -191,11 +218,16 @@ var SERVIR_PACKAGE = (function() {
                         url: wms_url,
                         dataType: 'json',
                         success: function (result) {
-                            var site_name = result["features"][0]["properties"]["location"];
+                            var site_name = result["features"][0]["properties"]["sitename"];
+                            var site_code = result["features"][0]["properties"]["sitecode"];
+                            var network = result["features"][0]["properties"]["network"];
+                            var hs_url = result["features"][0]["properties"]["url"];
+                            var details_html = "/apps/servir/details/?sitename="+site_name+"&sitecode="+site_code+"&network="+network+"&hsurl="+hs_url;
+
                             $(element).popover({
                                 'placement': 'top',
                                 'html': true,
-                                'content': site_name
+                                'content': '<b>Site Name:</b>'+site_name+'<br><b>Site Code:</b>'+site_code+'<br><a href="'+details_html+'" target="_blank">Click here for site details</a>'
                             });
 
                             $(element).popover('show');

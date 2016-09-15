@@ -1,0 +1,24 @@
+{% extends "servir/base.html" %}
+{% load staticfiles %}
+{% load tethys_gizmos %}
+
+{% block app_navigation_items %}
+<li><a href="{% url 'servir:home' %}">Return to Map</a></li>
+<form  action="/apps/servir/details/" method="get">
+    <input id="site_name" name="site_name" type="text" value="{{site_name}}" class="hidden">
+    <input id="site_code" name="site_code" type="text" value="{{site_code}}" class="hidden">
+    <input id="network" name="network" type="text" value="{{network}}" class="hidden">
+    <input id="hs_url" name="hs_url" type="text" value="{{hs_url}}" class="hidden">
+
+    {% csrf_token %}
+
+</form>
+{% endblock %}
+{% block app_content %}
+<h4>Site Details for {{site_name}}</h4>
+<p>Site Code: {{site_code}}</p>
+
+{% gizmo plot_view timeseries_plot %}
+
+{% endblock %}
+
