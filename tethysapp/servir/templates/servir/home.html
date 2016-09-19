@@ -43,8 +43,6 @@
 
                     <label for="hs-email">Contact Email:</label>
                     <input type="text" class="form-control" name="hs-email" id="hs-email">
-
-
                 </div>
                 <div class="modal-footer">
                     <div class="button-group">
@@ -58,6 +56,20 @@
     </form>
 
     <!--End modal-->
+<!-- View File Modal -->
+    <div id="modalViewDetails" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <span id="close-modalViewDetails">X</span>
+            <div class="modal-content flex-container-row">
+                <img id="view-file-loading" class="view-file" src="/static/servir/images/loader.gif" />
+                <div id="iframe-container" class="view-details hidden" ></div>
+            </div>
+            <!--End modal content-->
+        </div>
+    </div>
+    <!--End modal-->
+
 {% endblock %}
 {% block scripts %}
 {{ block.super }}

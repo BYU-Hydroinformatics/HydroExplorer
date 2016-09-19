@@ -62,6 +62,7 @@ def details(request):
     site_code = request.GET['sitecode']
     network = request.GET['network']
     hs_url = request.GET['hsurl']
+    hidenav = request.GET['hidenav']
     if hs_url.endswith(''):
         hs_url = hs_url + "/"
 
@@ -184,7 +185,7 @@ def details(request):
     graph_axis_title = graphs_object['graph'][-1]['variable']
     graph_unit = graphs_object['graph'][-1]['unit']
     timeseries_plot = TimeSeries(
-        height='350px',
+        height='250px',
         width='500px',
         engine='highcharts',
         title=graph_title,
@@ -204,6 +205,10 @@ def details(request):
     #     print i['variableTimeInterval']['beginDateTime'][:-9]
     #     print i['variableTimeInterval']['endDateTime'][:-9]
 
-    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"nodata":nodata_message,"timeseries_plot": timeseries_plot}
+
+
+    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"hidenav":hidenav,"nodata":nodata_message,"timeseries_plot": timeseries_plot}
+
+
 
     return render(request, 'servir/details.html', context)

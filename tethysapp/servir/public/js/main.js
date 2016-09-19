@@ -195,6 +195,24 @@ var SERVIR_PACKAGE = (function() {
     };
 
     init_events = function(){
+        (function () {
+            var target, observer, config;
+            // select the target node
+            target = $('#app-content-wrapper')[0];
+
+            observer = new MutationObserver(function () {
+                window.setTimeout(function () {
+                    map.updateSize();
+                }, 350);
+            });
+            $(window).on('resize', function () {
+                map.updateSize();
+            });
+
+            config = {attributes: true};
+
+            observer.observe(target, config);
+        }());
         $(document).on('change', '.chkbx-layer', function () {
             var displayName = $(this).next().text();
             layersDict[displayName].setVisible($(this).is(':checked'));
@@ -222,16 +240,31 @@ var SERVIR_PACKAGE = (function() {
                             var site_code = result["features"][0]["properties"]["sitecode"];
                             var network = result["features"][0]["properties"]["network"];
                             var hs_url = result["features"][0]["properties"]["url"];
-                            var details_html = "/apps/servir/details/?sitename="+site_name+"&sitecode="+site_code+"&network="+network+"&hsurl="+hs_url;
+                            var details_html = "/apps/servir/details/?sitename="+site_name+"&sitecode="+site_code+"&network="+network+"&hsurl="+hs_url+"&hidenav=true";
 
                             $(element).popover({
                                 'placement': 'top',
                                 'html': true,
-                                'content': '<b>Site Name:</b>'+site_name+'<br><b>Site Code:</b>'+site_code+'<br><a href="'+details_html+'" target="_blank">Click here for site details</a>'
+                                'content': '<b>Site Name:</b>'+site_name+'<br><b>Site Code:</b>'+site_code+'<br><button type="button" class="mod_link btn-primary" data-html="'+details_html+'" >Site Details</button>'
                             });
 
                             $(element).popover('show');
                             $(element).next().css('cursor', 'text');
+                            $('.mod_link').on('click',function(){
+                                var $loading = $('#view-file-loading');
+                                $('#iframe-container').addClass('hidden');
+                                $loading.removeClass('hidden');
+                                var details_url = $(this).data('html');
+                                $('#iframe-container')
+                                    .empty()
+                                    .append('<iframe id="iframe-details-viewer" src="' + details_url + '" allowfullscreen></iframe>');
+                                $('#modalViewDetails').modal('show');
+                                $('#iframe-details-viewer').one('load', function () {
+                                    $loading.addClass('hidden');
+                                    $('#iframe-container').removeClass('hidden');
+                                    $loading.addClass('hidden');
+                                });
+                            });
                         },
                         error: function (XMLHttpRequest, textStatus, errorThrown) {
                             console.log(Error);
@@ -243,6 +276,10 @@ var SERVIR_PACKAGE = (function() {
             }
 
 
+        });
+
+        $('#close-modalViewDetails').on('click', function () {
+            $('#modalViewDetails').modal('hide');
         });
 
         map.on('pointermove', function(evt) {
