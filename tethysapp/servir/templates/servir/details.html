@@ -5,8 +5,17 @@
 {% block app_content %}
 <h4>Site Details for {{site_name}}</h4>
 <p>Site Code: {{site_code}}</p>
+{% gizmo select_input select_variable %}
+<button id="generate-graph" class="btn btn-primary">Generate Graph</button>
+<div>
+    <div class="chart-wrapper">
+        <div class="chart-inner">
+            <div id="container" style="height:300px;width:100%"></div>
+        </div>
+    </div>
+</div>
 
-{% gizmo plot_view timeseries_plot %}
+<!--{% gizmo plot_view timeseries_plot %}-->
 {% if hidenav %}
 
 <script>

@@ -41,7 +41,8 @@ var SERVIR_PACKAGE = (function() {
         onClickZoomTo,
         onClickDeleteLayer,
         $hs_list,
-        location_search;
+        location_search,
+        generate_graph;
 
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
@@ -245,7 +246,8 @@ var SERVIR_PACKAGE = (function() {
                             $(element).popover({
                                 'placement': 'top',
                                 'html': true,
-                                'content': '<b>Site Name:</b>'+site_name+'<br><b>Site Code:</b>'+site_code+'<br><button type="button" class="mod_link btn-primary" data-html="'+details_html+'" >Site Details</button>'
+                                // 'content': '<b>Name:</b>'+site_name+'<br><b>Code:</b>'+site_code+'<br><button type="button" class="mod_link btn-primary" data-html="'+details_html+'" >Site Details</button>'
+                                'content':'<table border="1"><tbody><tr><th>Site Name</th><th>Site Id</th><th>Details</th></tr>'+'<tr><td>'+site_name +'</td><td>'+ site_code + '</td><td><button type="button" class="mod_link btn-primary" data-html="'+details_html+'" >Site Details</button></td></tr>'
                             });
 
                             $(element).popover('show');
@@ -315,6 +317,66 @@ var SERVIR_PACKAGE = (function() {
             }
         ];
     };
+
+    generate_graph = function(){
+        var variable = $('#select_var option:selected').val();
+        $.ajax({
+            type: "GET",
+            url: '/apps/servir/api/',
+            dataType: 'JSON',
+            success: function (result) {
+                for (var i=0;i < result['graph'].length;i++){
+                    if (result['graph'][i]['variable'] == variable){
+                        $('#container').highcharts({
+                            chart: {
+                                type:'area',
+                                zoomType: 'x'
+                            },
+                            title: {
+                                text: result['graph'][i]['title'],
+                                style: {
+                                    fontSize: '11px'
+                                }
+                            },
+                            xAxis: {
+                                type: 'datetime',
+                                labels: {
+                                    format: '{value:%d %b %Y}',
+                                    rotation: 45,
+                                    align: 'left'
+                                },
+                                title: {
+                                    text: 'Date'
+                                }
+                            },
+                            yAxis: {
+                                title: {
+                                    text: result['graph'][i]['unit']
+                                }
+
+                            },
+                            exporting: {
+                                enabled: true,
+                                width: 5000
+                            },
+                            series: [{
+                                data: result['graph'][i]['values'],
+                                name: result['graph'][i]['variable']
+                            }]
+
+                        });
+
+                    }
+
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
+            }
+        });
+
+    };
+    $('#generate-graph').on('click',generate_graph);
 
     addContextMenuToListItem = function ($listItem) {
         var contextMenuId;

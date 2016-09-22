@@ -140,4 +140,3 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-

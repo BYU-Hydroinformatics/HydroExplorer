@@ -12,8 +12,9 @@ import xml.etree.ElementTree as et
 import xml.etree.ElementTree
 import xmltodict, json
 from datetime import datetime, timedelta
-from tethys_sdk.gizmos import TimeSeries
-from collections import defaultdict
+from tethys_sdk.gizmos import TimeSeries, SelectInput
+import time, calendar
+
 
 geo_url_base = getattr(settings, "GEOSERVER_URL_BASE", "http://127.0.0.1:8181")
 geo_user = getattr(settings, "GEOSERVER_USER_NAME", "admin")
@@ -105,6 +106,7 @@ def details(request):
                 graph_json = {}
                 graph_json["variable"] = i['variable']['variableName']
                 graph_json["unit"] = i['variable']['unit']['unitAbbreviation']
+                graph_json["title"] = site_name+':'+i['variable']['variableName']
                 for j in i['values']:
                     data_values = []
                     if j == "value":
@@ -120,7 +122,9 @@ def details(request):
                                 hour = int(hour_minute[0])
                                 minute = int(hour_minute[1])
                                 value = float(str(k['#text']))
-                                data_values.append([datetime(year,month,day,hour,minute),value])
+                                date_string = datetime(year,month,day,hour,minute)
+                                time_stamp = calendar.timegm(date_string.utctimetuple())
+                                data_values.append([time_stamp,value])
                                 data_values.sort()
                             graph_json["values"] = data_values
                         else:
@@ -134,7 +138,9 @@ def details(request):
                             hour = int(hour_minute[0])
                             minute = int(hour_minute[1])
                             value = float(str(i['values']['value']['#text']))
-                            data_values.append([datetime(year, month, day, hour, minute), value])
+                            date_string = datetime(year, month, day, hour, minute)
+                            time_stamp = calendar.timegm(date_string.utctimetuple())
+                            data_values.append([time_stamp, value])
                             data_values.sort()
                             graph_json["values"] = data_values
                 graphs.append(graph_json)
@@ -143,6 +149,7 @@ def details(request):
             graph_json = {}
             graph_json["variable"] = times_series['variable']['variableName']
             graph_json["unit"] = times_series['variable']['unit']['unitAbbreviation']
+            graph_json["title"] = site_name + ':' + times_series['variable']['variableName']
             for j in times_series['values']:
                 data_values = []
                 if j == "value":
@@ -158,7 +165,9 @@ def details(request):
                             hour = int(hour_minute[0])
                             minute = int(hour_minute[1])
                             value = float(str(k['#text']))
-                            data_values.append([datetime(year, month, day, hour, minute), value])
+                            date_string = datetime(year, month, day, hour, minute)
+                            time_stamp = calendar.timegm(date_string.utctimetuple())
+                            data_values.append([time_stamp, value])
                             data_values.sort()
                         graph_json["values"] = data_values
                     else:
@@ -172,18 +181,26 @@ def details(request):
                         hour = int(hour_minute[0])
                         minute = int(hour_minute[1])
                         value = float(str(times_series['values']['value']['#text']))
-                        data_values.append([datetime(year, month, day, hour, minute), value])
+                        date_string = datetime(year, month, day, hour, minute)
+                        time_stamp = calendar.timegm(date_string.utctimetuple())
+                        data_values.append([time_stamp, value])
                         data_values.sort()
                         graph_json["values"] = data_values
             graphs.append(graph_json)
         else:
             nodata_message = "Requested Site has no data values"
 
-    graphs_object = {"status": "success"}
+    graphs_object = {}
     graphs_object["graph"] = graphs
+    # print graphs_object
+    graph_variables = []
+    for var in graphs_object["graph"]:
+        graph_variables.append([var["variable"],var["variable"]])
+
     graph_title = site_name + ":" + graphs_object['graph'][-1]['variable']
     graph_axis_title = graphs_object['graph'][-1]['variable']
     graph_unit = graphs_object['graph'][-1]['unit']
+
     timeseries_plot = TimeSeries(
         height='250px',
         width='500px',
@@ -197,6 +214,8 @@ def details(request):
         }]
     )
 
+    select_variable = SelectInput(display_text='Select variable',name="select_var",multiple=False,options=graph_variables)
+
         # print i['variable']
 
 
@@ -205,10 +224,18 @@ def details(request):
     #     print i['variableTimeInterval']['beginDateTime'][:-9]
     #     print i['variableTimeInterval']['endDateTime'][:-9]
 
+    # print graphs_object
+    json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
+    request.session['graphs_object'] = graphs_object
 
-
-    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"hidenav":hidenav,"nodata":nodata_message,"timeseries_plot": timeseries_plot}
+    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"hidenav":hidenav,"nodata":nodata_message,"timeseries_plot": timeseries_plot,"select_variable":select_variable,"graphs_object":graphs_object}
 
 
 
     return render(request, 'servir/details.html', context)
+
+def api(request):
+    graphs_object = None
+    if 'graphs_object' in request.session:
+        graphs_object = request.session['graphs_object']
+    return JsonResponse(graphs_object)
