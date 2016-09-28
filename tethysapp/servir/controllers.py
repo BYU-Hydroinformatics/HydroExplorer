@@ -236,8 +236,13 @@ def details(request):
         client = Client(hs_url)
         client.set_options(port='WaterOneFlow')
         site_desc = site_code+":"+network
-        site_values = client.service.GetValuesForASiteObject(site_desc)
-        print site_values
+        site_info = client.service.GetSiteInfo(site_desc)
+        site_info = site_info.encode('utf-8')
+        # info_dict = xmltodict(site_info)
+        # info_json_loads = json.dumps(info_dict)
+        # info_json_dumps = json.loads(info_json_loads)
+        print site_info
+
         # print site_values
         # values = client.service.GetSiteInfo(site_desc)
         # print values
