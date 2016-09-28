@@ -7,6 +7,7 @@ from tethys_sdk.services import get_spatial_dataset_engine
 import requests
 
 
+
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -30,6 +31,7 @@ def parseSites(xml):
                         site_name = location.text
                         hs_json = {}
                         hs_json["sitename"] = site_name
+                        hs_json["service"] = "REST"
                         #print "Site Name: "+site_name
                     if descriptor.find('siteCode') != -1:
                         site_code = location.text
@@ -56,6 +58,42 @@ def parseSites(xml):
 
     return hs_sites
 
+def parseJSON(json):
+    hs_sites = []
+    sites_object =  json['sitesResponse']['site']
+    if type(sites_object) is list:
+        for site in sites_object:
+            hs_json = {}
+            latitude = site['siteInfo']['geoLocation']['geogLocation']['latitude']
+            longitude = site['siteInfo']['geoLocation']['geogLocation']['longitude']
+            site_name = site['siteInfo']['siteName']
+            sitecode = site['siteInfo']['siteCode']["@network"]
+            network = site['siteInfo']['siteCode']["#text"]
+
+            hs_json["sitename"] = site_name
+            hs_json["latitude"] = latitude
+            hs_json["longitude"] = longitude
+            hs_json["sitecode"] = sitecode
+            hs_json["network"] = network
+            hs_json["service"] = "SOAP"
+            hs_sites.append(hs_json)
+    else:
+        hs_json = {}
+        latitude = sites_object['siteInfo']['geoLocation']['geogLocation']['latitude']
+        longitude = sites_object['siteInfo']['geoLocation']['geogLocation']['longitude']
+        site_name = sites_object['siteInfo']['siteName']
+        sitecode = sites_object['siteInfo']['siteCode']["@network"]
+        network = sites_object['siteInfo']['siteCode']["#text"]
+
+        hs_json["sitename"] = site_name
+        hs_json["latitude"] = latitude
+        hs_json["longitude"] = longitude
+        hs_json["sitecode"] = sitecode
+        hs_json["network"] = network
+        hs_sites.append(hs_json)
+
+    return hs_sites
+
 
 def genShapeFile(input,title,geo_url,username,password,hs_url):
     try:
@@ -66,12 +104,13 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
         w.field('sitename')
         w.field('sitecode')
         w.field('network')
+        w.field('service')
         w.field('url','C',200)
         # w.field('elevation')
 
         for item in input:
             w.point(float(item['longitude']),float(item['latitude']))
-            w.record(item['sitename'],item['sitecode'],item['network'],hs_url, 'Point')
+            w.record(item['sitename'],item['sitecode'],item['network'],item['service'],hs_url, 'Point')
 
         w.save(file_location)
         prj = open("%s.prj" % file_location, "w")

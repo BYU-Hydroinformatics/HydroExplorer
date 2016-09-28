@@ -36,8 +36,10 @@ var SERVIR_PACKAGE = (function() {
         init_jquery_var,
         init_events,
         add_server,
+        add_soap,
         addContextMenuToListItem,
         $modalAddHS,
+        $modalAddSOAP,
         onClickZoomTo,
         onClickDeleteLayer,
         $hs_list,
@@ -91,9 +93,53 @@ var SERVIR_PACKAGE = (function() {
     init_jquery_var = function () {
         //$('#current-servers').empty();
         $modalAddHS = $('#modalAddHS');
+        $modalAddSOAP = $('#modalAddSoap');
         $hs_list = $('#current-servers-list');
     };
+    function getRandomColor() {
+            var letters = '012345'.split('');
+            var color = '#';
+            color += letters[Math.round(Math.random() * 5)];
+            letters = '0123456789ABCDEF'.split('');
+            for (var i = 0; i < 5; i++) {
+                color += letters[Math.round(Math.random() * 15)];
+            }
+            return color;
+        }
     add_server = function(){
+        // if(($("#hs-title").val())==""){
+        //     alert("Please enter a Title for the site.");
+        //     return false;
+        // }
+        // if(($("#hs-url").val())==""){
+        //     alert("Please enter a URL for the Server.");
+        //     return false;
+        // }
+        // if(($("#hs-code").val())==""){
+        //     alert("Please enter a Code for the site.");
+        //     return false;
+        // }
+        // if(($("#hs-website").val())==""){
+        //     alert("Please enter a Website for the Organization.");
+        //     return false;
+        // }
+        // if(($("#hs-citation").val())==""){
+        //     alert("Please enter a Citation for the source.");
+        //     return false;
+        // }
+        // if(($("#hs-contact").val())==""){
+        //     alert("Please enter a Contact for the Organization.");
+        //     return false;
+        // }
+        // if(($("#hs-abstract").val())==""){
+        //     alert("Please enter an Abstract for the Source.");
+        //     return false;
+        // }
+        // if(($("#hs-email").val())==""){
+        //     alert("Please enter an Email for the Contact.");
+        //     return false;
+        // }
+
         var datastring = $modalAddHS.serialize();
         $.ajax({
             type: "POST",
@@ -121,9 +167,11 @@ var SERVIR_PACKAGE = (function() {
                     $( '#modalAddHS' ).each(function(){
                         this.reset();
                     });
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+getRandomColor()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     wmsSource = new ol.source.TileWMS({
                         url: rest_url,
-                        params: {'LAYERS':wms_url},
+                        params: {'LAYERS':wms_url,
+                            'SLD_BODY':sld_string},
                         serverType: 'geoserver',
                         crossOrigin: 'Anonymous'
                     });
@@ -149,9 +197,72 @@ var SERVIR_PACKAGE = (function() {
                 console.log(Error);
             }
         });
+
     };
 
     $('#btn-add-server').on('click', add_server);
+
+    add_soap = function () {
+        var datastring = $modalAddSOAP.serialize();
+        $.ajax({
+            type: "POST",
+            url: '/apps/servir/soap/',
+            dataType: 'HTML',
+            data: datastring,
+            success: function(result)
+            {
+                var json_response = JSON.parse(result);
+                if (json_response.status === 'true')
+                {
+                    var title= json_response.title;
+                    var wms_url = json_response.wms;
+                    var extents = json_response.bounds;
+                    var rest_url = json_response.rest_url;
+
+
+                    $('<li class="ui-state-default"'+'layer-name="'+title+'"'+'><input class="chkbx-layer" type="checkbox" checked><span class="server-name">'+title+'</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
+
+                    addContextMenuToListItem($('#current-servers').find('li:last-child'));
+
+                    $('#modalAddSoap').modal('hide');
+
+                    //map.addLayer(new_layer);
+                    $( '#modalAddSoap' ).each(function(){
+                        this.reset();
+                    });
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+getRandomColor()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+                    wmsSource = new ol.source.TileWMS({
+                        url: rest_url,
+                        params: {'LAYERS':wms_url,
+                            'SLD_BODY':sld_string},
+                        serverType: 'geoserver',
+                        crossOrigin: 'Anonymous'
+                    });
+                    wmsLayer = new ol.layer.Tile({
+                        extent:ol.proj.transformExtent([extents['minx'],extents['miny'],extents['maxx'],extents['maxy']],'EPSG:4326','EPSG:3857'),
+                        source: wmsSource
+                    });
+
+                    map.addLayer(wmsLayer);
+
+                    layersDict[title] = wmsLayer;
+
+                    var layer_extent = wmsLayer.getExtent();
+                    map.getView().fit(layer_extent,map.getSize());
+                }
+                else{
+                    alert("Please Check your URL and Try Again.");
+                }
+
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown)
+            {
+                console.log(Error);
+            }
+        });
+
+    };
+    $('#btn-add-soap').on('click', add_soap);
 
     location_search = function(){
         function geocoder_success(results, status) {
@@ -241,7 +352,8 @@ var SERVIR_PACKAGE = (function() {
                             var site_code = result["features"][0]["properties"]["sitecode"];
                             var network = result["features"][0]["properties"]["network"];
                             var hs_url = result["features"][0]["properties"]["url"];
-                            var details_html = "/apps/servir/details/?sitename="+site_name+"&sitecode="+site_code+"&network="+network+"&hsurl="+hs_url+"&hidenav=true";
+                            var service = result["features"][0]["properties"]["service"];
+                            var details_html = "/apps/servir/details/?sitename="+site_name+"&sitecode="+site_code+"&network="+network+"&hsurl="+hs_url+"&service="+service+"&hidenav=true";
 
                             $(element).popover({
                                 'placement': 'top',
