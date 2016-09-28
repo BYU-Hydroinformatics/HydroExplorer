@@ -238,7 +238,7 @@ def details(request):
         site_desc = site_code+":"+network
         site_info = client.service.GetSiteInfo(site_desc)
         site_info = site_info.encode('utf-8')
-        site_values = client.service.GetValuesForASiteObject(site_desc)
+        site_values = client.service.GetValuesForASiteObject(site_desc,"","","")
         print site_info
         print site_values
 
