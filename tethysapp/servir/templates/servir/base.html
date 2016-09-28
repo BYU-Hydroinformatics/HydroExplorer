@@ -36,7 +36,7 @@
 
 {% block content_dependent_styles %}
 {{ block.super }}
-<link rel="stylesheet" href="https://openlayers.org/en/v3.18.2/css/ol.css" type="text/css">
+<link rel="stylesheet" href="{% static 'servir/vendor/openlayers/css/ol.css' %}" type="text/css">
 <link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" />
 <link href="{% static 'servir/vendor/contextMenu/contextMenu.css' %}" rel="stylesheet" />
 <link href="{% static 'servir/css/main.css' %}" rel="stylesheet"/>
@@ -45,7 +45,7 @@
 {% block scripts %}
 {{ block.super }}
 <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPgvDUpbEwcbg9C0cRTfDtDa-Vj4WBwI0" ></script>
-<script src="https://openlayers.org/en/v3.18.2/build/ol.js"></script>
+<script src="{% static 'servir/vendor/openlayers/build/ol.js' %}"></script>
 <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"  type="text/javascript"></script>
 <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.15.0/jquery.validate.js" type="text/javascript"></script>
 <script src="{% static 'servir/vendor/contextMenu/contextMenu.min.js' %}" async="async"></script>

@@ -241,6 +241,12 @@ def details(request):
         site_values = client.service.GetValuesForASiteObject(site_desc,"","","")
         print site_info
         print site_values
+        # info_dict = xmltodict.parse(site_info)
+        # info_json_object = json.dumps(info_dict)
+        # info_json = json.loads(info_json_object)
+        # # print site_values
+        # print info_json
+
 
         # print site_values
         # values = client.service.GetSiteInfo(site_desc)
