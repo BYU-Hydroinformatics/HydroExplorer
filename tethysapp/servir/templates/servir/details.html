@@ -5,15 +5,40 @@
 {% block app_content %}
 <h4>Site Details for {{site_name}}</h4>
 <p>Site Code: {{site_code}}</p>
+<p>Service: {{service}}</p>
+
+<div id="domMessage" style="display:none;">
+    <h1>We are processing your request.  Please be patient.</h1>
+</div>
+
+{% if rest %}
 {% gizmo select_input select_variable %}
 <button id="generate-graph" class="btn btn-primary">Generate Graph</button>
 <div>
     <div class="chart-wrapper">
         <div class="chart-inner">
-            <div id="container" style="height:300px;width:100%"></div>
+            <div id="container" style="height:275px;width:100%"></div>
         </div>
     </div>
 </div>
+{% endif %}
+<div class="flex-container-row"><img id="view-file-loading" class="view-file hidden" src="/static/servir/images/loader.gif" /></div>
+
+{% if soap %}
+<form id="soap_variable" action="/apps/servir/soap-api/" method="POST">
+    {% csrf_token %}
+    {% gizmo select_input select_soap_variable %}
+<button id="generate-plot" class="btn btn-primary">Generate Graph</button>
+<div>
+    <div class="chart-wrapper">
+        <div class="chart-inner">
+
+            <div id="plotter" style="height:275px;width:100%"></div>
+        </div>
+    </div>
+</div>
+    </form>
+{% endif %}
 
 <!--{% gizmo plot_view timeseries_plot %}-->
 {% if hidenav %}
@@ -23,7 +48,6 @@
         $('#app-content-wrapper').removeClass('show-nav');
         $('.tethys-app-header').hide();
     });
-
 </script>
 <style>
 

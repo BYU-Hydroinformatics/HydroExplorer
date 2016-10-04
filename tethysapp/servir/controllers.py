@@ -17,6 +17,7 @@ import time, calendar
 from suds.client import Client
 from django.core import serializers
 import logging
+import unicodedata
 
 geo_url_base = getattr(settings, "GEOSERVER_URL_BASE", "http://127.0.0.1:8181")
 geo_user = getattr(settings, "GEOSERVER_USER_NAME", "admin")
@@ -67,15 +68,15 @@ def details(request):
     hs_url = request.GET['hsurl']
     hidenav = request.GET['hidenav']
     service = request.GET['service']
-
-
+    rest = None
+    soap = None
 
 
     if service == 'REST':
         if hs_url.endswith(''):
             hs_url = hs_url + "/"
         site_object = network+":"+site_code
-
+        rest = service
         get_site_info_url = hs_url + "GetSiteInfoObject?site="+site_object
         site_info_response = urllib2.urlopen(get_site_info_url)
         site_info_data = site_info_response.read()
@@ -220,7 +221,7 @@ def details(request):
         # )
 
         select_variable = SelectInput(display_text='Select variable',name="select_var",multiple=False,options=graph_variables)
-
+        select_soap_variable = []
             # print i['variable']
 
 
@@ -232,40 +233,191 @@ def details(request):
         # print graphs_object
         json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
         request.session['graphs_object'] = graphs_object
+        soap_obj = {}
     if service == 'SOAP':
+        soap_obj = {}
+        soap = service
+        soap_obj["url"] = hs_url
+
         client = Client(hs_url)
         client.set_options(port='WaterOneFlow')
-        site_desc = site_code+":"+network
+        site_desc = network+":"+site_code
+        soap_obj["site"] = site_desc
+        soap_obj["network"] = network
         site_info = client.service.GetSiteInfo(site_desc)
         site_info = site_info.encode('utf-8')
-        site_values = client.service.GetValuesForASiteObject(site_desc,"","","")
-        print site_info
-        print site_values
-        # info_dict = xmltodict.parse(site_info)
-        # info_json_object = json.dumps(info_dict)
-        # info_json = json.loads(info_json_object)
-        # # print site_values
+        # site_values = client.service.GetValuesForASiteObject(site_desc,"","","")
+        # print site_values
+        info_dict = xmltodict.parse(site_info)
+        info_json_object = json.dumps(info_dict)
+        info_json = json.loads(info_json_object)
+        # print site_values
         # print info_json
+        site_variables = []
+        site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
+        graph_variables = []
+
+        if type(site_object) is list:
+            count = 0
+            for i in site_object:
+                count = count + 1
+                variable_name =  i['variable']['variableName']
+                variable_id = i['variable']['variableCode']['@variableID']
+                variable_text = i['variable']['variableCode']['#text']
+                value_type = i['variable']['valueType']
+                value_count = i['valueCount']
+                data_type = i['variable']['dataType']
+                unit_name = i['variable']['unit']['unitName']
+                unit_type = i['variable']['unit']['unitType']
+                unit_abbr = i['variable']['unit']['unitAbbreviation']
+                unit_code = i['variable']['unit']['unitCode']
+                time_support = i['variable']['timeScale']['timeSupport']
+                time_support_name = i['variable']['timeScale']['unit']['unitName']
+                time_support_type = i['variable']['timeScale']['unit']['unitAbbreviation']
+                begin_time = i["variableTimeInterval"]["beginDateTimeUTC"]
+                end_time = i["variableTimeInterval"]["endDateTimeUTC"]
+                print begin_time,end_time
+                method_id = i["method"]["@methodID"]
+                method_desc = i["method"]["methodDescription"]
+                source_id = i["source"]["@sourceID"]
+                source_org = i["source"]["organization"]
+                source_desc = i["source"]["sourceDescription"]
+                qc_code = i["qualityControlLevel"]["qualityControlLevelCode"]
+                qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
+                qc_definition = i["qualityControlLevel"]["definition"]
+                # print variable_name,variable_id, source_id,method_id, qc_code
+                variable_string = str(count)+'. Variable Name:'+variable_name+','+'Count: '+value_count+',Variable ID:'+variable_id+','+'Source ID:'+source_id+','+'Method ID:'+method_id+','+'Quality Control Code:'+qc_code
+                # value_string = variable_id,variable_text,source_id,method_id,qc_code, variable_name
+                value_list = [variable_text, method_id]
+                value_string = str(value_list)
+                graph_variables.append([variable_string,value_string])
+                # print variable_name, variable_id, value_type, data_type, unit_name,unit_type, unit_abbr,unit_abbr,unit_code, time_support, time_support_name, time_support_type
+        else:
+            variable_name = site_object['variable']['variableName']
+            variable_id = site_object['variable']['variableCode']['@variableID']
+            variable_text = site_object['variable']['variableCode']['#text']
+            value_count = site_object['valueCount']
+            value_type = site_object['variable']['valueType']
+            data_type = site_object['variable']['dataType']
+            unit_name = site_object['variable']['unit']['unitName']
+            unit_type = site_object['variable']['unit']['unitType']
+            unit_abbr = site_object['variable']['unit']['unitAbbreviation']
+            unit_code = site_object['variable']['unit']['unitCode']
+            time_support = site_object['variable']['timeScale']['timeSupport']
+            time_support_name = site_object['variable']['timeScale']['unit']['unitName']
+            time_support_type = site_object['variable']['timeScale']['unit']['unitAbbreviation']
+            begin_time = site_object["variableTimeInterval"]["beginDateTimeUTC"]
+            end_time = site_object["variableTimeInterval"]["endDateTimeUTC"]
+            method_id = site_object["method"]["@methodID"]
+            method_desc = site_object["method"]["methodDescription"]
+            source_id = site_object["source"]["@sourceID"]
+            source_org = site_object["source"]["organization"]
+            source_desc = site_object["source"]["sourceDescription"]
+            qc_code = site_object["qualityControlLevel"]["qualityControlLevelCode"]
+            qc_id = site_object["qualityControlLevel"]["@qualityControlLevelID"]
+            qc_definition = site_object["qualityControlLevel"]["definition"]
+            variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: '+value_count+',Variable ID:' + variable_id + ',' + 'Source ID:' + source_id + ',' + 'Method ID:' + method_id + ',' + 'Quality Control Code:' + qc_code
+            # print variable_name, variable_id, source_id, method_id, qc_code
+            value_list = [variable_text,method_id]
+            value_string = str(value_list)
+            graph_variables.append([variable_string, value_string])
+
+
 
 
         # print site_values
         # values = client.service.GetSiteInfo(site_desc)
         # print values
-        select_variable = SelectInput(display_text='Select variable', name="select_var", multiple=False,
-                                      options=["life","life"])
+        select_soap_variable = SelectInput(display_text='Select Variable', name="select_var", multiple=False,
+                                      options=graph_variables)
+        select_variable = []
         graphs_object = {}
+        json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
+        request.session['soap_obj'] = soap_obj
 
-    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"hidenav":hidenav,"select_variable":select_variable,"graphs_object":graphs_object}
+    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"service":service,"rest":rest,"soap":soap,"hidenav":hidenav,"select_soap_variable":select_soap_variable,"select_variable":select_variable,"graphs_object":graphs_object,"soap_obj":soap_obj}
 
 
 
     return render(request, 'servir/details.html', context)
 
-def api(request):
+def rest_api(request):
     graphs_object = None
     if 'graphs_object' in request.session:
         graphs_object = request.session['graphs_object']
     return JsonResponse(graphs_object)
+
+def soap_api(request):
+    soap_object = None
+    values_json = {}
+    if 'soap_obj' in request.session:
+            soap_object = request.session['soap_obj']
+            url = soap_object['url']
+            site_desc = soap_object['site']
+            network = soap_object['network']
+            variable =  request.POST['select_var']
+            variable =  str(variable)
+            variable =  variable.replace("[","").replace("]","").replace("u","").replace(" ","").replace("'","")
+            variable = variable.split(',')
+            variable_text = variable[0]
+            variable_method = variable[1]
+            variable_desc = network+':'+variable_text
+
+            client = Client(url)
+            values = client.service.GetValues(site_desc,variable_desc,"","","")
+            values_dict = xmltodict.parse(values)
+            values_json_object = json.dumps(values_dict)
+            values_json = json.loads(values_json_object)
+            times_series = values_json['timeSeriesResponse']['timeSeries']
+            if times_series['values'] is not None:
+                graph_json = {}
+                graph_json["variable"] = times_series['variable']['variableName']
+                graph_json["unit"] = times_series['variable']['unit']['unitAbbreviation']
+                graph_json["title"] = site_desc + ':' + times_series['variable']['variableName']
+                for j in times_series['values']:
+                    data_values = []
+                    if j == "value":
+                        if type((times_series['values']['value'])) is list:
+                            count = 0
+                            for k in times_series['values']['value']:
+                                if k['@methodCode'] == variable_method:
+                                    count = count + 1
+                                    time = k['@dateTimeUTC']
+                                    time1 = time.replace("T", "-")
+                                    time_split = time1.split("-")
+                                    year = int(time_split[0])
+                                    month = int(time_split[1])
+                                    day = int(time_split[2])
+                                    hour_minute = time_split[3].split(":")
+                                    hour = int(hour_minute[0])
+                                    minute = int(hour_minute[1])
+                                    value = float(str(k['#text']))
+                                    date_string = datetime(year, month, day, hour, minute)
+                                    time_stamp = calendar.timegm(date_string.utctimetuple())
+                                    data_values.append([time_stamp, value])
+                                    data_values.sort()
+                                graph_json["values"] = data_values
+                                graph_json["count"] = count
+                        else:
+                            if times_series['values']['value']['@methodCode'] == variable_method:
+                                time = times_series['values']['value']['@dateTimeUTC']
+                                time1 = time.replace("T", "-")
+                                time_split = time1.split("-")
+                                year = int(time_split[0])
+                                month = int(time_split[1])
+                                day = int(time_split[2])
+                                hour_minute = time_split[3].split(":")
+                                hour = int(hour_minute[0])
+                                minute = int(hour_minute[1])
+                                value = float(str(times_series['values']['value']['#text']))
+                                date_string = datetime(year, month, day, hour, minute)
+                                time_stamp = calendar.timegm(date_string.utctimetuple())
+                                data_values.append([time_stamp, value])
+                                data_values.sort()
+                                graph_json["values"] = data_values
+                                graph_json["count"] = 1
+
+    return JsonResponse(graph_json)
 
 def soap(request):
     return_obj = {}

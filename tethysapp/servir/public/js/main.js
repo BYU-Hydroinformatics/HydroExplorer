@@ -40,11 +40,13 @@ var SERVIR_PACKAGE = (function() {
         addContextMenuToListItem,
         $modalAddHS,
         $modalAddSOAP,
+        $SoapVariable,
         onClickZoomTo,
         onClickDeleteLayer,
         $hs_list,
         location_search,
-        generate_graph;
+        generate_graph,
+        generate_plot;
 
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
@@ -94,6 +96,7 @@ var SERVIR_PACKAGE = (function() {
         //$('#current-servers').empty();
         $modalAddHS = $('#modalAddHS');
         $modalAddSOAP = $('#modalAddSoap');
+        $SoapVariable = $('#soap_variable');
         $hs_list = $('#current-servers-list');
     };
     function getRandomColor() {
@@ -139,7 +142,6 @@ var SERVIR_PACKAGE = (function() {
         //     alert("Please enter an Email for the Contact.");
         //     return false;
         // }
-
         var datastring = $modalAddHS.serialize();
         $.ajax({
             type: "POST",
@@ -148,6 +150,7 @@ var SERVIR_PACKAGE = (function() {
             data: datastring,
             success: function(result)
             {
+
                 var json_response = JSON.parse(result);
                 if (json_response.status === 'true')
                 {
@@ -329,6 +332,7 @@ var SERVIR_PACKAGE = (function() {
             var displayName = $(this).next().text();
             layersDict[displayName].setVisible($(this).is(':checked'));
         });
+        $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
 
         map.on("singleclick",function(evt){
             //Check for each layer in the baselayers
@@ -434,9 +438,10 @@ var SERVIR_PACKAGE = (function() {
         var variable = $('#select_var option:selected').val();
         $.ajax({
             type: "GET",
-            url: '/apps/servir/api/',
+            url: '/apps/servir/rest-api/',
             dataType: 'JSON',
             success: function (result) {
+
                 for (var i=0;i < result['graph'].length;i++){
                     if (result['graph'][i]['variable'] == variable){
                         $('#container').highcharts({
@@ -489,6 +494,63 @@ var SERVIR_PACKAGE = (function() {
 
     };
     $('#generate-graph').on('click',generate_graph);
+    generate_plot = function(){
+        var datastring = $SoapVariable.serialize();
+        $.ajax({
+            type: "POST",
+            url: '/apps/servir/soap-api/',
+            dataType: 'JSON',
+            data: datastring,
+            success: function(result){
+                    console.log(result['count']);
+                    $('#plotter').highcharts({
+                            chart: {
+                                type:'area',
+                                zoomType: 'x'
+                            },
+                            title: {
+                                text: result['title'],
+                                style: {
+                                    fontSize: '11px'
+                                }
+                            },
+                            xAxis: {
+                                type: 'datetime',
+                                labels: {
+                                    format: '{value:%d %b %Y}',
+                                    rotation: 45,
+                                    align: 'left'
+                                },
+                                title: {
+                                    text: 'Date'
+                                }
+                            },
+                            yAxis: {
+                                title: {
+                                    text: result['unit']
+                                }
+
+                            },
+                            exporting: {
+                                enabled: true,
+                                width: 5000
+                            },
+                            series: [{
+                                data: result['values'],
+                                name: result['variable']
+                            }]
+
+                        });
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown)
+            {
+                console.log(Error);
+            }
+        });
+        return false;
+    };
+
+    $('#generate-plot').on('click',generate_plot);
 
     addContextMenuToListItem = function ($listItem) {
         var contextMenuId;

@@ -67,8 +67,8 @@ def parseJSON(json):
             latitude = site['siteInfo']['geoLocation']['geogLocation']['latitude']
             longitude = site['siteInfo']['geoLocation']['geogLocation']['longitude']
             site_name = site['siteInfo']['siteName']
-            sitecode = site['siteInfo']['siteCode']["@network"]
-            network = site['siteInfo']['siteCode']["#text"]
+            network = site['siteInfo']['siteCode']["@network"]
+            sitecode = site['siteInfo']['siteCode']["#text"]
 
             hs_json["sitename"] = site_name
             hs_json["latitude"] = latitude
@@ -82,8 +82,8 @@ def parseJSON(json):
         latitude = sites_object['siteInfo']['geoLocation']['geogLocation']['latitude']
         longitude = sites_object['siteInfo']['geoLocation']['geogLocation']['longitude']
         site_name = sites_object['siteInfo']['siteName']
-        sitecode = sites_object['siteInfo']['siteCode']["@network"]
-        network = sites_object['siteInfo']['siteCode']["#text"]
+        network = sites_object['siteInfo']['siteCode']["@network"]
+        sitecode = sites_object['siteInfo']['siteCode']["#text"]
 
         hs_json["sitename"] = site_name
         hs_json["latitude"] = latitude

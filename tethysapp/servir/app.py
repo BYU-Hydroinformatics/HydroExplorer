@@ -32,12 +32,15 @@ class ServirCatalog(TethysAppBase):
                     UrlMap(name='details',
                            url='servir/details',
                            controller='servir.controllers.details'),
-                    UrlMap(name='api',
-                           url='servir/api',
-                           controller='servir.controllers.api'),
+                    UrlMap(name='rest-api',
+                           url='servir/rest-api',
+                           controller='servir.controllers.rest_api'),
                     UrlMap(name='soap',
                            url='servir/soap',
                            controller='servir.controllers.soap'),
+                    UrlMap(name='soap-api',
+                           url='servir/soap-api',
+                           controller='servir.controllers.soap_api'),
         )
 
         return url_maps
