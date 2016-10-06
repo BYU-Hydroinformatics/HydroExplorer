@@ -5,14 +5,14 @@ from tethys_sdk.services import get_spatial_dataset_engine, list_spatial_dataset
 from tethys_dataset_services.engines import GeoServerSpatialDatasetEngine
 from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
-from utilities import parseSites, genShapeFile, parseJSON
+from utilities import parseSites, genShapeFile, parseJSON, check_digit
 from json import dumps, loads
 import urllib2
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import XML, fromstring, tostring
 import xmltodict, json
 from datetime import datetime, timedelta
-from tethys_sdk.gizmos import TimeSeries, SelectInput
+from tethys_sdk.gizmos import TimeSeries, SelectInput, DatePicker
 import time, calendar
 from suds.client import Client
 from django.core import serializers
@@ -234,6 +234,8 @@ def details(request):
         json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
         request.session['graphs_object'] = graphs_object
         soap_obj = {}
+        from_date = {}
+        to_date = {}
     if service == 'SOAP':
         soap_obj = {}
         soap = service
@@ -254,6 +256,7 @@ def details(request):
         # print site_values
         # print info_json
         site_variables = []
+        site_object_info = info_json['sitesResponse']['site']['seriesCatalog']
         site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
         graph_variables = []
 
@@ -276,7 +279,7 @@ def details(request):
                 time_support_type = i['variable']['timeScale']['unit']['unitAbbreviation']
                 begin_time = i["variableTimeInterval"]["beginDateTimeUTC"]
                 end_time = i["variableTimeInterval"]["endDateTimeUTC"]
-                print begin_time,end_time
+                # print begin_time,end_time
                 method_id = i["method"]["@methodID"]
                 method_desc = i["method"]["methodDescription"]
                 source_id = i["source"]["@sourceID"]
@@ -286,7 +289,7 @@ def details(request):
                 qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
                 qc_definition = i["qualityControlLevel"]["definition"]
                 # print variable_name,variable_id, source_id,method_id, qc_code
-                variable_string = str(count)+'. Variable Name:'+variable_name+','+'Count: '+value_count+',Variable ID:'+variable_id+','+'Source ID:'+source_id+','+'Method ID:'+method_id+','+'Quality Control Code:'+qc_code
+                variable_string = str(count)+'. Variable Name:'+variable_name+','+'Count: '+value_count+',Variable ID:'+variable_id+','+'Source ID:'+source_id+','+'Method ID:'+method_id+','+'Quality Control Code:'+qc_code+', Start Date:'+begin_time+', End Date:'+end_time
                 # value_string = variable_id,variable_text,source_id,method_id,qc_code, variable_name
                 value_list = [variable_text, method_id]
                 value_string = str(value_list)
@@ -316,7 +319,7 @@ def details(request):
             qc_code = site_object["qualityControlLevel"]["qualityControlLevelCode"]
             qc_id = site_object["qualityControlLevel"]["@qualityControlLevelID"]
             qc_definition = site_object["qualityControlLevel"]["definition"]
-            variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: '+value_count+',Variable ID:' + variable_id + ',' + 'Source ID:' + source_id + ',' + 'Method ID:' + method_id + ',' + 'Quality Control Code:' + qc_code
+            variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: '+value_count+',Variable ID:' + variable_id + ',' + 'Source ID:' + source_id + ',' + 'Method ID:' + method_id + ',' + 'Quality Control Code:' + qc_code+', Start Date:'+begin_time+', End Date:'+end_time
             # print variable_name, variable_id, source_id, method_id, qc_code
             value_list = [variable_text,method_id]
             value_string = str(value_list)
@@ -330,16 +333,36 @@ def details(request):
         # print values
         select_soap_variable = SelectInput(display_text='Select Variable', name="select_var", multiple=False,
                                       options=graph_variables)
+
+        t_now = datetime.now()
+        now_str = "{0}-{1}-{2}".format(t_now.year, check_digit(t_now.month), check_digit(t_now.day))
+        from_date = DatePicker(name='start_date',
+                                      display_text='Start Date',
+                                      end_date='0d',
+                                      autoclose=True,
+                                      format='yyyy-mm-dd',
+                                      start_view='month',
+                                      today_button=True,
+                                      initial=now_str)
+        to_date = DatePicker(name='end_date',
+                               display_text='End Date',
+                               end_date='0d',
+                               autoclose=True,
+                               format='yyyy-mm-dd',
+                               start_view='month',
+                               today_button=True,
+                               initial=now_str)
         select_variable = []
         graphs_object = {}
         json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
         request.session['soap_obj'] = soap_obj
 
-    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"service":service,"rest":rest,"soap":soap,"hidenav":hidenav,"select_soap_variable":select_soap_variable,"select_variable":select_variable,"graphs_object":graphs_object,"soap_obj":soap_obj}
+    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"service":service,"rest":rest,"soap":soap,"hidenav":hidenav,"select_soap_variable":select_soap_variable,"select_variable":select_variable,"graphs_object":graphs_object,"soap_obj":soap_obj,"from_date":from_date,"to_date":to_date}
 
 
 
     return render(request, 'servir/details.html', context)
+
 
 def rest_api(request):
     graphs_object = None
@@ -349,13 +372,14 @@ def rest_api(request):
 
 def soap_api(request):
     soap_object = None
-    values_json = {}
     if 'soap_obj' in request.session:
             soap_object = request.session['soap_obj']
             url = soap_object['url']
             site_desc = soap_object['site']
             network = soap_object['network']
             variable =  request.POST['select_var']
+            start_date = request.POST["start_date"]
+            end_date = request.POST["end_date"]
             variable =  str(variable)
             variable =  variable.replace("[","").replace("]","").replace("u","").replace(" ","").replace("'","")
             variable = variable.split(',')
@@ -364,7 +388,7 @@ def soap_api(request):
             variable_desc = network+':'+variable_text
 
             client = Client(url)
-            values = client.service.GetValues(site_desc,variable_desc,"","","")
+            values = client.service.GetValues(site_desc,variable_desc,start_date,end_date,"")
             values_dict = xmltodict.parse(values)
             values_json_object = json.dumps(values_dict)
             values_json = json.loads(values_json_object)

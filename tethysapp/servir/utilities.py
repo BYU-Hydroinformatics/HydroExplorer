@@ -179,3 +179,8 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
+def check_digit(num):
+    num_str = str(num)
+    if len(num_str) < 2:
+        num_str = '0' + num_str
+    return num_str

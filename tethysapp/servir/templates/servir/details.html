@@ -28,6 +28,8 @@
 <form id="soap_variable" action="/apps/servir/soap-api/" method="POST">
     {% csrf_token %}
     {% gizmo select_input select_soap_variable %}
+    {% gizmo date_picker from_date %}
+    {% gizmo date_picker to_date %}
 <button id="generate-plot" class="btn btn-primary">Generate Graph</button>
 <div>
     <div class="chart-wrapper">
