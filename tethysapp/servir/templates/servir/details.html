@@ -6,7 +6,8 @@
 <h4>Site Details for {{site_name}}</h4>
 <p>Site Code: {{site_code}}</p>
 <p>Service: {{service}}</p>
-
+<div class="warning">
+</div>
 <div id="domMessage" style="display:none;">
     <h1>We are processing your request.  Please be patient.</h1>
 </div>
@@ -14,6 +15,7 @@
 {% if rest %}
 {% gizmo select_input select_variable %}
 <button id="generate-graph" class="btn btn-primary">Generate Graph</button>
+
 <div>
     <div class="chart-wrapper">
         <div class="chart-inner">
@@ -28,18 +30,19 @@
 <form id="soap_variable" action="/apps/servir/soap-api/" method="POST">
     {% csrf_token %}
     {% gizmo select_input select_soap_variable %}
-    {% gizmo date_picker from_date %}
-    {% gizmo date_picker to_date %}
-<button id="generate-plot" class="btn btn-primary">Generate Graph</button>
-<div>
-    <div class="chart-wrapper">
-        <div class="chart-inner">
+    {% gizmo date_picker start_date %}
+    {% gizmo date_picker end_date %}
 
-            <div id="plotter" style="height:275px;width:100%"></div>
+    <button id="generate-plot" class="btn btn-primary">Generate Graph</button>
+    <div>
+        <div class="chart-wrapper">
+            <div class="chart-inner">
+
+                <div id="plotter" style="height:275px;width:100%"></div>
+            </div>
         </div>
     </div>
-</div>
-    </form>
+</form>
 {% endif %}
 
 <!--{% gizmo plot_view timeseries_plot %}-->

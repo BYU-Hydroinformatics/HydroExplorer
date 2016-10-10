@@ -35,6 +35,7 @@ var SERVIR_PACKAGE = (function() {
         init_menu,
         init_jquery_var,
         init_events,
+        load_catalog,
         add_server,
         add_soap,
         addContextMenuToListItem,
@@ -44,14 +45,26 @@ var SERVIR_PACKAGE = (function() {
         onClickZoomTo,
         onClickDeleteLayer,
         $hs_list,
+        $modalDelete,
         location_search,
         generate_graph,
-        generate_plot;
+        generate_plot,
+        update_catalog,
+        get_hs_list;
 
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
      *************************************************************************/
-
+    function getRandomColor() {
+        var letters = '012345'.split('');
+        var color = '#';
+        color += letters[Math.round(Math.random() * 5)];
+        letters = '0123456789ABCDEF'.split('');
+        for (var i = 0; i < 5; i++) {
+            color += letters[Math.round(Math.random() * 15)];
+        }
+        return color;
+    }
     init_map = function(){
         var projection = ol.proj.get('EPSG:3857');
         var baseLayer = new ol.layer.Tile({
@@ -90,34 +103,139 @@ var SERVIR_PACKAGE = (function() {
         });
 
         map.addOverlay(popup);
-
+        load_catalog();
     };
     init_jquery_var = function () {
         //$('#current-servers').empty();
         $modalAddHS = $('#modalAddHS');
         $modalAddSOAP = $('#modalAddSoap');
         $SoapVariable = $('#soap_variable');
+        $modalDelete = $('#modalDelete');
         $hs_list = $('#current-servers-list');
     };
-    function getRandomColor() {
-            var letters = '012345'.split('');
-            var color = '#';
-            color += letters[Math.round(Math.random() * 5)];
-            letters = '0123456789ABCDEF'.split('');
-            for (var i = 0; i < 5; i++) {
-                color += letters[Math.round(Math.random() * 15)];
+    get_hs_list = function(){
+        $.ajax({
+            type: "GET",
+            url: '/apps/servir/catalog/',
+            dataType: 'JSON',
+            success: function (result) {
+                var server = result['hydroserver'];
+                var HSTableHtml = '<table id="tbl-hydroservers"><thead><th></th><th>Title</th><th>URL</th></thead><tbody>';
+                if (server.length === 0) {
+                    $modalDelete.find('.modal-body').html('<b>There are no hydroservers in the Catalog.</b>');
+                } else{
+                    for (var i = 0; i < server.length; i++) {
+                        var title = server[i].title;
+                        var url = server[i].url;
+                        var geoserver_url = server[i].geoserver_url;
+                        var layer_name = server[i].layer_name;
+                        var extents = server[i].extents;
+                        HSTableHtml += '<tr>' +
+                            '<td><input type="radio" name="server" id="server" value="' + title + '"></td>' +
+                            '<td class="hs_title">' + title + '</td>' +
+                            '<td class="hs_url">' + url + '</td>' +
+                            '</tr>';
+                    }
+                    HSTableHtml += '</tbody></table>';
+                    $modalDelete.find('.modal-body').html(HSTableHtml);
+                }
+
+
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
             }
-            return color;
-        }
+
+        });
+    };
+    $("#delete-server").on('click',get_hs_list);
+
+    load_catalog = function () {
+        $.ajax({
+            type: "GET",
+            url: '/apps/servir/catalog/',
+            dataType: 'JSON',
+            success: function (result) {
+                var server = result['hydroserver'];
+                for (var i = 0; i < server.length; i++) {
+                    var title = server[i].title;
+                    var url = server[i].url;
+                    var geoserver_url = server[i].geoserver_url;
+                    var layer_name = server[i].layer_name;
+                    var extents = server[i].extents;
+
+
+                    $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
+                    addContextMenuToListItem($('#current-servers').find('li:last-child'));
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+layer_name+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+getRandomColor()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+                    wmsSource = new ol.source.TileWMS({
+                        url: geoserver_url,
+                        params: {'LAYERS':layer_name,
+                            'SLD_BODY':sld_string},
+                        serverType: 'geoserver',
+                        crossOrigin: 'Anonymous'
+                    });
+                    wmsLayer = new ol.layer.Tile({
+                        extent:ol.proj.transformExtent([extents['minx'],extents['miny'],extents['maxx'],extents['maxy']],'EPSG:4326','EPSG:3857'),
+                        source: wmsSource
+                    });
+
+                    map.addLayer(wmsLayer);
+
+                    layersDict[title] = wmsLayer;
+
+                    var layer_extent = wmsLayer.getExtent();
+                    map.getView().fit(layer_extent,map.getSize());
+                }
+
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
+            }
+
+        });
+
+    };
+
+
+    update_catalog = function () {
+        var datastring = $modalDelete.serialize();
+        $.ajax({
+            type: "POST",
+            url: '/apps/servir/delete/',
+            data: datastring,
+            dataType: 'HTML',
+            success: function (result) {
+                console.log(result);
+                $('#current-servers').empty();
+                $('#modalDelete').modal('hide');
+
+                //map.addLayer(new_layer);
+                $( '#modalDelete' ).each(function(){
+                    this.reset();
+                });
+
+                load_catalog();
+
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
+            }
+
+        });
+
+    };
+    $("#btn-del-server").on('click',update_catalog);
+
     add_server = function(){
-        // if(($("#hs-title").val())==""){
-        //     alert("Please enter a Title for the site.");
-        //     return false;
-        // }
-        // if(($("#hs-url").val())==""){
-        //     alert("Please enter a URL for the Server.");
-        //     return false;
-        // }
+        if(($("#hs-title").val())==""){
+            alert("Please enter a Title for the site.");
+            return false;
+        }
+        if(($("#hs-url").val())==""){
+            alert("Please enter a URL for the Server.");
+            return false;
+        }
         // if(($("#hs-code").val())==""){
         //     alert("Please enter a Code for the site.");
         //     return false;
@@ -207,6 +325,23 @@ var SERVIR_PACKAGE = (function() {
 
     add_soap = function () {
         var datastring = $modalAddSOAP.serialize();
+        if(($("#soap-title").val())==""){
+            $modalAddSOAP.find('.warning').html('<b>Please enter a title. This field cannot be blank.</b>');
+            return false;
+        }
+        if(($("#soap-url").val())==""){
+            $modalAddSOAP.find('.warning').html('<b>Please enter a valid URL. This field cannot be blank.</b>');
+            return false;
+        }
+        if(($("#soap-title").val()) != ""){
+            var regex = new RegExp("^[a-zA-Z ]+$");
+            var title = $("#soap-title").val();
+            if (!regex.test(title)) {
+                $modalAddSOAP.find('.warning').html('<b>Please enter Letters only for the title.</b>');
+                return false;
+            }
+        }
+
         $.ajax({
             type: "POST",
             url: '/apps/servir/soap/',
@@ -254,18 +389,19 @@ var SERVIR_PACKAGE = (function() {
                     map.getView().fit(layer_extent,map.getSize());
                 }
                 else{
-                    alert("Please Check your URL and Try Again.");
+                    $modalAddSOAP.find('.warning').html('<b>Failed to add server. Please check Url and try again.</b>');
                 }
 
             },
             error: function(XMLHttpRequest, textStatus, errorThrown)
             {
-                console.log(Error);
+                $modalAddSOAP.find('.warning').html('<b>Invalid Hydroserver SOAP Url. Please check your url and try again.</b>');
             }
         });
 
     };
     $('#btn-add-soap').on('click', add_soap);
+
 
     location_search = function(){
         function geocoder_success(results, status) {
@@ -488,6 +624,7 @@ var SERVIR_PACKAGE = (function() {
                 }
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
+                $(document).find('.warning').html('<b>Unable to generate graph. Please check the start and end dates and try again.</b>');
                 console.log(Error);
             }
         });
@@ -502,48 +639,49 @@ var SERVIR_PACKAGE = (function() {
             dataType: 'JSON',
             data: datastring,
             success: function(result){
-                    console.log(result['count']);
-                    $('#plotter').highcharts({
-                            chart: {
-                                type:'area',
-                                zoomType: 'x'
-                            },
-                            title: {
-                                text: result['title'],
-                                style: {
-                                    fontSize: '11px'
-                                }
-                            },
-                            xAxis: {
-                                type: 'datetime',
-                                labels: {
-                                    format: '{value:%d %b %Y}',
-                                    rotation: 45,
-                                    align: 'left'
-                                },
-                                title: {
-                                    text: 'Date'
-                                }
-                            },
-                            yAxis: {
-                                title: {
-                                    text: result['unit']
-                                }
+                console.log(result['count']);
+                $('#plotter').highcharts({
+                    chart: {
+                        type:'area',
+                        zoomType: 'x'
+                    },
+                    title: {
+                        text: result['title'],
+                        style: {
+                            fontSize: '11px'
+                        }
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        labels: {
+                            format: '{value:%d %b %Y}',
+                            rotation: 45,
+                            align: 'left'
+                        },
+                        title: {
+                            text: 'Date'
+                        }
+                    },
+                    yAxis: {
+                        title: {
+                            text: result['unit']
+                        }
 
-                            },
-                            exporting: {
-                                enabled: true,
-                                width: 5000
-                            },
-                            series: [{
-                                data: result['values'],
-                                name: result['variable']
-                            }]
+                    },
+                    exporting: {
+                        enabled: true,
+                        width: 5000
+                    },
+                    series: [{
+                        data: result['values'],
+                        name: result['variable']
+                    }]
 
-                        });
+                });
             },
             error: function(XMLHttpRequest, textStatus, errorThrown)
             {
+                $(document).find('.warning').html('<b>Unable to generate graph. Please check the start and end dates and try again.</b>');
                 console.log(Error);
             }
         });
@@ -582,6 +720,7 @@ var SERVIR_PACKAGE = (function() {
         init_jquery_var();
         init_events();
         init_menu();
+
     });
 
 }()); // End of package wrapper

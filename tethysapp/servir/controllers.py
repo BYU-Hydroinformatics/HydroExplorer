@@ -18,6 +18,8 @@ from suds.client import Client
 from django.core import serializers
 import logging
 import unicodedata
+import ast
+from .model import engine, SessionMaker, Base, Catalog
 
 geo_url_base = getattr(settings, "GEOSERVER_URL_BASE", "http://127.0.0.1:8181")
 geo_user = getattr(settings, "GEOSERVER_USER_NAME", "admin")
@@ -28,9 +30,47 @@ def home(request):
     """
     Controller for the app home page.
     """
+
+
     context = {}
 
     return render(request, 'servir/home.html', context)
+def catalog(request):
+    list = {}
+
+    session = SessionMaker()
+
+    # Query DB for hydroservers
+    hydroservers = session.query(Catalog).all()
+
+    hs_list = []
+    for server in hydroservers:
+        layer_obj = {}
+        layer_obj["geoserver_url"] = server.geoserver_url
+        layer_obj["title"] = server.title
+        layer_obj["url"] = server.url
+        layer_obj["layer_name"] = server.layer_name
+        json_encoded = ast.literal_eval(server.extents)
+        layer_obj["extents"] = json_encoded
+        hs_list.append(layer_obj)
+    list["hydroserver"] = hs_list
+
+    return JsonResponse(list)
+def delete(request):
+    list = {}
+
+    session = SessionMaker()
+
+    # Query DB for hydroservers
+    if request.is_ajax() and request.method == 'POST':
+        title = request.POST['server']
+        hydroservers = session.query(Catalog).filter(Catalog.title == title).delete(synchronize_session='evaluate')
+        session.commit()
+        session.close()
+        list["title"] = title
+
+
+    return JsonResponse(list)
 
 def add_server(request):
     return_obj = {}
@@ -39,8 +79,11 @@ def add_server(request):
     if request.is_ajax() and request.method == 'POST':
         url = request.POST['hs-url']
         title = request.POST['hs-title']
+        title = title.replace(" ","")
         if url.endswith('/'):
             url = url[:-1]
+
+
 
         #cuahsi_validation_str = "cuahsi_1_1.asmx"
         #if cuahsi_validation_str in url:
@@ -52,9 +95,71 @@ def add_server(request):
         return_obj['rest_url'] = geoserver_rest_url
         return_obj['wms'] = shapefile_object["layer"]
         return_obj['bounds'] = shapefile_object["extents"]
+        extents_string = str(shapefile_object["extents"])
         return_obj['title'] = title
         return_obj['url'] = url
         return_obj['status'] = "true"
+
+        Base.metadata.create_all(engine)
+        session = SessionMaker()
+        hs_one = Catalog(title=title,
+                         url=url,geoserver_url=geoserver_rest_url,layer_name=shapefile_object["layer"],extents=extents_string)
+        session.add(hs_one)
+        session.commit()
+        session.close()
+    else:
+        return_obj['message'] = 'This request can only be made through a "POST" AJAX call.'
+
+    return JsonResponse(return_obj)
+
+
+def soap(request):
+    return_obj = {}
+    if request.is_ajax() and request.method == 'POST':
+
+        logging.getLogger('suds.client').setLevel(logging.CRITICAL)
+        # soap_url = 'http://worldwater.byu.edu/app/index.php/sediment/services/cuahsi_1_1.asmx?WSDL'
+        geo_url = geo_url_base + "/geoserver/rest/"
+        # soap_url = 'http://hydroportal.cuahsi.org/GlobalRiversObservatory/webapp/cuahsi_1_1.asmx?WSDL'
+        url = request.POST['soap-url']
+        title = request.POST['soap-title']
+        title = title.replace(" ", "")
+
+        client = Client(url)
+        client.set_options(port='WaterOneFlow')
+        sites = client.service.GetSites('[:]')
+        # sites = client.service.GetSites()
+        # print sites
+        sites_dict = xmltodict.parse(sites)
+        sites_json_object = json.dumps(sites_dict)
+        sites_json = json.loads(sites_json_object)
+        sites_object = parseJSON(sites_json)
+        shapefile_object = genShapeFile(sites_object, title, geo_url, geo_user, geo_pw, url)
+
+        geoserver_rest_url = geo_url_base + "/geoserver/wms"
+        return_obj['rest_url'] = geoserver_rest_url
+        return_obj['wms'] = shapefile_object["layer"]
+        return_obj['bounds'] = shapefile_object["extents"]
+        extents_string = str(shapefile_object["extents"])
+
+        # extents_dict = xmltodict.parse(extents_string)
+        # extents_json_object = json.dumps(extents_dict)
+        # extents_json = json.loads(extents_json_object)
+
+
+
+
+        return_obj['title'] = title
+        return_obj['url'] = url
+        return_obj['status'] = "true"
+        Base.metadata.create_all(engine)
+        session = SessionMaker()
+        hs_one = Catalog(title=title,
+                         url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"],extents=extents_string)
+        session.add(hs_one)
+        session.commit()
+        session.close()
+
     else:
         return_obj['message'] = 'This request can only be made through a "POST" AJAX call.'
 
@@ -129,7 +234,7 @@ def details(request):
                                     minute = int(hour_minute[1])
                                     value = float(str(k['#text']))
                                     date_string = datetime(year,month,day,hour,minute)
-                                    time_stamp = calendar.timegm(date_string.utctimetuple())
+                                    time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
                                     data_values.append([time_stamp,value])
                                     data_values.sort()
                                 graph_json["values"] = data_values
@@ -145,7 +250,7 @@ def details(request):
                                 minute = int(hour_minute[1])
                                 value = float(str(i['values']['value']['#text']))
                                 date_string = datetime(year, month, day, hour, minute)
-                                time_stamp = calendar.timegm(date_string.utctimetuple())
+                                time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
                                 data_values.append([time_stamp, value])
                                 data_values.sort()
                                 graph_json["values"] = data_values
@@ -172,7 +277,7 @@ def details(request):
                                 minute = int(hour_minute[1])
                                 value = float(str(k['#text']))
                                 date_string = datetime(year, month, day, hour, minute)
-                                time_stamp = calendar.timegm(date_string.utctimetuple())
+                                time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
                                 data_values.append([time_stamp, value])
                                 data_values.sort()
                             graph_json["values"] = data_values
@@ -188,7 +293,7 @@ def details(request):
                             minute = int(hour_minute[1])
                             value = float(str(times_series['values']['value']['#text']))
                             date_string = datetime(year, month, day, hour, minute)
-                            time_stamp = calendar.timegm(date_string.utctimetuple())
+                            time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
                             data_values.append([time_stamp, value])
                             data_values.sort()
                             graph_json["values"] = data_values
@@ -224,7 +329,6 @@ def details(request):
         select_soap_variable = []
             # print i['variable']
 
-
         # for i in series:
         #     print i['variable']['variableName']
         #     print i['variableTimeInterval']['beginDateTime'][:-9]
@@ -234,8 +338,11 @@ def details(request):
         json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
         request.session['graphs_object'] = graphs_object
         soap_obj = {}
-        from_date = {}
-        to_date = {}
+        t_now = datetime.now()
+        now_str = "{0}-{1}-{2}".format(t_now.year, check_digit(t_now.month), check_digit(t_now.day))
+        start_date = {}
+        end_date = {}
+
     if service == 'SOAP':
         soap_obj = {}
         soap = service
@@ -289,7 +396,7 @@ def details(request):
                 qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
                 qc_definition = i["qualityControlLevel"]["definition"]
                 # print variable_name,variable_id, source_id,method_id, qc_code
-                variable_string = str(count)+'. Variable Name:'+variable_name+','+'Count: '+value_count+',Variable ID:'+variable_id+','+'Source ID:'+source_id+','+'Method ID:'+method_id+','+'Quality Control Code:'+qc_code+', Start Date:'+begin_time+', End Date:'+end_time
+                variable_string = str(count)+'. Variable Name:'+variable_name+','+'Count: '+value_count+',Variable ID:'+variable_id+', Start Date:'+begin_time+', End Date:'+end_time
                 # value_string = variable_id,variable_text,source_id,method_id,qc_code, variable_name
                 value_list = [variable_text, method_id]
                 value_string = str(value_list)
@@ -319,7 +426,7 @@ def details(request):
             qc_code = site_object["qualityControlLevel"]["qualityControlLevelCode"]
             qc_id = site_object["qualityControlLevel"]["@qualityControlLevelID"]
             qc_definition = site_object["qualityControlLevel"]["definition"]
-            variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: '+value_count+',Variable ID:' + variable_id + ',' + 'Source ID:' + source_id + ',' + 'Method ID:' + method_id + ',' + 'Quality Control Code:' + qc_code+', Start Date:'+begin_time+', End Date:'+end_time
+            variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: '+value_count+',Variable ID:' + variable_id +', Start Date:'+begin_time+', End Date:'+end_time
             # print variable_name, variable_id, source_id, method_id, qc_code
             value_list = [variable_text,method_id]
             value_string = str(value_list)
@@ -336,28 +443,27 @@ def details(request):
 
         t_now = datetime.now()
         now_str = "{0}-{1}-{2}".format(t_now.year, check_digit(t_now.month), check_digit(t_now.day))
-        from_date = DatePicker(name='start_date',
+        start_date = DatePicker(name='start_date',
                                       display_text='Start Date',
-                                      end_date='0d',
                                       autoclose=True,
                                       format='yyyy-mm-dd',
                                       start_view='month',
                                       today_button=True,
                                       initial=now_str)
-        to_date = DatePicker(name='end_date',
+        end_date = DatePicker(name='end_date',
                                display_text='End Date',
-                               end_date='0d',
                                autoclose=True,
                                format='yyyy-mm-dd',
                                start_view='month',
                                today_button=True,
                                initial=now_str)
+
         select_variable = []
         graphs_object = {}
         json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
         request.session['soap_obj'] = soap_obj
 
-    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"service":service,"rest":rest,"soap":soap,"hidenav":hidenav,"select_soap_variable":select_soap_variable,"select_variable":select_variable,"graphs_object":graphs_object,"soap_obj":soap_obj,"from_date":from_date,"to_date":to_date}
+    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"service":service,"rest":rest,"soap":soap,"hidenav":hidenav,"select_soap_variable":select_soap_variable,"select_variable":select_variable,"start_date":start_date,"end_date":end_date,"graphs_object":graphs_object,"soap_obj":soap_obj}
 
 
 
@@ -417,7 +523,7 @@ def soap_api(request):
                                     minute = int(hour_minute[1])
                                     value = float(str(k['#text']))
                                     date_string = datetime(year, month, day, hour, minute)
-                                    time_stamp = calendar.timegm(date_string.utctimetuple())
+                                    time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
                                     data_values.append([time_stamp, value])
                                     data_values.sort()
                                 graph_json["values"] = data_values
@@ -435,7 +541,7 @@ def soap_api(request):
                                 minute = int(hour_minute[1])
                                 value = float(str(times_series['values']['value']['#text']))
                                 date_string = datetime(year, month, day, hour, minute)
-                                time_stamp = calendar.timegm(date_string.utctimetuple())
+                                time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
                                 data_values.append([time_stamp, value])
                                 data_values.sort()
                                 graph_json["values"] = data_values
@@ -443,36 +549,3 @@ def soap_api(request):
 
     return JsonResponse(graph_json)
 
-def soap(request):
-    return_obj = {}
-    if request.is_ajax() and request.method == 'POST':
-
-        logging.getLogger('suds.client').setLevel(logging.CRITICAL)
-        # soap_url = 'http://worldwater.byu.edu/app/index.php/sediment/services/cuahsi_1_1.asmx?WSDL'
-        geo_url = geo_url_base + "/geoserver/rest/"
-        # soap_url = 'http://hydroportal.cuahsi.org/GlobalRiversObservatory/webapp/cuahsi_1_1.asmx?WSDL'
-        url = request.POST['soap-url']
-        title = request.POST['soap-title']
-        client = Client(url)
-        client.set_options(port='WaterOneFlow')
-        sites = client.service.GetSites('[:]')
-        # sites = client.service.GetSites()
-        # print sites
-        sites_dict = xmltodict.parse(sites)
-        sites_json_object = json.dumps(sites_dict)
-        sites_json = json.loads(sites_json_object)
-        sites_object = parseJSON(sites_json)
-        shapefile_object = genShapeFile(sites_object,title,geo_url,geo_user,geo_pw,url)
-
-        geoserver_rest_url = geo_url_base + "/geoserver/wms"
-        return_obj['rest_url'] = geoserver_rest_url
-        return_obj['wms'] = shapefile_object["layer"]
-        return_obj['bounds'] = shapefile_object["extents"]
-        return_obj['title'] = title
-        return_obj['url'] = url
-        return_obj['status'] = "true"
-    else:
-        return_obj['message'] = 'This request can only be made through a "POST" AJAX call.'
-
-
-    return  JsonResponse(return_obj)

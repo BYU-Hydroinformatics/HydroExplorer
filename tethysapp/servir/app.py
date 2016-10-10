@@ -1,5 +1,5 @@
 from tethys_sdk.base import TethysAppBase, url_map_maker
-
+from tethys_sdk.stores import PersistentStore
 
 class ServirCatalog(TethysAppBase):
     """
@@ -41,6 +41,23 @@ class ServirCatalog(TethysAppBase):
                     UrlMap(name='soap-api',
                            url='servir/soap-api',
                            controller='servir.controllers.soap_api'),
+                    UrlMap(name='catalog',
+                           url='servir/catalog',
+                           controller='servir.controllers.catalog'),
+                    UrlMap(name='delete',
+                           url='servir/delete',
+                           controller='servir.controllers.delete'),
         )
 
         return url_maps
+
+    def persistent_stores(self):
+        """
+        Add one or more persistent stores
+        """
+        stores = (PersistentStore(name='catalog_db',
+                                  initializer='servir.init_stores.init_catalog_db'
+                                  ),
+                  )
+
+        return stores

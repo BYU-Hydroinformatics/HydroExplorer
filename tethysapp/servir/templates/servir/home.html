@@ -1,5 +1,4 @@
 {% extends "servir/base.html" %}
-
 {% block app_content %}
 <div id="map"></div>
 <div id="popup" class="popup"></div>
@@ -7,96 +6,129 @@
 
 {% block app_content_wrapper_override %}
 
-    {{ block.super }}
-    <!-- Add HydroServer REST Endpoint -->
-    <form id="modalAddHS" class="modal fade" role="dialog" action="add_server/" method="POST">
-        {% csrf_token %}
-        <div class="modal-dialog">
-            <!-- Modal content-->
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Add WaterOneFlow Service Info</h4>
-                </div>
-                <div class="modal-body">
-                    <br>
-                    <label for="hs-title">Title (Required):</label>
-                    <input type="text" class="form-control" name="hs-title" id="hs-title" placeholder="Please enter a valid HydroServer Title">
-
-                    <label for="hs-url">URL (Required):</label>
-                    <input type="text" class="form-control" name="hs-url" id="hs-url" placeholder="Please enter a valid HydroServer REST Endpoint">
-
-                    <!--<label for="hs-code">Code:</label>-->
-                    <!--<input type="text" class="form-control" name="hs-code" id="hs-code">-->
-
-                    <!--<label for="hs-website">Website:</label>-->
-                    <!--<input type="text" class="form-control" name="hs-website" id="hs-website">-->
-
-                    <!--<label for="hs-citation">Citation:</label>-->
-                    <!--<input type="text" class="form-control" name="hs-citation" id="hs-citation">-->
-
-                    <!--<label for="hs-contact">Contact Name:</label>-->
-                    <!--<input type="text" class="form-control" name="hs-contact" id="hs-contact">-->
-
-                    <!--<label for="hs-abstract">Abstract:</label>-->
-                    <!--<input type="text" class="form-control" name="hs-abstract" id="hs-abstract">-->
-
-                    <!--<label for="hs-email">Contact Email:</label>-->
-                    <!--<input type="text" class="form-control" name="hs-email" id="hs-email">-->
-                </div>
-                <div class="modal-footer">
-                    <div class="button-group">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                        <button type="button" id="btn-add-server" class="btn btn-default">Add</button>
-                    </div>
-                </div>
-            </div>
-            <!--End modal content-->
-        </div>
-    </form>
-
-    <form id="modalAddSoap" class="modal fade" role="dialog" action="soap/" method="POST">
+{{ block.super }}
+<!-- Add HydroServer REST Endpoint -->
+<form id="modalAddHS" class="modal fade" role="dialog" action="add_server/" method="POST">
     {% csrf_token %}
-        <div class="modal-dialog">
-            <!-- Modal content-->
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Add WaterOneFlow Service Info</h4>
-                </div>
-                <div class="modal-body">
-                    <br>
-                    <label for="soap-title">Title (Required):</label>
-                    <input type="text" class="form-control" name="soap-title" id="soap-title" placeholder="Please enter a valid HydroServer Title">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Add WaterOneFlow Service Info</h4>
+            </div>
+            <div class="modal-body">
+                <br>
+                <label for="hs-title">Title (Required):</label>
+                <input type="text" class="form-control" name="hs-title" id="hs-title" placeholder="Please enter a valid HydroServer Title">
 
-                    <label for="soap-url">URL (Required):</label>
-                    <input type="text" class="form-control" name="soap-url" id="soap-url" placeholder="Please enter a valid HydroServer SOAP Endpoint">
-                </div>
-                <div class="modal-footer">
-                    <div class="button-group">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                        <button type="button" id="btn-add-soap" class="btn btn-default">Add</button>
-                    </div>
+                <label for="hs-url">URL (Required):</label>
+                <input type="text" class="form-control" name="hs-url" id="hs-url" placeholder="Please enter a valid HydroServer REST Endpoint">
+
+                <!--<label for="hs-code">Code:</label>-->
+                <!--<input type="text" class="form-control" name="hs-code" id="hs-code">-->
+
+                <!--<label for="hs-website">Website:</label>-->
+                <!--<input type="text" class="form-control" name="hs-website" id="hs-website">-->
+
+                <!--<label for="hs-citation">Citation:</label>-->
+                <!--<input type="text" class="form-control" name="hs-citation" id="hs-citation">-->
+
+                <!--<label for="hs-contact">Contact Name:</label>-->
+                <!--<input type="text" class="form-control" name="hs-contact" id="hs-contact">-->
+
+                <!--<label for="hs-abstract">Abstract:</label>-->
+                <!--<input type="text" class="form-control" name="hs-abstract" id="hs-abstract">-->
+
+                <!--<label for="hs-email">Contact Email:</label>-->
+                <!--<input type="text" class="form-control" name="hs-email" id="hs-email">-->
+            </div>
+            <div class="modal-footer">
+                <div class="button-group">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" id="btn-add-server" class="btn btn-default">Add</button>
                 </div>
             </div>
-            <!--End modal content-->
         </div>
-    </form>
-
-    <!--End modal-->
-<!-- View File Modal -->
-    <div id="modalViewDetails" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-            <!-- Modal content-->
-            <span id="close-modalViewDetails">X</span>
-            <div class="modal-content flex-container-row">
-                <img id="view-file-loading" class="view-file" src="/static/servir/images/loader.gif" />
-                <div id="iframe-container" class="view-details hidden" ></div>
-            </div>
-            <!--End modal content-->
-        </div>
+        <!--End modal content-->
     </div>
-    <!--End modal-->
+</form>
+
+<form id="modalAddSoap" class="modal fade" role="dialog" action="soap/" method="POST">
+    {% csrf_token %}
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Add WaterOneFlow Service Info</h4>
+            </div>
+            <div class="modal-body">
+                <br>
+                <label for="soap-title">Title (Required):</label>
+                <input type="text" class="form-control" name="soap-title" id="soap-title" placeholder="Please enter a valid HydroServer Title">
+
+                <label for="soap-url">URL (Required):</label>
+                <input type="text" class="form-control" name="soap-url" id="soap-url" placeholder="Please enter a valid HydroServer SOAP Endpoint">
+                <div class="warning">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="button-group">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" id="btn-add-soap" class="btn btn-default">Add</button>
+                </div>
+            </div>
+        </div>
+        <!--End modal content-->
+    </div>
+</form>
+<!--End modal-->
+
+
+<form id="modalDelete" class="modal fade" role="dialog" action="delete/" method="POST">
+    {% csrf_token %}
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Add WaterOneFlow Service Info</h4>
+            </div>
+            <div class="modal-body">
+                <br>
+                <label for="delete-title">Title (Required):</label>
+                <input type="text" class="form-control" name="delete-title" id="delete-title" placeholder="Please enter a valid HydroServer Title">
+
+                <!--<label for="soap-url">URL (Required):</label>-->
+                <!--<input type="text" class="form-control" name="delete-url" id="delete-url" placeholder="Please enter a valid HydroServer SOAP Endpoint">-->
+            </div>
+            <div class="modal-footer">
+                <div class="button-group">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" id="btn-del-server" class="btn btn-default">Delete</button>
+                </div>
+            </div>
+        </div>
+        <!--End modal content-->
+    </div>
+</form>
+
+
+
+<!-- View File Modal -->
+<div id="modalViewDetails" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <span id="close-modalViewDetails">X</span>
+        <div class="modal-content flex-container-row">
+            <img id="view-file-loading" class="view-file" src="/static/servir/images/loader.gif" />
+            <div id="iframe-container" class="view-details hidden" ></div>
+        </div>
+        <!--End modal content-->
+    </div>
+</div>
+<!--End modal-->
 
 {% endblock %}
 {% block scripts %}

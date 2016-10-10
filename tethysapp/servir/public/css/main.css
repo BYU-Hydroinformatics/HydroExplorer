@@ -186,3 +186,7 @@ overflow-y: auto;
  position: relative;
     /*padding-bottom: 40%;*/
 }
+.warning{
+    font-size: 200%;
+    color: red;
+}
