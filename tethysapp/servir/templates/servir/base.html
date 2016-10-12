@@ -13,9 +13,9 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 {% block app_navigation_items %}
-<span style="display: inline-block;"><li>
-<input type="button" id="load-from-hs" class="btn btn-primary" data-toggle="modal" data-target="#modalAddHS" Value="Add REST URL">
-<input type="button" id="load-from-soap" class="btn btn-primary" data-toggle="modal" data-target="#modalAddSoap" Value="Add SOAP URL"></span></li>
+<div align="center"><li>
+<!--<input type="button" id="load-from-hs" class="btn btn-primary" data-toggle="modal" data-target="#modalAddHS" Value="Add REST URL">-->
+<input type="button" id="load-from-soap" class="btn btn-primary" data-toggle="modal" data-target="#modalAddSoap" Value="Add SOAP URL"></li></div>
 <br>
 <div align="center"> <li><button id="delete-server" class="btn btn-primary" data-toggle="modal" data-target="#modalDelete">Update HS Catalog</button></li></div>
 <br>
@@ -47,7 +47,7 @@
 {% block content_dependent_styles %}
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'servir/vendor/openlayers/css/ol.css' %}" type="text/css">
-<link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" />
+<!--<link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" />-->
 <link href="{% static 'servir/vendor/contextMenu/contextMenu.css' %}" rel="stylesheet" />
 <link href="{% static 'servir/css/main.css' %}" rel="stylesheet"/>
 {% endblock %}

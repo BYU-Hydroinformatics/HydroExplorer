@@ -228,13 +228,28 @@ var SERVIR_PACKAGE = (function() {
     $("#btn-del-server").on('click',update_catalog);
 
     add_server = function(){
+        var datastring = $modalAddHS.serialize();
         if(($("#hs-title").val())==""){
-            alert("Please enter a Title for the site.");
+            $modalAddSOAP.find('.warning').html('<b>Please enter a title. This field cannot be blank.</b>');
             return false;
+        }else{
+            $modalAddSOAP.find('.warning').html('');
         }
         if(($("#hs-url").val())==""){
-            alert("Please enter a URL for the Server.");
+            $modalAddSOAP.find('.warning').html('<b>Please enter a valid URL. This field cannot be blank.</b>');
             return false;
+        }else{
+            $modalAddSOAP.find('.warning').html('');
+        }
+        if(($("#hs-title").val()) != ""){
+            var regex = new RegExp("^[a-zA-Z ]+$");
+            var title = $("#soap-title").val();
+            if (!regex.test(title)) {
+                $modalAddSOAP.find('.warning').html('<b>Please enter Letters only for the title.</b>');
+                return false;
+            }
+        }else{
+            $modalAddSOAP.find('.warning').html('');
         }
         // if(($("#hs-code").val())==""){
         //     alert("Please enter a Code for the site.");
@@ -260,7 +275,7 @@ var SERVIR_PACKAGE = (function() {
         //     alert("Please enter an Email for the Contact.");
         //     return false;
         // }
-        var datastring = $modalAddHS.serialize();
+
         $.ajax({
             type: "POST",
             url: '/apps/servir/add-server/',
@@ -328,10 +343,14 @@ var SERVIR_PACKAGE = (function() {
         if(($("#soap-title").val())==""){
             $modalAddSOAP.find('.warning').html('<b>Please enter a title. This field cannot be blank.</b>');
             return false;
+        }else{
+            $modalAddSOAP.find('.warning').html('');
         }
         if(($("#soap-url").val())==""){
             $modalAddSOAP.find('.warning').html('<b>Please enter a valid URL. This field cannot be blank.</b>');
             return false;
+        }else{
+            $modalAddSOAP.find('.warning').html('');
         }
         if(($("#soap-title").val()) != ""){
             var regex = new RegExp("^[a-zA-Z ]+$");
@@ -340,6 +359,8 @@ var SERVIR_PACKAGE = (function() {
                 $modalAddSOAP.find('.warning').html('<b>Please enter Letters only for the title.</b>');
                 return false;
             }
+        }else{
+            $modalAddSOAP.find('.warning').html('');
         }
 
         $.ajax({
