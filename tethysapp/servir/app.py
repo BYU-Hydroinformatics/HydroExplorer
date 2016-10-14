@@ -47,6 +47,9 @@ class ServirCatalog(TethysAppBase):
                     UrlMap(name='delete',
                            url='servir/delete',
                            controller='servir.controllers.delete'),
+                    UrlMap(name='csapi',
+                           url='servir/csapi',
+                           controller='servir.controllers.csapi'),
         )
 
         return url_maps

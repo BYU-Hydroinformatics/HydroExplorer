@@ -5,7 +5,11 @@ import os, tempfile, shutil, sys, zipfile, string, random
 from tethys_dataset_services.engines import GeoServerSpatialDatasetEngine
 from tethys_sdk.services import get_spatial_dataset_engine
 import requests
-
+from owslib.waterml.wml11 import WaterML_1_1 as wml11
+from suds.client import Client
+from suds.sudsobject import asdict
+from suds.sudsobject import asdict
+import json
 
 
 try:
@@ -57,7 +61,64 @@ def parseSites(xml):
                 hs_sites.append(hs_json)
 
     return hs_sites
+def parseWML(bbox):
+    hs_sites = []
+    # print bbox
+    def recursive_asdict(d):
+        """Convert Suds object into serializable format."""
+        out = {}
+        for k, v in asdict(d).iteritems():
+            if hasattr(v, "__keylist__"):
+                out[k] = recursive_asdict(v)
+            elif isinstance(v, list):
+                out[k] = []
+                for item in v:
+                    if hasattr(item, "__keylist__"):
+                        out[k].append(recursive_asdict(item))
+                    else:
+                        out[k].append(item)
+            else:
+                out[k] = v
+        return out
 
+    def suds_to_json(data):
+        return json.dumps(recursive_asdict(data))
+
+    bbox_json = recursive_asdict(bbox)
+
+    if type(bbox_json['site']) is list:
+        for site in bbox_json['site']:
+            hs_json = {}
+            site_name =  site['siteInfo']['siteName']
+            latitude = site['siteInfo']['geoLocation']['geogLocation']['latitude']
+            longitude = site['siteInfo']['geoLocation']['geogLocation']['longitude']
+            network = site['siteInfo']['siteCode'][0]['_network']
+            sitecode = site['siteInfo']['siteCode'][0]['value']
+
+            hs_json["sitename"] = site_name
+            hs_json["latitude"] = latitude
+            hs_json["longitude"] = longitude
+            hs_json["sitecode"] = sitecode
+            hs_json["network"] = network
+            hs_json["service"] = "SOAP"
+            hs_sites.append(hs_json)
+    else:
+        hs_json = {}
+        site_name = bbox_json['site']['siteInfo']['siteName']
+        latitude = bbox_json['site']['siteInfo']['geoLocation']['geogLocation']['latitude']
+        longitude = bbox_json['site']['siteInfo']['geoLocation']['geogLocation']['longitude']
+        network = bbox_json['site']['siteInfo']['siteCode'][0]['_network']
+        sitecode = bbox_json['site']['siteInfo']['siteCode'][0]['value']
+
+        hs_json["sitename"] = site_name
+        hs_json["latitude"] = latitude
+        hs_json["longitude"] = longitude
+        hs_json["sitecode"] = sitecode
+        hs_json["network"] = network
+        hs_json["service"] = "SOAP"
+        hs_sites.append(hs_json)
+
+    return hs_sites
 def parseJSON(json):
     hs_sites = []
     sites_object =  json['sitesResponse']['site']
@@ -90,6 +151,7 @@ def parseJSON(json):
         hs_json["longitude"] = longitude
         hs_json["sitecode"] = sitecode
         hs_json["network"] = network
+        hs_json["service"] = "SOAP"
         hs_sites.append(hs_json)
 
     return hs_sites

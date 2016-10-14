@@ -19,6 +19,8 @@
 <br>
 <div align="center"> <li><button id="delete-server" class="btn btn-primary" data-toggle="modal" data-target="#modalDelete">Update HS Catalog</button></li></div>
 <br>
+<!--<div align="center"> <li><button id="get-api" class="btn btn-primary">API CALL</button></li></div>-->
+<!--<br>-->
 <!--<div align="center"> <li><button id="load-catalog" class="btn btn-primary" >Load Catalog</button></li></div>-->
 <!--<br>-->
 <li><input type="text" class="form-control" placeholder="Enter Area of Interest" id="location_input" name="location_input"></li>
@@ -47,7 +49,7 @@
 {% block content_dependent_styles %}
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'servir/vendor/openlayers/css/ol.css' %}" type="text/css">
-<!--<link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" />-->
+<link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" />
 <link href="{% static 'servir/vendor/contextMenu/contextMenu.css' %}" rel="stylesheet" />
 <link href="{% static 'servir/css/main.css' %}" rel="stylesheet"/>
 {% endblock %}

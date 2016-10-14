@@ -36,6 +36,7 @@ var SERVIR_PACKAGE = (function() {
         init_jquery_var,
         init_events,
         load_catalog,
+        cs_api,
         add_server,
         add_soap,
         addContextMenuToListItem,
@@ -113,6 +114,24 @@ var SERVIR_PACKAGE = (function() {
         $modalDelete = $('#modalDelete');
         $hs_list = $('#current-servers-list');
     };
+
+    cs_api = function () {
+        $.ajax({
+            type: "GET",
+            url: '/apps/servir/csapi/',
+            dataType: 'JSON',
+            success: function (result) {
+                console.log(result);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
+            }
+
+        });
+
+    };
+    $("#get-api").on('click',cs_api);
+
     get_hs_list = function(){
         $.ajax({
             type: "GET",
@@ -206,7 +225,8 @@ var SERVIR_PACKAGE = (function() {
             data: datastring,
             dataType: 'HTML',
             success: function (result) {
-                console.log(result);
+                var json_response = JSON.parse(result);
+                var title = json_response.title;
                 $('#current-servers').empty();
                 $('#modalDelete').modal('hide');
 
@@ -215,8 +235,10 @@ var SERVIR_PACKAGE = (function() {
                     this.reset();
                 });
 
+                map.removeLayer(layersDict[title]);
+                delete layersDict[title];
+                map.updateSize();
                 load_catalog();
-
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -339,7 +361,19 @@ var SERVIR_PACKAGE = (function() {
     $('#btn-add-server').on('click', add_server);
 
     add_soap = function () {
-        var datastring = $modalAddSOAP.serialize();
+        if(($("#extent")).is(':checked')){
+            var zoom = map.getView().getZoom();
+            if (zoom < 8){
+                $modalAddSOAP.find('.warning').html('<b>The zoom level has to be 8 or greater. Please check and try again.</b>');
+                return false;
+            }else{
+                $modalAddSOAP.find('.warning').html('');
+            }
+            $("#chk_val").empty();
+            var level = map.getView().calculateExtent(map.getSize());
+            $('<input type="text" name="extent_val" id="extent_val" value='+'"'+level+'"'+' hidden>').appendTo($("#chk_val"));
+            // $(this).val(level);
+        }
         if(($("#soap-title").val())==""){
             $modalAddSOAP.find('.warning').html('<b>Please enter a title. This field cannot be blank.</b>');
             return false;
@@ -362,7 +396,7 @@ var SERVIR_PACKAGE = (function() {
         }else{
             $modalAddSOAP.find('.warning').html('');
         }
-
+        var datastring = $modalAddSOAP.serialize();
         $.ajax({
             type: "POST",
             url: '/apps/servir/soap/',
@@ -377,7 +411,11 @@ var SERVIR_PACKAGE = (function() {
                     var wms_url = json_response.wms;
                     var extents = json_response.bounds;
                     var rest_url = json_response.rest_url;
-
+                    var zoom = json_response.zoom;
+                    if (zoom == 'true'){
+                        var level = json_response.level;
+                        console.log(level);
+                    }
 
                     $('<li class="ui-state-default"'+'layer-name="'+title+'"'+'><input class="chkbx-layer" type="checkbox" checked><span class="server-name">'+title+'</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
 
@@ -490,7 +528,11 @@ var SERVIR_PACKAGE = (function() {
             layersDict[displayName].setVisible($(this).is(':checked'));
         });
         $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
-
+        map.on("moveend", function() {
+            var zoom = map.getView().getZoom();
+            var zoomInfo = '<h6>Current Zoom level = ' + zoom+'</h6>';
+            document.getElementById('zoomlevel').innerHTML = zoomInfo;
+        });
         map.on("singleclick",function(evt){
             //Check for each layer in the baselayers
 

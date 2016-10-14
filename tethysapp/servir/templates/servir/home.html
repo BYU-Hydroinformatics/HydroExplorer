@@ -1,5 +1,6 @@
 {% extends "servir/base.html" %}
 {% block app_content %}
+<div id="zoomlevel"></div>
 <div id="map"></div>
 <div id="popup" class="popup"></div>
 {% endblock %}
@@ -70,6 +71,10 @@
 
                 <label for="soap-url">URL (Required):</label>
                 <input type="text" class="form-control" name="soap-url" id="soap-url" placeholder="Please enter a valid HydroServer SOAP Endpoint">
+                <div class="checkbox">
+                    <label><input type="checkbox" name="extent" id="extent">Get Values for the Zoomed Area</label>
+                </div>
+                <div id="chk_val" name="chk_val"></div>
                 <div class="warning">
                 </div>
             </div>

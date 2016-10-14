@@ -5,7 +5,7 @@ from tethys_sdk.services import get_spatial_dataset_engine, list_spatial_dataset
 from tethys_dataset_services.engines import GeoServerSpatialDatasetEngine
 from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
-from utilities import parseSites, genShapeFile, parseJSON, check_digit
+from utilities import parseSites, genShapeFile, parseJSON, check_digit, parseWML
 from json import dumps, loads
 import urllib2
 import xml.etree.ElementTree as ET
@@ -20,6 +20,8 @@ import logging
 import unicodedata
 import ast
 from .model import engine, SessionMaker, Base, Catalog
+from pyproj import Proj, transform #Remember to install this in tethys.byu.edu
+
 
 geo_url_base = getattr(settings, "GEOSERVER_URL_BASE", "http://127.0.0.1:8181")
 geo_user = getattr(settings, "GEOSERVER_USER_NAME", "admin")
@@ -35,6 +37,16 @@ def home(request):
     context = {}
 
     return render(request, 'servir/home.html', context)
+def csapi(request):
+    list = {}
+    if request.is_ajax():
+        get_feature_layers = "http://climateserv.servirglobal.net/chirps/getFeatureLayers/"
+        site_info_response = urllib2.urlopen(get_feature_layers)
+        site_info_data = site_info_response.read()
+        print site_info_data
+
+
+    return JsonResponse(list)
 def catalog(request):
     list = {}
 
@@ -124,41 +136,73 @@ def soap(request):
         url = request.POST['soap-url']
         title = request.POST['soap-title']
         title = title.replace(" ", "")
+        true_extent = request.POST.get('extent')
+
 
         client = Client(url)
-        client.set_options(port='WaterOneFlow')
-        sites = client.service.GetSites('[:]')
-        # sites = client.service.GetSites()
-        # print sites
-        sites_dict = xmltodict.parse(sites)
-        sites_json_object = json.dumps(sites_dict)
-        sites_json = json.loads(sites_json_object)
-        sites_object = parseJSON(sites_json)
-        shapefile_object = genShapeFile(sites_object, title, geo_url, geo_user, geo_pw, url)
+        if true_extent == 'on':
 
-        geoserver_rest_url = geo_url_base + "/geoserver/wms"
-        return_obj['rest_url'] = geoserver_rest_url
-        return_obj['wms'] = shapefile_object["layer"]
-        return_obj['bounds'] = shapefile_object["extents"]
-        extents_string = str(shapefile_object["extents"])
+            extent_value = request.POST['extent_val']
+            return_obj['zoom'] = 'true'
+            return_obj['level'] = extent_value
+            ext_list = extent_value.split(',')
+            inProj = Proj(init='epsg:3857')
+            outProj = Proj(init='epsg:4326')
+            minx, miny = ext_list[0], ext_list[1]
+            maxx,maxy = ext_list[2],ext_list[3]
+            x1, y1 = transform(inProj, outProj, minx, miny)
+            x2, y2 = transform(inProj, outProj, maxx, maxy)
+            bbox = client.service.GetSitesByBoxObject(x1,y1,x2,y2,'1','')
+            wml_sites = parseWML(bbox)
 
-        # extents_dict = xmltodict.parse(extents_string)
-        # extents_json_object = json.dumps(extents_dict)
-        # extents_json = json.loads(extents_json_object)
+            shapefile_object = genShapeFile(wml_sites, title, geo_url, geo_user, geo_pw, url)
+            geoserver_rest_url = geo_url_base + "/geoserver/wms"
+            return_obj['rest_url'] = geoserver_rest_url
+            return_obj['wms'] = shapefile_object["layer"]
+            return_obj['bounds'] = shapefile_object["extents"]
+            extents_string = str(shapefile_object["extents"])
 
+            # extents_dict = xmltodict.parse(extents_string)
+            # extents_json_object = json.dumps(extents_dict)
+            # extents_json = json.loads(extents_json_object)
 
+            return_obj['title'] = title
+            return_obj['url'] = url
+            return_obj['status'] = "true"
+            Base.metadata.create_all(engine)
+            session = SessionMaker()
+            hs_one = Catalog(title=title,
+                             url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"],
+                             extents=extents_string)
+            session.add(hs_one)
+            session.commit()
+            session.close()
 
+        else:
+            return_obj['zoom'] = 'false'
+            sites = client.service.GetSites('[:]')
+            sites_dict = xmltodict.parse(sites)
+            sites_json_object = json.dumps(sites_dict)
+            sites_json = json.loads(sites_json_object)
+            sites_object = parseJSON(sites_json)
+            shapefile_object = genShapeFile(sites_object, title, geo_url, geo_user, geo_pw, url)
 
-        return_obj['title'] = title
-        return_obj['url'] = url
-        return_obj['status'] = "true"
-        Base.metadata.create_all(engine)
-        session = SessionMaker()
-        hs_one = Catalog(title=title,
-                         url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"],extents=extents_string)
-        session.add(hs_one)
-        session.commit()
-        session.close()
+            geoserver_rest_url = geo_url_base + "/geoserver/wms"
+            return_obj['rest_url'] = geoserver_rest_url
+            return_obj['wms'] = shapefile_object["layer"]
+            return_obj['bounds'] = shapefile_object["extents"]
+            extents_string = str(shapefile_object["extents"])
+
+            return_obj['title'] = title
+            return_obj['url'] = url
+            return_obj['status'] = "true"
+            Base.metadata.create_all(engine)
+            session = SessionMaker()
+            hs_one = Catalog(title=title,
+                             url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"],extents=extents_string)
+            session.add(hs_one)
+            session.commit()
+            session.close()
 
     else:
         return_obj['message'] = 'This request can only be made through a "POST" AJAX call.'
@@ -364,6 +408,7 @@ def details(request):
         # print info_json
         site_variables = []
         site_object_info = info_json['sitesResponse']['site']['seriesCatalog']
+        print info_json
         site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
         graph_variables = []
 
@@ -374,27 +419,27 @@ def details(request):
                 variable_name =  i['variable']['variableName']
                 variable_id = i['variable']['variableCode']['@variableID']
                 variable_text = i['variable']['variableCode']['#text']
-                value_type = i['variable']['valueType']
+                # value_type = i['variable']['valueType']
                 value_count = i['valueCount']
-                data_type = i['variable']['dataType']
-                unit_name = i['variable']['unit']['unitName']
-                unit_type = i['variable']['unit']['unitType']
-                unit_abbr = i['variable']['unit']['unitAbbreviation']
-                unit_code = i['variable']['unit']['unitCode']
-                time_support = i['variable']['timeScale']['timeSupport']
-                time_support_name = i['variable']['timeScale']['unit']['unitName']
-                time_support_type = i['variable']['timeScale']['unit']['unitAbbreviation']
+                # data_type = i['variable']['dataType']
+                # unit_name = i['variable']['unit']['unitName']
+                # unit_type = i['variable']['unit']['unitType']
+                # unit_abbr = i['variable']['unit']['unitAbbreviation']
+                # unit_code = i['variable']['unit']['unitCode']
+                # time_support = i['variable']['timeScale']['timeSupport']
+                # time_support_name = i['variable']['timeScale']['unit']['unitName']
+                # time_support_type = i['variable']['timeScale']['unit']['unitAbbreviation']
                 begin_time = i["variableTimeInterval"]["beginDateTimeUTC"]
                 end_time = i["variableTimeInterval"]["endDateTimeUTC"]
                 # print begin_time,end_time
                 method_id = i["method"]["@methodID"]
-                method_desc = i["method"]["methodDescription"]
-                source_id = i["source"]["@sourceID"]
-                source_org = i["source"]["organization"]
-                source_desc = i["source"]["sourceDescription"]
-                qc_code = i["qualityControlLevel"]["qualityControlLevelCode"]
-                qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
-                qc_definition = i["qualityControlLevel"]["definition"]
+                # method_desc = i["method"]["methodDescription"]
+                # source_id = i["source"]["@sourceID"]
+                # source_org = i["source"]["organization"]
+                # source_desc = i["source"]["sourceDescription"]
+                # qc_code = i["qualityControlLevel"]["qualityControlLevelCode"]
+                # qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
+                # qc_definition = i["qualityControlLevel"]["definition"]
                 # print variable_name,variable_id, source_id,method_id, qc_code
                 variable_string = str(count)+'. Variable Name:'+variable_name+','+'Count: '+value_count+',Variable ID:'+variable_id+', Start Date:'+begin_time+', End Date:'+end_time
                 # value_string = variable_id,variable_text,source_id,method_id,qc_code, variable_name
@@ -407,25 +452,25 @@ def details(request):
             variable_id = site_object['variable']['variableCode']['@variableID']
             variable_text = site_object['variable']['variableCode']['#text']
             value_count = site_object['valueCount']
-            value_type = site_object['variable']['valueType']
-            data_type = site_object['variable']['dataType']
-            unit_name = site_object['variable']['unit']['unitName']
-            unit_type = site_object['variable']['unit']['unitType']
-            unit_abbr = site_object['variable']['unit']['unitAbbreviation']
-            unit_code = site_object['variable']['unit']['unitCode']
-            time_support = site_object['variable']['timeScale']['timeSupport']
-            time_support_name = site_object['variable']['timeScale']['unit']['unitName']
-            time_support_type = site_object['variable']['timeScale']['unit']['unitAbbreviation']
+            # value_type = site_object['variable']['valueType']
+            # data_type = site_object['variable']['dataType']
+            # unit_name = site_object['variable']['unit']['unitName']
+            # unit_type = site_object['variable']['unit']['unitType']
+            # unit_abbr = site_object['variable']['unit']['unitAbbreviation']
+            # unit_code = site_object['variable']['unit']['unitCode']
+            # time_support = site_object['variable']['timeScale']['timeSupport']
+            # time_support_name = site_object['variable']['timeScale']['unit']['unitName']
+            # time_support_type = site_object['variable']['timeScale']['unit']['unitAbbreviation']
             begin_time = site_object["variableTimeInterval"]["beginDateTimeUTC"]
             end_time = site_object["variableTimeInterval"]["endDateTimeUTC"]
             method_id = site_object["method"]["@methodID"]
-            method_desc = site_object["method"]["methodDescription"]
-            source_id = site_object["source"]["@sourceID"]
-            source_org = site_object["source"]["organization"]
-            source_desc = site_object["source"]["sourceDescription"]
-            qc_code = site_object["qualityControlLevel"]["qualityControlLevelCode"]
-            qc_id = site_object["qualityControlLevel"]["@qualityControlLevelID"]
-            qc_definition = site_object["qualityControlLevel"]["definition"]
+            # method_desc = site_object["method"]["methodDescription"]
+            # source_id = site_object["source"]["@sourceID"]
+            # source_org = site_object["source"]["organization"]
+            # source_desc = site_object["source"]["sourceDescription"]
+            # qc_code = site_object["qualityControlLevel"]["qualityControlLevelCode"]
+            # qc_id = site_object["qualityControlLevel"]["@qualityControlLevelID"]
+            # qc_definition = site_object["qualityControlLevel"]["definition"]
             variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: '+value_count+',Variable ID:' + variable_id +', Start Date:'+begin_time+', End Date:'+end_time
             # print variable_name, variable_id, source_id, method_id, qc_code
             value_list = [variable_text,method_id]
