@@ -52,12 +52,13 @@ var SERVIR_PACKAGE = (function() {
         generate_plot,
         update_catalog,
         get_hs_list,
-        soap_var;
+        soap_var,
+        get_random_color;
 
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
      *************************************************************************/
-    function getRandomColor() {
+    get_random_color = function() {
         var letters = '012345'.split('');
         var color = '#';
         color += letters[Math.round(Math.random() * 5)];
@@ -66,7 +67,7 @@ var SERVIR_PACKAGE = (function() {
             color += letters[Math.round(Math.random() * 15)];
         }
         return color;
-    }
+    };
     init_map = function(){
         var projection = ol.proj.get('EPSG:3857');
         var baseLayer = new ol.layer.Tile({
@@ -104,8 +105,10 @@ var SERVIR_PACKAGE = (function() {
             stopEvent: true
         });
         map.addOverlay(popup);
+        // setTimeout(load_catalog,1000);
         load_catalog();
     };
+
     init_jquery_var = function () {
         //$('#current-servers').empty();
         $modalAddHS = $('#modalAddHS');
@@ -176,6 +179,7 @@ var SERVIR_PACKAGE = (function() {
             url: '/apps/servir/catalog/',
             dataType: 'JSON',
             success: function (result) {
+
                 var server = result['hydroserver'];
                 $('#current-servers').empty();
                 for (var i = 0; i < server.length; i++) {
@@ -187,7 +191,7 @@ var SERVIR_PACKAGE = (function() {
 
                     $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
-                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+layer_name+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+getRandomColor()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+layer_name+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+get_random_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     wmsSource = new ol.source.TileWMS({
                         url: geoserver_url,
                         params: {'LAYERS':layer_name,
@@ -239,7 +243,7 @@ var SERVIR_PACKAGE = (function() {
                 map.removeLayer(layersDict[title]);
                 delete layersDict[title];
                 map.updateSize();
-                load_catalog();
+                // load_catalog();
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -326,7 +330,7 @@ var SERVIR_PACKAGE = (function() {
                     $( '#modalAddHS' ).each(function(){
                         this.reset();
                     });
-                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+getRandomColor()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+get_random_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     wmsSource = new ol.source.TileWMS({
                         url: rest_url,
                         params: {'LAYERS':wms_url,
@@ -429,7 +433,7 @@ var SERVIR_PACKAGE = (function() {
                     $( '#modalAddSoap' ).each(function(){
                         this.reset();
                     });
-                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+getRandomColor()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+get_random_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     wmsSource = new ol.source.TileWMS({
                         url: rest_url,
                         params: {'LAYERS':wms_url,
@@ -786,10 +790,12 @@ var SERVIR_PACKAGE = (function() {
      *                  INITIALIZATION / CONSTRUCTOR
      *************************************************************************/
     $(function () {
-        init_map();
+
         init_jquery_var();
+        init_map();
         init_events();
         init_menu();
+
 
     });
 

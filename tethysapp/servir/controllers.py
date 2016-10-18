@@ -64,6 +64,7 @@ def catalog(request):
         layer_obj["layer_name"] = server.layer_name
         json_encoded = ast.literal_eval(server.extents)
         layer_obj["extents"] = json_encoded
+
         hs_list.append(layer_obj)
     list["hydroserver"] = hs_list
 
