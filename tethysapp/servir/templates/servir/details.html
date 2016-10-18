@@ -53,10 +53,49 @@
         $('#app-content-wrapper').removeClass('show-nav');
         $('.tethys-app-header').hide();
     });
-</script>
-<style>
+    $(document).ready(function() {
+        $.ajax({
+            type: "GET",
+            url: '/apps/servir/soap-var/',
+            dataType: 'JSON',
+            success: function (result) {
+                $("#start_date").val(result.var_list[0].startDate);
+                $("#end_date").val(result.var_list[0].endDate);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
+            }
 
-</style>
+        });
+    });
+    $(document).on('change', $("#select_var"), function () {
+        var variable = $("#select_var option:selected").val();
+        var selected_index = $("#select_var").prop('selectedIndex');
+        $.ajax({
+            type: "GET",
+            url: '/apps/servir/soap-var/',
+            dataType: 'JSON',
+            success: function (result) {
+                $("#start_date").val(result.var_list[selected_index].startDate);
+                $("#end_date").val(result.var_list[selected_index].endDate);
+
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
+            }
+
+        });
+    });
+    $('#start_date').on("change",function(){
+        console.log(this.value);
+//         $("#start_date").val(this.value);
+    });
+    $('#end_date').on("change",function(){
+//         $("#end_date").val(this.value);
+    });
+
+
+</script>
 {% endif %}
 {% endblock %}
 

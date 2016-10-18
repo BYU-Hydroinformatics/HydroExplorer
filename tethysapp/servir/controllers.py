@@ -408,17 +408,21 @@ def details(request):
         # print info_json
         site_variables = []
         site_object_info = info_json['sitesResponse']['site']['seriesCatalog']
-        print info_json
+        # print info_json
         site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
         graph_variables = []
-
+        var_json = []
         if type(site_object) is list:
             count = 0
             for i in site_object:
+                var_obj = {}
                 count = count + 1
+
                 variable_name =  i['variable']['variableName']
                 variable_id = i['variable']['variableCode']['@variableID']
                 variable_text = i['variable']['variableCode']['#text']
+                var_obj["variableName"] = variable_name
+                var_obj["variableID"]  = variable_id
                 # value_type = i['variable']['valueType']
                 value_count = i['valueCount']
                 # data_type = i['variable']['dataType']
@@ -430,7 +434,13 @@ def details(request):
                 # time_support_name = i['variable']['timeScale']['unit']['unitName']
                 # time_support_type = i['variable']['timeScale']['unit']['unitAbbreviation']
                 begin_time = i["variableTimeInterval"]["beginDateTimeUTC"]
+                begin_time = begin_time.split("T")
+                begin_time = str(begin_time[0])
                 end_time = i["variableTimeInterval"]["endDateTimeUTC"]
+                end_time = end_time.split("T")
+                end_time = str(end_time[0])
+                var_obj["startDate"]=  begin_time
+                var_obj["endDate"] = end_time
                 # print begin_time,end_time
                 method_id = i["method"]["@methodID"]
                 # method_desc = i["method"]["methodDescription"]
@@ -446,12 +456,15 @@ def details(request):
                 value_list = [variable_text, method_id]
                 value_string = str(value_list)
                 graph_variables.append([variable_string,value_string])
+                var_json.append(var_obj)
                 # print variable_name, variable_id, value_type, data_type, unit_name,unit_type, unit_abbr,unit_abbr,unit_code, time_support, time_support_name, time_support_type
         else:
+            var_obj = {}
             variable_name = site_object['variable']['variableName']
             variable_id = site_object['variable']['variableCode']['@variableID']
             variable_text = site_object['variable']['variableCode']['#text']
             value_count = site_object['valueCount']
+
             # value_type = site_object['variable']['valueType']
             # data_type = site_object['variable']['dataType']
             # unit_name = site_object['variable']['unit']['unitName']
@@ -462,7 +475,11 @@ def details(request):
             # time_support_name = site_object['variable']['timeScale']['unit']['unitName']
             # time_support_type = site_object['variable']['timeScale']['unit']['unitAbbreviation']
             begin_time = site_object["variableTimeInterval"]["beginDateTimeUTC"]
+            begin_time = begin_time.split("T")
+            begin_time = str(begin_time[0])
             end_time = site_object["variableTimeInterval"]["endDateTimeUTC"]
+            end_time = end_time.split("T")
+            end_time = str(end_time[0])
             method_id = site_object["method"]["@methodID"]
             # method_desc = site_object["method"]["methodDescription"]
             # source_id = site_object["source"]["@sourceID"]
@@ -475,6 +492,11 @@ def details(request):
             # print variable_name, variable_id, source_id, method_id, qc_code
             value_list = [variable_text,method_id]
             value_string = str(value_list)
+            var_obj["variableName"] = variable_name
+            var_obj["variableID"] = variable_id
+            var_obj["startDate"] = begin_time
+            var_obj["endDate"] = end_time
+            var_json.append(var_obj)
             graph_variables.append([variable_string, value_string])
 
 
@@ -489,24 +511,26 @@ def details(request):
         t_now = datetime.now()
         now_str = "{0}-{1}-{2}".format(t_now.year, check_digit(t_now.month), check_digit(t_now.day))
         start_date = DatePicker(name='start_date',
-                                      display_text='Start Date',
-                                      autoclose=True,
-                                      format='yyyy-mm-dd',
-                                      start_view='month',
-                                      today_button=True,
-                                      initial=now_str)
+                                display_text='Start Date',
+                                autoclose=True,
+                                format='yyyy-mm-dd',
+                                start_view='month',
+                                today_button=True,
+                                initial=now_str)
         end_date = DatePicker(name='end_date',
-                               display_text='End Date',
-                               autoclose=True,
-                               format='yyyy-mm-dd',
-                               start_view='month',
-                               today_button=True,
-                               initial=now_str)
+                              display_text='End Date',
+                              autoclose=True,
+                              format='yyyy-mm-dd',
+                              start_view='month',
+                              today_button=True,
+                              initial=now_str)
 
         select_variable = []
         graphs_object = {}
         json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
+        soap_obj["var_list"] = var_json
         request.session['soap_obj'] = soap_obj
+
 
     context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"service":service,"rest":rest,"soap":soap,"hidenav":hidenav,"select_soap_variable":select_soap_variable,"select_variable":select_variable,"start_date":start_date,"end_date":end_date,"graphs_object":graphs_object,"soap_obj":soap_obj}
 
@@ -520,6 +544,11 @@ def rest_api(request):
     if 'graphs_object' in request.session:
         graphs_object = request.session['graphs_object']
     return JsonResponse(graphs_object)
+def soap_var(request):
+    var_object = None
+    if 'soap_obj' in request.session:
+        var_object = request.session['soap_obj']
+    return JsonResponse(var_object)
 
 def soap_api(request):
     soap_object = None
@@ -537,7 +566,6 @@ def soap_api(request):
             variable_text = variable[0]
             variable_method = variable[1]
             variable_desc = network+':'+variable_text
-
             client = Client(url)
             values = client.service.GetValues(site_desc,variable_desc,start_date,end_date,"")
             values_dict = xmltodict.parse(values)

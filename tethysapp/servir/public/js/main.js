@@ -51,7 +51,8 @@ var SERVIR_PACKAGE = (function() {
         generate_graph,
         generate_plot,
         update_catalog,
-        get_hs_list;
+        get_hs_list,
+        soap_var;
 
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
@@ -169,6 +170,7 @@ var SERVIR_PACKAGE = (function() {
     };
     $("#delete-server").on('click',get_hs_list);
 
+
     load_catalog = function () {
         $.ajax({
             type: "GET",
@@ -176,13 +178,13 @@ var SERVIR_PACKAGE = (function() {
             dataType: 'JSON',
             success: function (result) {
                 var server = result['hydroserver'];
+                $('#current-servers').empty();
                 for (var i = 0; i < server.length; i++) {
                     var title = server[i].title;
                     var url = server[i].url;
                     var geoserver_url = server[i].geoserver_url;
                     var layer_name = server[i].layer_name;
                     var extents = server[i].extents;
-
 
                     $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
@@ -407,14 +409,15 @@ var SERVIR_PACKAGE = (function() {
                 var json_response = JSON.parse(result);
                 if (json_response.status === 'true')
                 {
+
                     var title= json_response.title;
                     var wms_url = json_response.wms;
                     var extents = json_response.bounds;
                     var rest_url = json_response.rest_url;
                     var zoom = json_response.zoom;
+
                     if (zoom == 'true'){
                         var level = json_response.level;
-                        console.log(level);
                     }
 
                     $('<li class="ui-state-default"'+'layer-name="'+title+'"'+'><input class="chkbx-layer" type="checkbox" checked><span class="server-name">'+title+'</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
@@ -460,6 +463,21 @@ var SERVIR_PACKAGE = (function() {
 
     };
     $('#btn-add-soap').on('click', add_soap);
+    soap_var = function(){
+        $.ajax({
+            type: "GET",
+            url: '/apps/servir/soap-var/',
+            dataType: 'JSON',
+            success: function (result) {
+                $("#start_date").val(result.var_list[0].startDate);
+                $("#end_date").val(result.var_list[0].endDate);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
+            }
+
+        });
+    };
 
 
     location_search = function(){
