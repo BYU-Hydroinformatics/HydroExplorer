@@ -49,6 +49,7 @@
 {% if hidenav %}
 
 <script>
+    $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
     $(function(){
         $('#app-content-wrapper').removeClass('show-nav');
         $('.tethys-app-header').hide();
@@ -67,8 +68,10 @@
             }
 
         });
+
+
     });
-    $(document).on('change', $("#select_var"), function () {
+    $("#select_var").on('change', function () {
         var variable = $("#select_var option:selected").val();
         var selected_index = $("#select_var").prop('selectedIndex');
         $.ajax({
@@ -78,7 +81,6 @@
             success: function (result) {
                 $("#start_date").val(result.var_list[selected_index].startDate);
                 $("#end_date").val(result.var_list[selected_index].endDate);
-
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -86,13 +88,15 @@
 
         });
     });
-    $('#start_date').on("change",function(){
-        console.log(this.value);
-//         $("#start_date").val(this.value);
+    $(document).on('change', $("#start_date"), function () {
+        var date_val = $("#start_date").val();
+        $("#start_date").val(date_val);
     });
-    $('#end_date').on("change",function(){
-//         $("#end_date").val(this.value);
+    $(document).on('change', $("#end_date"), function () {
+        var date_val = $("#end_date").val();
+        $("#end_date").val(date_val);
     });
+
 
 
 </script>

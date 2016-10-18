@@ -103,7 +103,6 @@ var SERVIR_PACKAGE = (function() {
             positioning: 'bottom-center',
             stopEvent: true
         });
-
         map.addOverlay(popup);
         load_catalog();
     };
@@ -463,21 +462,7 @@ var SERVIR_PACKAGE = (function() {
 
     };
     $('#btn-add-soap').on('click', add_soap);
-    soap_var = function(){
-        $.ajax({
-            type: "GET",
-            url: '/apps/servir/soap-var/',
-            dataType: 'JSON',
-            success: function (result) {
-                $("#start_date").val(result.var_list[0].startDate);
-                $("#end_date").val(result.var_list[0].endDate);
-            },
-            error: function (XMLHttpRequest, textStatus, errorThrown) {
-                console.log(Error);
-            }
 
-        });
-    };
 
 
     location_search = function(){
@@ -545,6 +530,7 @@ var SERVIR_PACKAGE = (function() {
             var displayName = $(this).next().text();
             layersDict[displayName].setVisible($(this).is(':checked'));
         });
+
         $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
         map.on("moveend", function() {
             var zoom = map.getView().getZoom();
@@ -652,7 +638,9 @@ var SERVIR_PACKAGE = (function() {
     };
 
     generate_graph = function(){
+        $(document).find('.warning').html('');
         var variable = $('#select_var option:selected').val();
+
         $.ajax({
             type: "GET",
             url: '/apps/servir/rest-api/',
@@ -703,6 +691,7 @@ var SERVIR_PACKAGE = (function() {
                     }
 
                 }
+
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 $(document).find('.warning').html('<b>Unable to generate graph. Please check the start and end dates and try again.</b>');
@@ -711,6 +700,7 @@ var SERVIR_PACKAGE = (function() {
         });
 
     };
+
     $('#generate-graph').on('click',generate_graph);
     generate_plot = function(){
         var datastring = $SoapVariable.serialize();
@@ -720,7 +710,6 @@ var SERVIR_PACKAGE = (function() {
             dataType: 'JSON',
             data: datastring,
             success: function(result){
-                console.log(result['count']);
                 $('#plotter').highcharts({
                     chart: {
                         type:'area',
