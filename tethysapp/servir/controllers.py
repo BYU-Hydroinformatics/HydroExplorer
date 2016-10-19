@@ -43,7 +43,7 @@ def csapi(request):
         get_feature_layers = "http://climateserv.servirglobal.net/chirps/getFeatureLayers/"
         site_info_response = urllib2.urlopen(get_feature_layers)
         site_info_data = site_info_response.read()
-        print site_info_data
+
 
 
     return JsonResponse(list)

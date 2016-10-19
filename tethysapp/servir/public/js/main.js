@@ -53,7 +53,8 @@ var SERVIR_PACKAGE = (function() {
         update_catalog,
         get_hs_list,
         soap_var,
-        get_random_color;
+        get_random_color,
+        click_catalog;
 
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
@@ -105,8 +106,7 @@ var SERVIR_PACKAGE = (function() {
             stopEvent: true
         });
         map.addOverlay(popup);
-        // setTimeout(load_catalog,1000);
-        load_catalog();
+        init_events();
     };
 
     init_jquery_var = function () {
@@ -179,16 +179,14 @@ var SERVIR_PACKAGE = (function() {
             url: '/apps/servir/catalog/',
             dataType: 'JSON',
             success: function (result) {
-
-                var server = result['hydroserver'];
+                var servers = result['hydroserver'];
                 $('#current-servers').empty();
-                for (var i = 0; i < server.length; i++) {
-                    var title = server[i].title;
-                    var url = server[i].url;
-                    var geoserver_url = server[i].geoserver_url;
-                    var layer_name = server[i].layer_name;
-                    var extents = server[i].extents;
-
+                servers.forEach(function (server) {
+                    var title = server.title;
+                    var url = server.url;
+                    var geoserver_url = server.geoserver_url;
+                    var layer_name = server.layer_name;
+                    var extents = server.extents;
                     $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
                     var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+layer_name+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+get_random_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
@@ -208,10 +206,15 @@ var SERVIR_PACKAGE = (function() {
 
                     layersDict[title] = wmsLayer;
 
-                    var layer_extent = wmsLayer.getExtent();
-                    map.getView().fit(layer_extent,map.getSize());
-                }
 
+                });
+                    
+                // rand_lyr.getSource().changed();
+                // var layer_extent = layersDict[Object.keys(layersDict)[0]].getExtent();
+                // Object.keys(layersDict).forEach(function (key) {
+                //     var layer_extent = layersDict[key].getExtent();
+                //     map.getView().fit(layer_extent,map.getSize());
+                // });
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -219,7 +222,9 @@ var SERVIR_PACKAGE = (function() {
 
         });
 
+
     };
+
 
 
     update_catalog = function () {
@@ -243,7 +248,7 @@ var SERVIR_PACKAGE = (function() {
                 map.removeLayer(layersDict[title]);
                 delete layersDict[title];
                 map.updateSize();
-                // load_catalog();
+                load_catalog();
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -784,7 +789,11 @@ var SERVIR_PACKAGE = (function() {
         contextMenuId = $('.iw-contextMenu:last-child').attr('id');
         $listItem.attr('data-context-menu', contextMenuId);
     };
-
+    click_catalog = function(){
+        $('.iw-contextMenu').find('[title="Zoom To"]').each(function(index,obj){
+                    obj.click();
+                });
+    };
 
     /************************************************************************
      *                  INITIALIZATION / CONSTRUCTOR
@@ -792,9 +801,10 @@ var SERVIR_PACKAGE = (function() {
     $(function () {
 
         init_jquery_var();
-        init_map();
-        init_events();
         init_menu();
+        init_map();
+        load_catalog();
+        setTimeout(click_catalog,1000);
 
 
     });
