@@ -208,7 +208,7 @@ var SERVIR_PACKAGE = (function() {
 
 
                 });
-                    
+
                 // rand_lyr.getSource().changed();
                 // var layer_extent = layersDict[Object.keys(layersDict)[0]].getExtent();
                 // Object.keys(layersDict).forEach(function (key) {
@@ -793,6 +793,7 @@ var SERVIR_PACKAGE = (function() {
         $('.iw-contextMenu').find('[title="Zoom To"]').each(function(index,obj){
                     obj.click();
                 });
+        map.updateSize();
     };
 
     /************************************************************************
