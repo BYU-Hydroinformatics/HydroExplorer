@@ -40,11 +40,14 @@ def home(request):
     service_info = client.service.GetWaterOneFlowServiceInfo()
     services = service_info.ServiceInfo
     for i in services:
-        url = str(i.servURL)
-        title = str(i.Title)
-        organization = str(i.organization)
-        variable_str = "Title: %s, Organization: %s" % (title,organization)
-        his_servers.append([variable_str,url])
+        try:
+            url = str(i.servURL)
+            title = str(i.Title)
+            organization = str(i.organization)
+            variable_str = "Title: %s, Organization: %s" % (title,organization)
+            his_servers.append([variable_str,url])
+        except Exception as e:
+            print e
     select_his_server = SelectInput(display_text='Select HIS Server', name="select_server", multiple=False,
                                        options=his_servers)
 
