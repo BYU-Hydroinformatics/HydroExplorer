@@ -43,6 +43,7 @@ var SERVIR_PACKAGE = (function() {
         $modalAddHS,
         $modalAddSOAP,
         $SoapVariable,
+        $modalHIS,
         onClickZoomTo,
         onClickDeleteLayer,
         $hs_list,
@@ -50,6 +51,7 @@ var SERVIR_PACKAGE = (function() {
         location_search,
         generate_graph,
         generate_plot,
+        get_his_server,
         update_catalog,
         get_hs_list,
         soap_var,
@@ -115,13 +117,14 @@ var SERVIR_PACKAGE = (function() {
         $modalAddSOAP = $('#modalAddSoap');
         $SoapVariable = $('#soap_variable');
         $modalDelete = $('#modalDelete');
+        $modalHIS = $('#modalHISCentral');
         $hs_list = $('#current-servers-list');
     };
 
     cs_api = function () {
         $.ajax({
             type: "GET",
-            url: '/apps/servir/csapi/',
+            url: '/apps/servir/his/',
             dataType: 'JSON',
             success: function (result) {
                 console.log(result);
@@ -133,7 +136,33 @@ var SERVIR_PACKAGE = (function() {
         });
 
     };
-    $("#get-api").on('click',cs_api);
+    $("#load-central").on('click',cs_api);
+
+    get_his_server = function () {
+        var datastring = $modalHIS.serialize();
+        $.ajax({
+            type: "POST",
+            url: '/apps/servir/his-server/',
+            data:datastring,
+            dataType: 'HTML',
+            success: function (result) {
+                var json_response = JSON.parse(result);
+                var url = json_response.url;
+                $('#soap-url').val(url);
+                $('#modalHISCentral').modal('hide');
+
+                $( '#modalHISCentral' ).each(function(){
+                    this.reset();
+                });
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log(Error);
+            }
+
+        });
+
+    };
+    $("#add-from-his").on('click',get_his_server);
 
     get_hs_list = function(){
         $.ajax({
@@ -171,7 +200,6 @@ var SERVIR_PACKAGE = (function() {
         });
     };
     $("#delete-server").on('click',get_hs_list);
-
 
     load_catalog = function () {
         $.ajax({
@@ -249,6 +277,7 @@ var SERVIR_PACKAGE = (function() {
                 delete layersDict[title];
                 map.updateSize();
                 load_catalog();
+                click_catalog();
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -315,7 +344,6 @@ var SERVIR_PACKAGE = (function() {
             data: datastring,
             success: function(result)
             {
-
                 var json_response = JSON.parse(result);
                 if (json_response.status === 'true')
                 {
@@ -791,8 +819,8 @@ var SERVIR_PACKAGE = (function() {
     };
     click_catalog = function(){
         $('.iw-contextMenu').find('[title="Zoom To"]').each(function(index,obj){
-                    obj.click();
-                });
+            obj.click();
+        });
         map.updateSize();
     };
 

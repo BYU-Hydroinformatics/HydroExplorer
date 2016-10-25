@@ -50,10 +50,14 @@ class ServirCatalog(TethysAppBase):
                     UrlMap(name='delete',
                            url='servir/delete',
                            controller='servir.controllers.delete'),
-                    UrlMap(name='csapi',
-                           url='servir/csapi',
-                           controller='servir.controllers.csapi'),
+                    UrlMap(name='his',
+                           url='servir/his',
+                           controller='servir.controllers.his'),
+                    UrlMap(name='his-server',
+                           url='servir/his-server',
+                           controller='servir.controllers.get_his_server'),
         )
+
 
         return url_maps
 

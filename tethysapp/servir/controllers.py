@@ -5,7 +5,7 @@ from tethys_sdk.services import get_spatial_dataset_engine, list_spatial_dataset
 from tethys_dataset_services.engines import GeoServerSpatialDatasetEngine
 from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
-from utilities import parseSites, genShapeFile, parseJSON, check_digit, parseWML
+from utilities import parseSites, genShapeFile, parseJSON, check_digit, parseWML, parseOWS, recursive_asdict
 from json import dumps, loads
 import urllib2
 import xml.etree.ElementTree as ET
@@ -21,8 +21,9 @@ import unicodedata
 import ast
 from .model import engine, SessionMaker, Base, Catalog
 from pyproj import Proj, transform #Remember to install this in tethys.byu.edu
+from owslib.waterml.wml11 import WaterML_1_1 as wml11
 
-
+logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 geo_url_base = getattr(settings, "GEOSERVER_URL_BASE", "http://127.0.0.1:8181")
 geo_user = getattr(settings, "GEOSERVER_USER_NAME", "admin")
 geo_pw = getattr(settings, "GEOSERVER_USER_PASSWORD", "geoserver")
@@ -32,21 +33,61 @@ def home(request):
     """
     Controller for the app home page.
     """
+    his_servers = []
 
+    his_url = "http://hiscentral.cuahsi.org/webservices/hiscentral.asmx?WSDL"
+    client = Client(his_url)
+    service_info = client.service.GetWaterOneFlowServiceInfo()
+    services = service_info.ServiceInfo
+    for i in services:
+        url = str(i.servURL)
+        title = str(i.Title)
+        organization = str(i.organization)
+        variable_str = "Title: %s, Organization: %s" % (title,organization)
+        his_servers.append([variable_str,url])
+    select_his_server = SelectInput(display_text='Select HIS Server', name="select_server", multiple=False,
+                                       options=his_servers)
 
-    context = {}
+    context = {"select_his_server":select_his_server}
 
     return render(request, 'servir/home.html', context)
-def csapi(request):
+def get_his_server(request):
+    server = {}
+    if request.is_ajax() and request.method == 'POST':
+        url = request.POST['select_server']
+        server['url'] = url
+    return JsonResponse(server)
+def his(request):
     list = {}
-    if request.is_ajax():
-        get_feature_layers = "http://climateserv.servirglobal.net/chirps/getFeatureLayers/"
-        site_info_response = urllib2.urlopen(get_feature_layers)
-        site_info_data = site_info_response.read()
+    hs_list = []
+    error_list = []
+    logging.getLogger('suds.client').setLevel(logging.CRITICAL)
+    his_url = "http://hiscentral.cuahsi.org/webservices/hiscentral.asmx?WSDL"
+    client = Client(his_url)
+    searchable_concepts = client.service.GetSearchableConcepts()
+    service_info = client.service.GetWaterOneFlowServiceInfo()
+    # print service_info.ServiceInfo[0].servURL
+    services = service_info.ServiceInfo
+    for i in services:
+        hs = {}
+        url = i.servURL
+        try:
+            print "Testing %s" % (url)
+            url_client = Client(url)
+            hs['url'] = url
+            hs_list.append(hs)
+            print "%s Works" % (url)
+        except Exception as e:
+            print e
+            hs['url'] = url
+            print "%s Failed" % (url)
+            error_list.append(hs)
+        list['servers'] = hs_list
+        list['errors'] = error_list
 
+    context = {"hs_list":hs_list,"error_list":error_list}
 
-
-    return JsonResponse(list)
+    return render(request, 'servir/his.html', context)
 def catalog(request):
     list = {}
 
@@ -81,8 +122,6 @@ def delete(request):
         session.commit()
         session.close()
         list["title"] = title
-
-
     return JsonResponse(list)
 
 def add_server(request):
@@ -95,8 +134,6 @@ def add_server(request):
         title = title.replace(" ","")
         if url.endswith('/'):
             url = url[:-1]
-
-
 
         #cuahsi_validation_str = "cuahsi_1_1.asmx"
         #if cuahsi_validation_str in url:
@@ -182,10 +219,14 @@ def soap(request):
         else:
             return_obj['zoom'] = 'false'
             sites = client.service.GetSites('[:]')
+            # sites = sites.encode('utf-8')
+            # wml_sites = wml11(sites).response
             sites_dict = xmltodict.parse(sites)
             sites_json_object = json.dumps(sites_dict)
             sites_json = json.loads(sites_json_object)
             sites_object = parseJSON(sites_json)
+            # sites_ows = parseOWS(wml_sites)
+            # ows_shapefile = genShapeFile(sites_ows,title, geo_url, geo_user, geo_pw, url)
             shapefile_object = genShapeFile(sites_object, title, geo_url, geo_user, geo_pw, url)
 
             geoserver_rest_url = geo_url_base + "/geoserver/wms"
@@ -193,10 +234,15 @@ def soap(request):
             return_obj['wms'] = shapefile_object["layer"]
             return_obj['bounds'] = shapefile_object["extents"]
             extents_string = str(shapefile_object["extents"])
-
             return_obj['title'] = title
             return_obj['url'] = url
             return_obj['status'] = "true"
+
+            # return_obj['ows'] = ows_shapefile["layer"]
+            # return_obj['bounds'] = ows_shapefile["extents"]
+            # ows_extents_string = str(ows_shapefile["extents"])
+
+
             Base.metadata.create_all(engine)
             session = SessionMaker()
             hs_one = Catalog(title=title,
@@ -499,9 +545,6 @@ def details(request):
             var_obj["endDate"] = end_time
             var_json.append(var_obj)
             graph_variables.append([variable_string, value_string])
-
-
-
 
         # print site_values
         # values = client.service.GetSiteInfo(site_desc)

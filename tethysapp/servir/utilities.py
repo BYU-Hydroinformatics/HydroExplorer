@@ -10,7 +10,7 @@ from suds.client import Client
 from suds.sudsobject import asdict
 from suds.sudsobject import asdict
 import json
-
+from owslib.waterml.wml11 import WaterML_1_1 as wml11
 
 try:
     from cStringIO import StringIO
@@ -61,28 +61,52 @@ def parseSites(xml):
                 hs_sites.append(hs_json)
 
     return hs_sites
+def parseOWS(wml):
+    hs_sites = []
+    for site in wml.sites:
+        hs_json = {}
+        site_name =  site.name
+        site_code =  site.codes[0]
+        latitude = site.latitudes
+        longitude =  site.longitudes
+        network =  site.site_info.elevation
+        print site.site_info.net_work
+        hs_json["sitename"] = site_name
+        hs_json["latitude"] = latitude
+        hs_json["longitude"] = longitude
+        hs_json["sitecode"] = site_code
+        hs_json["network"] = network
+        hs_json["service"] = "SOAP"
+        hs_sites.append(hs_json)
+
+    return hs_sites
+
+
+def recursive_asdict(d):
+    """Convert Suds object into serializable format."""
+    out = {}
+    for k, v in asdict(d).iteritems():
+        if hasattr(v, "__keylist__"):
+            out[k] = recursive_asdict(v)
+        elif isinstance(v, list):
+            out[k] = []
+            for item in v:
+                if hasattr(item, "__keylist__"):
+                    out[k].append(recursive_asdict(item))
+                else:
+                    out[k].append(item)
+        else:
+            out[k] = v
+    return out
+
+
+def suds_to_json(data):
+    return json.dumps(recursive_asdict(data))
+
 def parseWML(bbox):
     hs_sites = []
     # print bbox
-    def recursive_asdict(d):
-        """Convert Suds object into serializable format."""
-        out = {}
-        for k, v in asdict(d).iteritems():
-            if hasattr(v, "__keylist__"):
-                out[k] = recursive_asdict(v)
-            elif isinstance(v, list):
-                out[k] = []
-                for item in v:
-                    if hasattr(item, "__keylist__"):
-                        out[k].append(recursive_asdict(item))
-                    else:
-                        out[k].append(item)
-            else:
-                out[k] = v
-        return out
 
-    def suds_to_json(data):
-        return json.dumps(recursive_asdict(data))
 
     bbox_json = recursive_asdict(bbox)
 
