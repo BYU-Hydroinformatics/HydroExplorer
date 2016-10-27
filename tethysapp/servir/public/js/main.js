@@ -20,6 +20,7 @@ var SERVIR_PACKAGE = (function() {
      *                      MODULE LEVEL / GLOBAL VARIABLES
      *************************************************************************/
     var ContextMenuBase,
+        colors,
         current_layer,
         element,
         layers,
@@ -49,6 +50,7 @@ var SERVIR_PACKAGE = (function() {
         location_search,
         $modalAddHS,
         $modalAddSOAP,
+        set_color,
         $SoapVariable,
         $modalHIS,
         $modalDelete,
@@ -60,6 +62,12 @@ var SERVIR_PACKAGE = (function() {
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
      *************************************************************************/
+
+    colors = ['#ff0000','#0033cc','#000099','#ff0066','#ff00ff','#800000','#6699ff','#6600cc','#00ffff'];
+    set_color = function(){
+        var color = colors[Math.floor(Math.random() * colors.length)];
+        return color;
+    };
     get_random_color = function() {
         var letters = '012345'.split('');
         var color = '#';
@@ -236,7 +244,7 @@ var SERVIR_PACKAGE = (function() {
                     var extents = server.extents;
                     $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
-                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+layer_name+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+get_random_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+layer_name+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+set_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     wmsSource = new ol.source.TileWMS({
                         url: geoserver_url,
                         params: {'LAYERS':layer_name,
@@ -382,7 +390,7 @@ var SERVIR_PACKAGE = (function() {
                     $( '#modalAddHS' ).each(function(){
                         this.reset();
                     });
-                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+get_random_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+set_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     wmsSource = new ol.source.TileWMS({
                         url: rest_url,
                         params: {'LAYERS':wms_url,
@@ -485,7 +493,7 @@ var SERVIR_PACKAGE = (function() {
                     $( '#modalAddSoap' ).each(function(){
                         this.reset();
                     });
-                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+get_random_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+set_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     wmsSource = new ol.source.TileWMS({
                         url: rest_url,
                         params: {'LAYERS':wms_url,
@@ -842,6 +850,7 @@ var SERVIR_PACKAGE = (function() {
     click_catalog = function(){
         $('.iw-contextMenu').find('[title="Zoom To"]').each(function(index,obj){
             obj.click();
+            console.log('clicked');
         });
         map.updateSize();
     };
