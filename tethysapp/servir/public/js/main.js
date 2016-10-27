@@ -864,7 +864,7 @@ var SERVIR_PACKAGE = (function() {
         init_menu();
         init_map();
         load_catalog();
-        setTimeout(click_catalog,1000);
+        setTimeout(click_catalog,2000);
 
 
 
