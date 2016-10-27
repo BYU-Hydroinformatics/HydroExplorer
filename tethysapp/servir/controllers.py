@@ -54,6 +54,7 @@ def home(request):
     context = {"select_his_server":select_his_server}
 
     return render(request, 'servir/home.html', context)
+
 def get_his_server(request):
     server = {}
     if request.is_ajax() and request.method == 'POST':
@@ -258,7 +259,9 @@ def soap(request):
         return_obj['message'] = 'This request can only be made through a "POST" AJAX call.'
 
     return JsonResponse(return_obj)
-
+def error(request):
+    context = {}
+    return render(request, 'servir/error.html', context)
 def details(request):
 
     site_name = request.GET['sitename']
@@ -269,6 +272,7 @@ def details(request):
     service = request.GET['service']
     rest = None
     soap = None
+    error_message = None
 
 
     if service == 'REST':
@@ -393,7 +397,9 @@ def details(request):
                             graph_json["values"] = data_values
                 graphs.append(graph_json)
             else:
-                print "No data"
+                nodata_message = "There is no data for this Site"
+                context = {"nodate_message":nodata_message,"site_name":site_name,"site_code":site_code,"service":service}
+                return render(request, 'servir/error.html', context)
 
         graphs_object = {}
         graphs_object["graph"] = graphs
@@ -459,7 +465,12 @@ def details(request):
         site_variables = []
         site_object_info = info_json['sitesResponse']['site']['seriesCatalog']
         # print info_json
-        site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
+        try:
+            site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
+        except KeyError:
+            error_message = "Site Details do not exist"
+            context = {"site_name":site_name,"site_code":site_code,"service":service,"error_message":error_message}
+            return render(request, 'servir/error.html', context)
         graph_variables = []
         var_json = []
         if type(site_object) is list:
@@ -468,11 +479,11 @@ def details(request):
                 var_obj = {}
                 count = count + 1
 
-                variable_name =  i['variable']['variableName']
+                variable_name = i['variable']['variableName']
                 variable_id = i['variable']['variableCode']['@variableID']
                 variable_text = i['variable']['variableCode']['#text']
                 var_obj["variableName"] = variable_name
-                var_obj["variableID"]  = variable_id
+                var_obj["variableID"] = variable_id
                 # value_type = i['variable']['valueType']
                 value_count = i['valueCount']
                 # data_type = i['variable']['dataType']
@@ -489,7 +500,7 @@ def details(request):
                 end_time = i["variableTimeInterval"]["endDateTimeUTC"]
                 end_time = end_time.split("T")
                 end_time = str(end_time[0])
-                var_obj["startDate"]=  begin_time
+                var_obj["startDate"] = begin_time
                 var_obj["endDate"] = end_time
                 # print begin_time,end_time
                 method_id = i["method"]["@methodID"]
@@ -501,11 +512,12 @@ def details(request):
                 # qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
                 # qc_definition = i["qualityControlLevel"]["definition"]
                 # print variable_name,variable_id, source_id,method_id, qc_code
-                variable_string = str(count)+'. Variable Name:'+variable_name+','+'Count: '+value_count+',Variable ID:'+variable_id+', Start Date:'+begin_time+', End Date:'+end_time
+                variable_string = str(
+                    count) + '. Variable Name:' + variable_name + ',' + 'Count: ' + value_count + ',Variable ID:' + variable_id + ', Start Date:' + begin_time + ', End Date:' + end_time
                 # value_string = variable_id,variable_text,source_id,method_id,qc_code, variable_name
                 value_list = [variable_text, method_id]
                 value_string = str(value_list)
-                graph_variables.append([variable_string,value_string])
+                graph_variables.append([variable_string, value_string])
                 var_json.append(var_obj)
                 # print variable_name, variable_id, value_type, data_type, unit_name,unit_type, unit_abbr,unit_abbr,unit_code, time_support, time_support_name, time_support_type
         else:
@@ -538,9 +550,9 @@ def details(request):
             # qc_code = site_object["qualityControlLevel"]["qualityControlLevelCode"]
             # qc_id = site_object["qualityControlLevel"]["@qualityControlLevelID"]
             # qc_definition = site_object["qualityControlLevel"]["definition"]
-            variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: '+value_count+',Variable ID:' + variable_id +', Start Date:'+begin_time+', End Date:'+end_time
+            variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: ' + value_count + ',Variable ID:' + variable_id + ', Start Date:' + begin_time + ', End Date:' + end_time
             # print variable_name, variable_id, source_id, method_id, qc_code
-            value_list = [variable_text,method_id]
+            value_list = [variable_text, method_id]
             value_string = str(value_list)
             var_obj["variableName"] = variable_name
             var_obj["variableID"] = variable_id
@@ -553,7 +565,7 @@ def details(request):
         # values = client.service.GetSiteInfo(site_desc)
         # print values
         select_soap_variable = SelectInput(display_text='Select Variable', name="select_var", multiple=False,
-                                      options=graph_variables)
+                                           options=graph_variables)
 
         t_now = datetime.now()
         now_str = "{0}-{1}-{2}".format(t_now.year, check_digit(t_now.month), check_digit(t_now.day))
@@ -579,7 +591,10 @@ def details(request):
         request.session['soap_obj'] = soap_obj
 
 
-    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"service":service,"rest":rest,"soap":soap,"hidenav":hidenav,"select_soap_variable":select_soap_variable,"select_variable":select_variable,"start_date":start_date,"end_date":end_date,"graphs_object":graphs_object,"soap_obj":soap_obj}
+
+
+
+    context = {"site_name":site_name,"site_code":site_code,"network":network,"hs_url":hs_url,"service":service,"rest":rest,"soap":soap,"hidenav":hidenav,"select_soap_variable":select_soap_variable,"select_variable":select_variable,"start_date":start_date,"end_date":end_date,"graphs_object":graphs_object,"soap_obj":soap_obj,"error_message":error_message}
 
 
 

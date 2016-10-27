@@ -56,6 +56,9 @@ class ServirCatalog(TethysAppBase):
                     UrlMap(name='his-server',
                            url='servir/his-server',
                            controller='servir.controllers.get_his_server'),
+                    UrlMap(name='error',
+                           url='servir/error',
+                           controller='servir.controllers.error'),
         )
 
 

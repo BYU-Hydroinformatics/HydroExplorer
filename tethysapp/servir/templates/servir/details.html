@@ -11,7 +11,9 @@
 <div id="domMessage" style="display:none;">
     <h1>We are processing your request.  Please be patient.</h1>
 </div>
-
+{% if error_message != None %}
+    <h1 style="color:red">{{error_message}}</h1>
+    {% endif %}
 {% if rest %}
 {% gizmo select_input select_variable %}
 <button id="generate-graph" class="btn btn-primary">Generate Graph</button>
@@ -29,6 +31,7 @@
 {% if soap %}
 <form id="soap_variable" action="/apps/servir/soap-api/" method="POST">
     {% csrf_token %}
+
     {% gizmo select_input select_soap_variable %}
     {% gizmo date_picker start_date %}
     {% gizmo date_picker end_date %}

@@ -19,44 +19,43 @@ var SERVIR_PACKAGE = (function() {
     /************************************************************************
      *                      MODULE LEVEL / GLOBAL VARIABLES
      *************************************************************************/
-    var map,
-        layers,
+    var ContextMenuBase,
+        current_layer,
         element,
+        layers,
+        layersDict,
+        map,
         popup,
         wmsLayer,
-        wmsSource,
-        current_layer,
-        layersDict,
-        ContextMenuBase;
+        wmsSource;
     /************************************************************************
      *                    PRIVATE FUNCTION DECLARATIONS
      *************************************************************************/
-    var init_map,
+    var addContextMenuToListItem,
+        add_server,
+        add_soap,
+        click_catalog,
+        generate_graph,
+        generate_plot,
+        get_his_server,
+        get_hs_list,
+        get_random_color,
+        init_cluster,
+        init_map,
         init_menu,
         init_jquery_var,
         init_events,
         load_catalog,
-        cs_api,
-        add_server,
-        add_soap,
-        addContextMenuToListItem,
+        location_search,
         $modalAddHS,
         $modalAddSOAP,
         $SoapVariable,
         $modalHIS,
+        $modalDelete,
         onClickZoomTo,
         onClickDeleteLayer,
         $hs_list,
-        $modalDelete,
-        location_search,
-        generate_graph,
-        generate_plot,
-        get_his_server,
-        update_catalog,
-        get_hs_list,
-        soap_var,
-        get_random_color,
-        click_catalog;
+        update_catalog;
 
     /************************************************************************
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
@@ -121,22 +120,44 @@ var SERVIR_PACKAGE = (function() {
         $hs_list = $('#current-servers-list');
     };
 
-    cs_api = function () {
-        $.ajax({
-            type: "GET",
-            url: '/apps/servir/his/',
-            dataType: 'JSON',
-            success: function (result) {
-                console.log(result);
-            },
-            error: function (XMLHttpRequest, textStatus, errorThrown) {
-                console.log(Error);
-            }
 
+
+    init_cluster = function(layer_source){
+        var clusterSource = new ol.source.Cluster({
+            distance: 10,
+            source: layer_source
         });
-
+        var styleCache = {};
+        var clusters = new ol.layer.Vector({
+            source: clusterSource,
+            style: function(feature) {
+                var size = feature.get('features').length;
+                var style = styleCache[size];
+                if (!style) {
+                    style = new ol.style.Style({
+                        image: new ol.style.Circle({
+                            radius: 10,
+                            stroke: new ol.style.Stroke({
+                                color: '#fff'
+                            }),
+                            fill: new ol.style.Fill({
+                                color: '#3399CC'
+                            })
+                        }),
+                        text: new ol.style.Text({
+                            text: size.toString(),
+                            fill: new ol.style.Fill({
+                                color: '#fff'
+                            })
+                        })
+                    });
+                    styleCache[size] = style;
+                }
+                return style;
+            }
+        });
+        map.addLayer(clusters);
     };
-    $("#load-central").on('click',cs_api);
 
     get_his_server = function () {
         var datastring = $modalHIS.serialize();
@@ -158,9 +179,7 @@ var SERVIR_PACKAGE = (function() {
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
             }
-
         });
-
     };
     $("#add-from-his").on('click',get_his_server);
 
@@ -573,6 +592,9 @@ var SERVIR_PACKAGE = (function() {
             var zoom = map.getView().getZoom();
             var zoomInfo = '<h6>Current Zoom level = ' + zoom+'</h6>';
             document.getElementById('zoomlevel').innerHTML = zoomInfo;
+            Object.keys(layersDict).forEach(function(key){
+                var source =  layersDict[key].getSource();
+            });
         });
         map.on("singleclick",function(evt){
             //Check for each layer in the baselayers
@@ -834,6 +856,7 @@ var SERVIR_PACKAGE = (function() {
         init_map();
         load_catalog();
         setTimeout(click_catalog,1000);
+
 
 
     });
