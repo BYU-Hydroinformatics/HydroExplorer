@@ -52,7 +52,7 @@
 {% if hidenav %}
 
 <script>
-    $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
+     $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
     $(function(){
         $('#app-content-wrapper').removeClass('show-nav');
         $('.tethys-app-header').hide();
@@ -99,8 +99,6 @@
         var date_val = $("#end_date").val();
         $("#end_date").val(date_val);
     });
-
-
 
 </script>
 {% endif %}

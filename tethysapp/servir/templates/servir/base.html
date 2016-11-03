@@ -13,32 +13,46 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 {% block app_navigation_items %}
-<div align="center"><li>
 <!--<input type="button" id="load-from-hs" class="btn btn-primary" data-toggle="modal" data-target="#modalAddHS" Value="Add REST URL">-->
-<input type="button" id="load-from-soap" class="btn btn-primary" data-toggle="modal" data-target="#modalAddSoap" Value="Add SOAP URL"></li></div>
-<br>
+<!--<input type="button" id="load-from-soap" class="btn btn-primary" data-toggle="modal" data-target="#modalAddSoap" Value="Add SOAP URL"></li></div>-->
+<!--<br>-->
 <!--<div align="center"><li><input type="button" id="load-central" class="btn btn-primary" Value="CUAHSI"></li></div>-->
 <!--<br>-->
-<div align="center"><li><button id="delete-server" class="btn btn-primary" data-toggle="modal" data-target="#modalDelete">Update HS Catalog</button></li></div>
+<!--<div align="center"><li><button id="delete-server" class="btn btn-primary" data-toggle="modal" data-target="#modalDelete">Update HS Catalog</button></li></div>-->
+<!--<br>-->
+<div align="center"><li><button id="load-datarods" class="btn btn-primary" data-toggle="modal" data-target="#modalDataRods">Explore NASA GLDAS</button></li></div>
 <br>
 <!--<div align="center"> <li><button id="get-api" class="btn btn-primary">API CALL</button></li></div>-->
 <!--<br>-->
 <!--<div align="center"> <li><button id="load-catalog" class="btn btn-primary" >Load Catalog</button></li></div>-->
 <!--<br>-->
-<li><input type="text" class="form-control" placeholder="Enter Area of Interest" id="location_input" name="location_input"></li>
-<li align="center"><button type="button" class="btn btn-primary" id="location_search" name="location_search" >Click to Zoom to an Area</button></li>
+<!--<li><input type="text" class="form-control" placeholder="Enter Area of Interest" id="location_input" name="location_input"></li>-->
+<!--<li align="center"><button type="button" class="btn btn-primary" id="location_search" name="location_search" >Click to Zoom to an Area</button></li>-->
+<!--<br>-->
 
+<!--<div align="center"><li><a href="{% url 'servir:create' %}" target="_blank"><button id="create" class="btn btn-primary" >Create Server</button></a></li></div>-->
+<!--<br>-->
 <li><b>Current HydroServers</b>
     <div id="current-servers">
         <ul id="current-servers-list"></ul>
         <!--{% for hs in hs_list %}-->
-            <!--<li class="ui-state-default" layer-name="{{ hs.title }}" ><input class="chkbx-layer" type="checkbox" checked><span class="server-name">{{ hs.title }}</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>-->
-            <!--<script>-->
-                <!--SERVIR_PACKAGE.addContextMenuToListItem($('#current-servers').find('li:last-child'));-->
-            <!--</script>-->
+        <!--<li class="ui-state-default" layer-name="{{ hs.title }}" ><input class="chkbx-layer" type="checkbox" checked><span class="server-name">{{ hs.title }}</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>-->
+        <!--<script>-->
+        <!--SERVIR_PACKAGE.addContextMenuToListItem($('#current-servers').find('li:last-child'));-->
+        <!--</script>-->
         <!--{% endfor %}-->
     </div>
 </li>
+<br>
+<!--<li><img src="/static/servir/images/settings.svg" class="settings"></li>-->
+{% if user.is_superuser or user.is_staff %}
+<div align="center">
+    <div class="settings" data-target="#modalInterface" data-toggle="modal">
+        <img src="/static/servir/images/settings.svg" class="settings">
+        <p>Settings</p>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block app_content %}

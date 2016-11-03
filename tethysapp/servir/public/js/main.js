@@ -38,6 +38,7 @@ var SERVIR_PACKAGE = (function() {
         click_catalog,
         generate_graph,
         generate_plot,
+        get_data_rods,
         get_his_server,
         get_hs_list,
         get_random_color,
@@ -54,6 +55,8 @@ var SERVIR_PACKAGE = (function() {
         $SoapVariable,
         $modalHIS,
         $modalDelete,
+        $modalDataRods,
+        $modalInterface,
         onClickZoomTo,
         onClickDeleteLayer,
         $hs_list,
@@ -86,6 +89,22 @@ var SERVIR_PACKAGE = (function() {
                 imagerySet: 'AerialWithLabels' // Options 'Aerial', 'AerialWithLabels', 'Road'
             })
         });
+        var image = new ol.style.Circle({
+            radius: 7,
+            fill: new ol.style.Fill({
+                color: 'rgba(255, 0, 0, 0.7)'
+            }),
+            stroke: new ol.style.Stroke({color: 'red', width: 1})
+        });
+
+        var pointSource = new ol.source.Vector();
+
+        var pointLayer = new ol.layer.Vector({
+            source: pointSource,
+            style: new ol.style.Style({
+                image: image
+            })
+        });
 
         var fullScreenControl = new ol.control.FullScreen();
         var view = new ol.View({
@@ -93,7 +112,7 @@ var SERVIR_PACKAGE = (function() {
             projection: projection,
             zoom: 4
         });
-        layers = [baseLayer];
+        layers = [baseLayer,pointLayer];
         //Declare the map object itself.
         layersDict = {};
 
@@ -125,10 +144,14 @@ var SERVIR_PACKAGE = (function() {
         $SoapVariable = $('#soap_variable');
         $modalDelete = $('#modalDelete');
         $modalHIS = $('#modalHISCentral');
+        $modalDataRods = $('#modalDataRods');
+        $modalInterface = $('#modalInterface');
         $hs_list = $('#current-servers-list');
     };
 
-
+    $(".settings").click(function(){
+        $modalInterface.find('.success').html('');
+    });
 
     init_cluster = function(layer_source){
         var clusterSource = new ol.source.Cluster({
@@ -190,6 +213,35 @@ var SERVIR_PACKAGE = (function() {
         });
     };
     $("#add-from-his").on('click',get_his_server);
+
+
+
+    get_data_rods = function () {
+        if (($("#gldas-lat-lon").val()=="")){
+            $modalDataRods.find('.warning').html('<b>Please select a point on the map.</b>');
+            return false;
+        }
+        if (($("#gldas-lat-lon").val()!= "")){
+            $modalDataRods.find('.warning').html('');
+        }
+        $('#modalDataRods').modal('hide');
+        var datastring = $modalDataRods.serialize();
+        var $loading = $('#view-file-loading');
+        $('#iframe-container').addClass('hidden');
+        $loading.removeClass('hidden');
+
+        var details_url = "/apps/servir/datarods/?"+datastring;
+        $('#iframe-container')
+            .empty()
+            .append('<iframe id="iframe-details-viewer" src="' + details_url + '" allowfullscreen></iframe>');
+        $('#modalViewDetails').modal('show');
+        $('#iframe-details-viewer').one('load', function () {
+            $loading.addClass('hidden');
+            $('#iframe-container').removeClass('hidden');
+            $loading.addClass('hidden');
+        });
+    };
+    $("#get-data-rods").on('click',get_data_rods);
 
     get_hs_list = function(){
         $.ajax({
@@ -260,7 +312,8 @@ var SERVIR_PACKAGE = (function() {
                     map.addLayer(wmsLayer);
 
                     layersDict[title] = wmsLayer;
-
+                    var layer_extent = wmsLayer.getExtent();
+                    map.getView().fit(layer_extent,map.getSize());
 
                 });
 
@@ -283,6 +336,7 @@ var SERVIR_PACKAGE = (function() {
 
 
     update_catalog = function () {
+        $modalInterface.find('.success').html('');
         var datastring = $modalDelete.serialize();
         $.ajax({
             type: "POST",
@@ -305,6 +359,7 @@ var SERVIR_PACKAGE = (function() {
                 map.updateSize();
                 load_catalog();
                 click_catalog();
+                $modalInterface.find('.success').html('<b>Successfully Updated the Catalog!</b>');
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -426,6 +481,7 @@ var SERVIR_PACKAGE = (function() {
     $('#btn-add-server').on('click', add_server);
 
     add_soap = function () {
+        $modalInterface.find('.success').html('');
         if(($("#extent")).is(':checked')){
             var zoom = map.getView().getZoom();
             if (zoom < 8){
@@ -512,6 +568,7 @@ var SERVIR_PACKAGE = (function() {
 
                     var layer_extent = wmsLayer.getExtent();
                     map.getView().fit(layer_extent,map.getSize());
+                    $modalInterface.find('.success').html('<b>Successfully Added the HydroServer to the Map!</b>');
                 }
                 else{
                     $modalAddSOAP.find('.warning').html('<b>Failed to add server. Please check Url and try again.</b>');
@@ -520,7 +577,14 @@ var SERVIR_PACKAGE = (function() {
             },
             error: function(XMLHttpRequest, textStatus, errorThrown)
             {
-                $modalAddSOAP.find('.warning').html('<b>Invalid Hydroserver SOAP Url. Please check your url and try again.</b>');
+                $modalAddSOAP.find('.warning').html('<b>Invalid Hydroserver SOAP Url. Please check and try again.</b>');
+                if(($("#extent")).is(':checked')){
+                    $modalAddSOAP.find('.warning').html('<b>The requested area does not have any sites. Please try another area.</b>');
+                    return false;
+                }else{
+                    $modalAddSOAP.find('.warning').html('');
+                }
+
             }
         });
 
@@ -595,7 +659,7 @@ var SERVIR_PACKAGE = (function() {
             layersDict[displayName].setVisible($(this).is(':checked'));
         });
 
-        $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
+        // $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
         map.on("moveend", function() {
             var zoom = map.getView().getZoom();
             var zoomInfo = '<h6>Current Zoom level = ' + zoom+'</h6>';
@@ -609,6 +673,31 @@ var SERVIR_PACKAGE = (function() {
 
             $(element).popover('destroy');
 
+            var coords = evt.coordinate;
+            var proj_coords = ol.proj.transform(coords, 'EPSG:3857','EPSG:4326');
+            var geojsonObject = {
+                'type': 'FeatureCollection',
+                'crs': {
+                    'type': 'name',
+                    'properties': {
+                        'name': 'EPSG:3857'
+                    }
+                },
+                'features': [{
+                    'type': 'Feature',
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': coords
+                    }
+                }]
+            };
+            var ptSource = map.getLayers().item(1).getSource();
+            ptSource.clear();
+            ptSource.addFeatures((new ol.format.GeoJSON()).readFeatures(geojsonObject));
+            $("#gldas-lat-lon").val(proj_coords);
+            if (($("#gldas-lat-lon").val()!= "")){
+                $modalDataRods.find('.warning').html('');
+            }
             if (map.getTargetElement().style.cursor == "pointer") {
                 var clickCoord = evt.coordinate;
                 popup.setPosition(clickCoord);
@@ -670,13 +759,14 @@ var SERVIR_PACKAGE = (function() {
             $('#modalViewDetails').modal('hide');
         });
 
+
         map.on('pointermove', function(evt) {
             if (evt.dragging) {
                 return;
             }
             var pixel = map.getEventPixel(evt.originalEvent);
             var hit = map.forEachLayerAtPixel(pixel, function(layer) {
-                if (layer != layers[0]){
+                if (layer != layers[0] && layer != layers[1]){
                     current_layer = layer;
                     return true;}
             });
@@ -847,13 +937,15 @@ var SERVIR_PACKAGE = (function() {
         contextMenuId = $('.iw-contextMenu:last-child').attr('id');
         $listItem.attr('data-context-menu', contextMenuId);
     };
+
     click_catalog = function(){
-        $('.iw-contextMenu').find('[title="Zoom To"]').each(function(index,obj){
+        $('.iw-contextMenu').find('[title="Zoom To"]').each(function (index, obj) {
             obj.click();
-            console.log('clicked');
         });
         map.updateSize();
     };
+
+
 
     /************************************************************************
      *                  INITIALIZATION / CONSTRUCTOR
@@ -864,10 +956,7 @@ var SERVIR_PACKAGE = (function() {
         init_menu();
         init_map();
         load_catalog();
-        setTimeout(click_catalog,2000);
-
-
-
+        setTimeout(click_catalog,1000);
     });
 
 }()); // End of package wrapper

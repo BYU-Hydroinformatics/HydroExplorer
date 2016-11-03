@@ -10,6 +10,33 @@
 {% block app_content_wrapper_override %}
 
 {{ block.super }}
+<!--Interface Modal--->
+<div id="modalInterface" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h1>HydroCatalog Settings Interface</h1>
+            </div>
+            <div class="modal-body">
+                <h2>Instructions</h2>
+                <h4>Adding A Server to the Catalog</h4>
+                <p>The Add SOAP URL will show an interface for adding a valid HydroServer SOAP URL</p>
+                <input type="button" id="load-from-soap" class="btn btn-primary" data-toggle="modal" data-target="#modalAddSoap" Value="Add SOAP URL">
+                <br>
+                <br>
+                <h4>Updating the Catalog</h4>
+                <p>Use the Update HS Catalog to delete any servers in the catalog. Once deleted these layers will not show up on load</p>
+                <input type="button" id="delete-server" class="btn btn-primary" data-toggle="modal" data-target="#modalDelete" Value="Update HS Catalog">
+                <div class="success"></div>
+            </div>
+
+        </div>
+        <!--End modal content-->
+    </div>
+</div>
+
 <!-- Add HydroServer REST Endpoint -->
 <form id="modalAddHS" class="modal fade" role="dialog" action="add_server/" method="POST">
     {% csrf_token %}
@@ -57,7 +84,7 @@
     </div>
 </form>
 
-<form id="modalAddSoap" class="modal fade" role="dialog" action="soap/" method="POST">
+<form id="modalAddSoap" class="modal fade"  action="soap/" method="POST">
     {% csrf_token %}
     <div class="modal-dialog">
         <!-- Modal content-->
@@ -92,6 +119,7 @@
     </div>
 </form>
 <!--End modal-->
+
 <form id="modalHISCentral" class="modal fade" role="dialog" action="his-server/" method="POST">
     {% csrf_token %}
     <div class="modal-dialog">
@@ -103,9 +131,9 @@
 
             </div>
             <div class="modal-body">
-            {% gizmo select_input select_his_server %}
+                {% gizmo select_input select_his_server %}
             </div>
-             <div class="modal-footer">
+            <div class="modal-footer">
                 <div class="button-group">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                     <button type="button" id="add-from-his" class="btn btn-default">Add</button>
@@ -151,7 +179,7 @@
 <div id="modalViewDetails" class="modal fade" role="dialog">
     <div class="modal-dialog">
         <!-- Modal content-->
-        <span id="close-modalViewDetails">X</span>
+        <span class="close-modal" id="close-modalViewDetails">X</span>
         <div class="modal-content flex-container-row">
             <img id="view-file-loading" class="view-file" src="/static/servir/images/loader.gif" />
             <div id="iframe-container" class="view-details hidden" ></div>
@@ -161,8 +189,37 @@
 </div>
 <!--End modal-->
 
+<form id="modalDataRods" class="modal fade" role="dialog" action="datarods/" method="POST">
+    {% csrf_token %}
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"> Data Rods Explorer</h4>
+            </div>
+            <div class="modal-body">
+                <h3>GLDAS-Noah (LSM) Data</h3>
+                {% gizmo select_input select_gldas_variable %}
+                {% gizmo date_picker start_date %}
+                {% gizmo date_picker end_date %}
+                <input type="text" name="gldas-lat-lon" id="gldas-lat-lon" hidden>
+                <div class="warning">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="button-group">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" id="get-data-rods" class="mod_link btn btn-default" data-html="/apps/servir/datarods/">Get Data</button>
+                </div>
+            </div>
+        </div>
+        <!--End modal content-->
+    </div>
+</form>
+
+
 {% endblock %}
 {% block scripts %}
 {{ block.super }}
-
 {% endblock %}

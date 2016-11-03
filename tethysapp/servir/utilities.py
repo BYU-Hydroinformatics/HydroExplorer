@@ -11,6 +11,9 @@ from suds.sudsobject import asdict
 from suds.sudsobject import asdict
 import json
 from owslib.waterml.wml11 import WaterML_1_1 as wml11
+from dateutil import parser as dateparser
+from datetime import datetime
+import inspect
 
 try:
     from cStringIO import StringIO
@@ -264,7 +267,66 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
         if temp_dir is not None:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
+def parse_gldas_data(file):
+    data = []
+    data_flag_text = 'Date&Time'
+    error_flag_text = 'ERROR:'
+    error_message = None
+    found_data = False
+    file = file.split("\n")
+    s_lines = []
 
+    for line in file:
+        if data_flag_text in line:
+            found_data = True
+            continue
+        if found_data:
+            s_lines.append(line)
+
+
+    try:
+        if len(s_lines) < 1:
+            raise Exception
+    except Exception as e:
+        raise e
+
+    for row in s_lines:
+        row_ls = row.strip().replace(' ', '-', 1).split()
+
+        try:
+            if len(row_ls) == 2:
+                date = row_ls[0]
+                val = row_ls[1]
+                date_val_pair =[datetime.strptime(date, '%Y-%m-%d-%HZ'),float(val)]
+                data.append(date_val_pair)
+        except Exception as e:
+            print str(e),"Exception"
+            continue
+
+
+    return data
+def gen_gldas_dropdown():
+    gldas_options = []
+    gldas_config_file = inspect.getfile(inspect.currentframe()).replace('utilities.py',
+                                                                'public/data/gldas_config.txt')
+
+    with open(gldas_config_file,mode='r') as f:
+        f.readline()
+        for line in f:
+            linevals = line.split('|')
+            var_name = linevals[1]
+            var_units = linevals[2]
+            display_str = var_name+" "+var_units
+            value_str = str(line)
+            gldas_options.append([display_str, value_str])
+
+
+
+    return gldas_options
+
+def gen_gldas():
+
+    return
 def check_digit(num):
     num_str = str(num)
     if len(num_str) < 2:

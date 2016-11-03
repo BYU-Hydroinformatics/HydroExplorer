@@ -94,7 +94,6 @@ overflow-y: auto;
     max-width: 218px;
     word-break: break-all;
 }
-
 #iframe-container {
     height: 100%;
     width: 100%;
@@ -104,8 +103,7 @@ overflow-y: auto;
     height: 100%;
     padding: 15px;
 }
-
-#close-modalViewDetails {
+.close-modal{
     cursor: pointer;
     position: absolute;
     right: -2px;
@@ -128,6 +126,22 @@ overflow-y: auto;
     margin: 15px;
 }
 #modalViewDetails .modal-content {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+}
+#modalInterface .modal-dialog {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: auto;
+    margin: 15px;
+}
+#modalInterface .modal-content {
     position: fixed;
     top: 0;
     bottom: 0;
@@ -183,10 +197,27 @@ overflow-y: auto;
     width: 100%;
 }
 .chart-wrapper {
- position: relative;
+    position: relative;
     /*padding-bottom: 40%;*/
 }
 .warning{
     font-size: 200%;
     color: red;
+}
+.success{
+    font-size: 200%;
+    color: green;
+}
+.settings{
+    text-align: center;
+    width: 100px;
+    cursor: pointer;
+    position:relative;
+}
+.settings img{
+    width: 100px;
+    height:100px;
+}
+.datepicker-dropdown{
+    z-index:10000 !important;
 }

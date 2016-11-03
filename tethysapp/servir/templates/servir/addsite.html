@@ -1,0 +1,42 @@
+{% extends "servir/create.html" %}
+{% load staticfiles %}
+{% load tethys_gizmos %}
+
+{% block app_navigation_items%}
+<li><a href="{% url 'servir:create' %}">Database Management Home</a></li>
+<li>Add Source</li>
+<li>Change a Source</li>
+<li class="active"><a href="{% url 'servir:create' %}">Add a Site</a></li>
+<li>Change a Site</li>
+<li>Add a Variable</li>
+<li>Change a Variable</li>
+<li>Add a Method</li>
+<li>Change a Method</li>
+{% endblock %}
+
+{% block app_content%}
+<h1>Add a Site</h1>
+<form id="add-site" action="/apps/servir/add-site/" method="POST">
+    {% csrf_token %}
+    {% gizmo select_input select_source %}
+    <label for="site-name">Site Name:</label>
+    <input type="text" class="form-control" name="site-name" id="site-name" placeholder="Please enter a Site Name">
+
+    <label for="site-code">Site Code:</label>
+    <input type="text" class="form-control" name="site-code" id="site-code" placeholder="Please enter a Site Code">
+    {% gizmo select_input select_site_type %}
+    {% gizmo google_map_view google_map_view %}
+    <label for="site-lat">Latitude:</label>
+    <input type="text" class="form-control" name="site-lat" id="site-lat" placeholder="Please enter Latitude">
+
+    <label for="site-lon">Site Code:</label>
+    <input type="text" class="form-control" name="site-lon" id="site-lon" placeholder="Please enter Longitude">
+
+
+    {% gizmo select_input select_vertical_datum %}
+
+    {% gizmo select_input select_spatial_reference %}
+    <input type="submit" name="add-site-form" class="btn btn-default">
+</form>
+
+{% endblock %}

@@ -5,14 +5,15 @@ from tethys_sdk.services import get_spatial_dataset_engine, list_spatial_dataset
 from tethys_dataset_services.engines import GeoServerSpatialDatasetEngine
 from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
-from utilities import parseSites, genShapeFile, parseJSON, check_digit, parseWML, parseOWS, recursive_asdict
+from utilities import *
 from json import dumps, loads
 import urllib2
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import XML, fromstring, tostring
 import xmltodict, json
 from datetime import datetime, timedelta
-from tethys_sdk.gizmos import TimeSeries, SelectInput, DatePicker
+from tethys_sdk.gizmos import TimeSeries, SelectInput, DatePicker, TextInput
+from tethys_sdk.gizmos import MapView, MVDraw, MVView, MVLayer, MVLegendClass, GoogleMapView
 import time, calendar
 from suds.client import Client
 from django.core import serializers
@@ -51,16 +52,139 @@ def home(request):
     select_his_server = SelectInput(display_text='Select HIS Server', name="select_server", multiple=False,
                                        options=his_servers)
 
-    context = {"select_his_server":select_his_server}
+
+    gldas_dropdown = gen_gldas_dropdown()
+    select_gldas_variable = SelectInput(display_text='Select Variable', name="select_gldas_var", multiple=False,
+                                       options=gldas_dropdown)
+
+
+    date_range_txt = 'https://appsdev.hydroshare.org/static/data_rods_explorer/data/dates_and_spatial_range.txt'
+    range_txt_file = urllib2.urlopen(date_range_txt)
+    range_data = range_txt_file.read()
+    data = range_data.split("\n")
+    iterdata = iter(data)
+    next(iterdata)
+
+    for line in iterdata:
+        if not (line == '' or 'Model name' in line):
+            line = line.strip()
+            linevals = line.split('|')
+            if linevals[0] == 'GLDAS':
+                start_gldas = (datetime.strptime(linevals[1].split(' ')[0], '%m/%d/%Y') + timedelta(days=1)) \
+                    .strftime('%Y-%m-%d')
+
+                end_gldas = (datetime.strptime(linevals[2].split(' ')[0], '%m/%d/%Y') - timedelta(days=1)) \
+                    .strftime('%Y-%m-%d')
+
+    start_date = DatePicker(name='start_date',
+                            display_text='Start Date',
+                            autoclose=True,
+                            format='yyyy-mm-dd',
+                            start_view='month',
+                            today_button=True,
+                            initial=start_gldas,
+                            start_date=start_gldas,
+                            end_date=end_gldas)
+    end_date = DatePicker(name='end_date',
+                          display_text='End Date',
+                          autoclose=True,
+                          format='yyyy-mm-dd',
+                          start_view='month',
+                          today_button=True,
+                          initial=end_gldas,
+                          start_date=start_gldas,
+                          end_date=end_gldas)
+
+
+    context = {"select_his_server":select_his_server,"select_gldas_variable":select_gldas_variable,"start_date":start_date,"end_date":end_date}
 
     return render(request, 'servir/home.html', context)
+def create(request):
+    context = {}
+    return render(request,'servir/create.html', context)
+def datarods(request):
+    context = {}
 
+    if request.GET:
+        variable = request.GET['select_gldas_var']
+        variable = variable.split('|')
+        var_id = variable[0]
+        var_name = variable[1]
+        var_units = variable[2]
+        start_date = request.GET['start_date']
+        end_date = request.GET['end_date']
+        start_str = str(start_date) + 'T00'
+        end_str = str(end_date)+'T23'
+        latlon = request.GET['gldas-lat-lon']
+        latlon = latlon.split(',')
+        lat, lon = float(latlon[0]), float(latlon[1])
+        lat = round(lat,2)
+        lon = round(lon, 2)
+        coords_string = str(lat)+", "+str(lon)
+        gldas_url = "http://hydro1.sci.gsfc.nasa.gov/daac-bin/access/timeseries.cgi?variable=GLDAS:GLDAS_NOAH025_3H.001:{0}&type=asc2&location=GEOM:POINT({1})&startDate={2}&endDate={3}".format(var_id,coords_string,start_str,end_str)
+        gldas_url = urllib2.quote(gldas_url,safe=':/-()&=,?')
+        try:
+            gldas_response = urllib2.urlopen(gldas_url)
+            gldas_data = gldas_response.read()
+            parsed_gldas = parse_gldas_data(gldas_data)
+
+            timeseries_plot = TimeSeries(
+                height='400px',
+                width='100%',
+                engine='highcharts',
+                title=var_name+" at "+ coords_string,
+                y_axis_title=str(var_name),
+                y_axis_units=var_units,
+                series=[{
+                    'name': coords_string,
+                    'data': parsed_gldas
+                }]
+            )
+
+            context = {"timeseries_plot": timeseries_plot}
+        except Exception as e:
+            error_message = "There was a problem retrieving data from the NASA Server"
+            context = {"error_message": error_message}
+
+
+
+
+
+    return render(request,'servir/datarods.html', context)
+def add_site(request):
+    select_source = SelectInput(display_text='Select Source',
+                                name='select-source',
+                                multiple=False,
+                                options=[('One', '1'), ('Two', '2'), ('Three', '3')])
+    select_site_type = SelectInput(display_text='Select Site Type',
+                                name='select-site-type',
+                                multiple=False,
+                                options=[('Four', '4'), ('Five', '5'), ('Six', '6')])
+    select_vertical_datum = SelectInput(display_text='Select Vertical Datum',
+                                name='select-vertical-datum',
+                                multiple=False,
+                                options=[('MSL', 'MSL'), ('NAVD88', 'NAVDD88'), ('NGVD29', 'NGVD29'),('Something', 'Something'),('Unknown', 'Unknown')])
+    select_spatial_reference = SelectInput(display_text='Select Spatial Reference',
+                                        name='select-spatial-reference',
+                                        multiple=False,
+                                        options=[('WGS84', 'WGS84'), ('NAD27', 'NAD27')])
+    google_map_view = GoogleMapView(height='400px',
+                                    width='100%',
+                                    maps_api_key='S0mEaPIk3y',
+                                    drawing_types_enabled=['POINTS'])
+    if request.POST and 'site-name' in request.POST:
+        site_name = request.POST['site-name']
+
+
+    context = {"select_source":select_source, "select_site_type":select_site_type,"select_vertical_datum":select_vertical_datum,"select_spatial_reference":select_spatial_reference,"google_map_view":google_map_view}
+    return render(request,'servir/addsite.html', context)
 def get_his_server(request):
     server = {}
     if request.is_ajax() and request.method == 'POST':
         url = request.POST['select_server']
         server['url'] = url
     return JsonResponse(server)
+
 def his(request):
     list = {}
     hs_list = []
@@ -172,9 +296,7 @@ def soap(request):
     if request.is_ajax() and request.method == 'POST':
 
         logging.getLogger('suds.client').setLevel(logging.CRITICAL)
-        # soap_url = 'http://worldwater.byu.edu/app/index.php/sediment/services/cuahsi_1_1.asmx?WSDL'
         geo_url = geo_url_base + "/geoserver/rest/"
-        # soap_url = 'http://hydroportal.cuahsi.org/GlobalRiversObservatory/webapp/cuahsi_1_1.asmx?WSDL'
         url = request.POST['soap-url']
         title = request.POST['soap-title']
         title = title.replace(" ", "")
@@ -683,4 +805,5 @@ def soap_api(request):
                                 graph_json["count"] = 1
 
     return JsonResponse(graph_json)
+
 
