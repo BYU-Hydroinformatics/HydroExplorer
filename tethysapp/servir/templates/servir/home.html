@@ -189,8 +189,7 @@
 </div>
 <!--End modal-->
 
-<form id="modalDataRods" class="modal fade" role="dialog" action="datarods/" method="POST">
-    {% csrf_token %}
+<form id="modalDataRods" class="modal fade" role="dialog" action="/apps/servir/datarods/" method="GET">
     <div class="modal-dialog">
         <!-- Modal content-->
         <div class="modal-content">
@@ -210,7 +209,7 @@
             <div class="modal-footer">
                 <div class="button-group">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="button" id="get-data-rods" class="mod_link btn btn-default" data-html="/apps/servir/datarods/">Get Data</button>
+                    <button type="button" id="get-data-rods" class="btn btn-default" >Get Data</button>
                 </div>
             </div>
         </div>
@@ -218,7 +217,17 @@
     </div>
 </form>
 
-
+<div id="modalViewRods" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <span class="close-modal" id="close-modalViewRods">X</span>
+        <div class="modal-content flex-container-row">
+            <img id="view-gldas-loading" class="view-file" src="/static/servir/images/loader.gif" />
+            <div id="gldas-container" class="view-rods hidden" ></div>
+        </div>
+        <!--End modal content-->
+    </div>
+</div>
 {% endblock %}
 {% block scripts %}
 {{ block.super }}

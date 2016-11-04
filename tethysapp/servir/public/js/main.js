@@ -225,21 +225,24 @@ var SERVIR_PACKAGE = (function() {
             $modalDataRods.find('.warning').html('');
         }
         $('#modalDataRods').modal('hide');
+
         var datastring = $modalDataRods.serialize();
-        var $loading = $('#view-file-loading');
-        $('#iframe-container').addClass('hidden');
+        var details_url = "/apps/servir/datarods/?"+datastring;
+        var $loading = $('#view-gldas-loading');
+        $('#gldas-container').addClass('hidden');
         $loading.removeClass('hidden');
 
-        var details_url = "/apps/servir/datarods/?"+datastring;
-        $('#iframe-container')
+        $('#gldas-container')
             .empty()
-            .append('<iframe id="iframe-details-viewer" src="' + details_url + '" allowfullscreen></iframe>');
-        $('#modalViewDetails').modal('show');
-        $('#iframe-details-viewer').one('load', function () {
+            .append('<iframe id="gldas-viewer" src="' + details_url + '" allowfullscreen></iframe>');
+        $('#modalViewRods').modal('show');
+        $('#gldas-viewer').one('load', function () {
             $loading.addClass('hidden');
-            $('#iframe-container').removeClass('hidden');
+            $('#gldas-container').removeClass('hidden');
             $loading.addClass('hidden');
         });
+
+
     };
     $("#get-data-rods").on('click',get_data_rods);
 
@@ -673,34 +676,11 @@ var SERVIR_PACKAGE = (function() {
 
             $(element).popover('destroy');
 
-            var coords = evt.coordinate;
-            var proj_coords = ol.proj.transform(coords, 'EPSG:3857','EPSG:4326');
-            var geojsonObject = {
-                'type': 'FeatureCollection',
-                'crs': {
-                    'type': 'name',
-                    'properties': {
-                        'name': 'EPSG:3857'
-                    }
-                },
-                'features': [{
-                    'type': 'Feature',
-                    'geometry': {
-                        'type': 'Point',
-                        'coordinates': coords
-                    }
-                }]
-            };
-            var ptSource = map.getLayers().item(1).getSource();
-            ptSource.clear();
-            ptSource.addFeatures((new ol.format.GeoJSON()).readFeatures(geojsonObject));
-            $("#gldas-lat-lon").val(proj_coords);
-            if (($("#gldas-lat-lon").val()!= "")){
-                $modalDataRods.find('.warning').html('');
-            }
+
             if (map.getTargetElement().style.cursor == "pointer") {
                 var clickCoord = evt.coordinate;
                 popup.setPosition(clickCoord);
+                map.getLayers().item(1).getSource().clear();
 
                 var view = map.getView();
                 var viewResolution = view.getResolution();
@@ -750,6 +730,33 @@ var SERVIR_PACKAGE = (function() {
                 }
 
 
+            }else{
+                var coords = evt.coordinate;
+                var proj_coords = ol.proj.transform(coords, 'EPSG:3857','EPSG:4326');
+                var geojsonObject = {
+                    'type': 'FeatureCollection',
+                    'crs': {
+                        'type': 'name',
+                        'properties': {
+                            'name': 'EPSG:3857'
+                        }
+                    },
+                    'features': [{
+                        'type': 'Feature',
+                        'geometry': {
+                            'type': 'Point',
+                            'coordinates': coords
+                        }
+                    }]
+                };
+                var ptSource = map.getLayers().item(1).getSource();
+                ptSource.clear();
+                ptSource.addFeatures((new ol.format.GeoJSON()).readFeatures(geojsonObject));
+                $("#gldas-lat-lon").val(proj_coords);
+                console.log(proj_coords);
+                if (($("#gldas-lat-lon").val()!= "")){
+                    $modalDataRods.find('.warning').html('');
+                }
             }
 
 
@@ -757,6 +764,9 @@ var SERVIR_PACKAGE = (function() {
 
         $('#close-modalViewDetails').on('click', function () {
             $('#modalViewDetails').modal('hide');
+        });
+        $('#close-modalViewRods').on('click', function () {
+            $('#modalViewRods').modal('hide');
         });
 
 

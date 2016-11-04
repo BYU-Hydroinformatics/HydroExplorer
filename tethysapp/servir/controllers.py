@@ -105,52 +105,49 @@ def create(request):
 def datarods(request):
     context = {}
 
-    if request.GET:
-        variable = request.GET['select_gldas_var']
-        variable = variable.split('|')
-        var_id = variable[0]
-        var_name = variable[1]
-        var_units = variable[2]
-        start_date = request.GET['start_date']
-        end_date = request.GET['end_date']
-        start_str = str(start_date) + 'T00'
-        end_str = str(end_date)+'T23'
-        latlon = request.GET['gldas-lat-lon']
-        latlon = latlon.split(',')
-        lat, lon = float(latlon[0]), float(latlon[1])
-        lat = round(lat,2)
-        lon = round(lon, 2)
-        coords_string = str(lat)+", "+str(lon)
-        gldas_url = "http://hydro1.sci.gsfc.nasa.gov/daac-bin/access/timeseries.cgi?variable=GLDAS:GLDAS_NOAH025_3H.001:{0}&type=asc2&location=GEOM:POINT({1})&startDate={2}&endDate={3}".format(var_id,coords_string,start_str,end_str)
-        gldas_url = urllib2.quote(gldas_url,safe=':/-()&=,?')
-        try:
-            gldas_response = urllib2.urlopen(gldas_url)
-            gldas_data = gldas_response.read()
-            parsed_gldas = parse_gldas_data(gldas_data)
+    variable = request.GET['select_gldas_var']
+    variable = variable.split('|')
+    var_id = variable[0]
+    var_name = variable[1]
+    var_units = variable[2]
+    start_date = request.GET['start_date']
+    end_date = request.GET['end_date']
+    start_str = str(start_date) + 'T00'
+    end_str = str(end_date)+'T23'
+    latlon = request.GET['gldas-lat-lon']
+    latlon = latlon.split(',')
+    lat, lon = float(latlon[0]), float(latlon[1])
+    lat = round(lat,2)
+    lon = round(lon, 2)
+    coords_string = str(lat)+", "+str(lon)
 
-            timeseries_plot = TimeSeries(
-                height='400px',
-                width='100%',
-                engine='highcharts',
-                title=var_name+" at "+ coords_string,
-                y_axis_title=str(var_name),
-                y_axis_units=var_units,
-                series=[{
-                    'name': coords_string,
-                    'data': parsed_gldas
-                }]
-            )
+    gldas_url = "http://hydro1.sci.gsfc.nasa.gov/daac-bin/access/timeseries.cgi?variable=GLDAS:GLDAS_NOAH025_3H.001:{0}&type=asc2&location=GEOM:POINT({1})&startDate={2}&endDate={3}".format(var_id,coords_string,start_str,end_str)
+    gldas_url = urllib2.quote(gldas_url,safe=':/-()&=,?')
+    try:
+        gldas_response = urllib2.urlopen(gldas_url)
+        gldas_data = gldas_response.read()
+        parsed_gldas = parse_gldas_data(gldas_data)
 
-            context = {"timeseries_plot": timeseries_plot}
-        except Exception as e:
-            error_message = "There was a problem retrieving data from the NASA Server"
-            context = {"error_message": error_message}
+        timeseries_plot = TimeSeries(
+            height='400px',
+            width='100%',
+            engine='highcharts',
+            title=var_name+" at "+ coords_string,
+            y_axis_title=str(var_name),
+            y_axis_units=var_units,
+            series=[{
+                'name': coords_string,
+                'data': parsed_gldas
+            }]
+        )
 
-
-
-
+        context = {"timeseries_plot": timeseries_plot}
+    except Exception as e:
+        error_message = "There was a problem retrieving data from the NASA Server"
+        context = {"error_message": error_message}
 
     return render(request,'servir/datarods.html', context)
+
 def add_site(request):
     select_source = SelectInput(display_text='Select Source',
                                 name='select-source',
@@ -178,6 +175,7 @@ def add_site(request):
 
     context = {"select_source":select_source, "select_site_type":select_site_type,"select_vertical_datum":select_vertical_datum,"select_spatial_reference":select_spatial_reference,"google_map_view":google_map_view}
     return render(request,'servir/addsite.html', context)
+
 def get_his_server(request):
     server = {}
     if request.is_ajax() and request.method == 'POST':
