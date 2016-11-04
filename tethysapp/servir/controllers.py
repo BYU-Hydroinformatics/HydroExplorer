@@ -116,11 +116,13 @@ def datarods(request):
     end_str = str(end_date)+'T23'
     latlon = request.GET['gldas-lat-lon']
     latlon = latlon.split(',')
-    lat, lon = float(latlon[0]), float(latlon[1])
-    lat = round(lat,2)
-    lon = round(lon, 2)
-    coords_string = str(lat)+", "+str(lon)
+    lon, lat = float(latlon[0]), float(latlon[1])
+    lon = round(lon,2)
+    lat = round(lat, 2)
+    coords_string = str(lon)+", "+str(lat)
 
+    location_name = get_loc_name(lat,lon)
+    coords_str_formatted = str(lat)+","+str(lon)
     gldas_url = "http://hydro1.sci.gsfc.nasa.gov/daac-bin/access/timeseries.cgi?variable=GLDAS:GLDAS_NOAH025_3H.001:{0}&type=asc2&location=GEOM:POINT({1})&startDate={2}&endDate={3}".format(var_id,coords_string,start_str,end_str)
     gldas_url = urllib2.quote(gldas_url,safe=':/-()&=,?')
     try:
@@ -132,11 +134,11 @@ def datarods(request):
             height='400px',
             width='100%',
             engine='highcharts',
-            title=var_name+" at "+ coords_string,
+            title=var_name+" at "+ location_name,
             y_axis_title=str(var_name),
             y_axis_units=var_units,
             series=[{
-                'name': coords_string,
+                'name': coords_str_formatted,
                 'data': parsed_gldas
             }]
         )

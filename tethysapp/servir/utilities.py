@@ -324,9 +324,16 @@ def gen_gldas_dropdown():
 
     return gldas_options
 
-def gen_gldas():
+def get_loc_name(lat,lon):
 
-    return
+    geo_coords = str(lat) + "," + str(lon)
+    geo_api = "http://maps.googleapis.com/maps/api/geocode/json?latlng={0}&sensor=true".format(geo_coords)
+    open_geo = urllib2.urlopen(geo_api)
+    open_geo = open_geo.read()
+    location_json = json.loads(open_geo)
+    name = str(location_json['results'][0]['formatted_address'])
+    return name
+
 def check_digit(num):
     num_str = str(num)
     if len(num_str) < 2:
