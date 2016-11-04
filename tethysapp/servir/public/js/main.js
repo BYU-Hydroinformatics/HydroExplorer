@@ -680,7 +680,7 @@ var SERVIR_PACKAGE = (function() {
             if (map.getTargetElement().style.cursor == "pointer") {
                 var clickCoord = evt.coordinate;
                 popup.setPosition(clickCoord);
-                map.getLayers().item(1).getSource().clear();
+                // map.getLayers().item(1).getSource().clear();
 
                 var view = map.getView();
                 var viewResolution = view.getResolution();
