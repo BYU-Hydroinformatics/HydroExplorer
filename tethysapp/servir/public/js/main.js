@@ -255,7 +255,6 @@ var SERVIR_PACKAGE = (function() {
                     var geoserver_url = server.geoserver_url;
                     var layer_name = server.layer_name;
                     var extents = server.extents;
-                    console.log(extents);
                     $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
                     var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+layer_name+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+set_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
@@ -283,6 +282,7 @@ var SERVIR_PACKAGE = (function() {
                 // var layer_true = ol.proj.transformExtent(layer_extent,'EPSG:3857','EPSG:4326');
                 var layer_extent = [-15478192.4796,-8159805.6435,15497760.3589,8159805.6435];
                 map.getView().fit(layer_extent,map.getSize());
+                map.updateSize();
                 // Object.keys(layersDict).forEach(function (key) {
                 //     var layer_extent = layersDict[key].getExtent();
                 //     map.getView().fit(layer_extent,map.getSize());
@@ -495,7 +495,6 @@ var SERVIR_PACKAGE = (function() {
                     var extents = json_response.bounds;
                     var rest_url = json_response.rest_url;
                     var zoom = json_response.zoom;
-                    console.log(extents);
                     if (zoom == 'true'){
                         var level = json_response.level;
                     }
@@ -586,6 +585,7 @@ var SERVIR_PACKAGE = (function() {
         var layer_name = $lyrListItem.attr('layer-name');
         var layer_extent = layersDict[layer_name].getExtent();
         map.getView().fit(layer_extent,map.getSize());
+        map.updateSize();
     };
     onClickDeleteLayer = function(e){
         var clickedElement = e.trigger.context;
@@ -594,6 +594,7 @@ var SERVIR_PACKAGE = (function() {
         map.removeLayer(layersDict[layer_name]);
         delete layersDict[layer_name];
         $lyrListItem.remove();
+        map.updateSize();
     };
 
     init_events = function(){
@@ -711,7 +712,6 @@ var SERVIR_PACKAGE = (function() {
                 ptSource.clear();
                 ptSource.addFeatures((new ol.format.GeoJSON()).readFeatures(geojsonObject));
                 $("#gldas-lat-lon").val(proj_coords);
-                console.log(proj_coords);
                 if (($("#gldas-lat-lon").val()!= "")){
                     $modalDataRods.find('.warning').html('');
                 }
