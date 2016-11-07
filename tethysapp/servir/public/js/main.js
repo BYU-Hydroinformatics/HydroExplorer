@@ -42,7 +42,6 @@ var SERVIR_PACKAGE = (function() {
         get_his_server,
         get_hs_list,
         get_random_color,
-        init_cluster,
         init_map,
         init_menu,
         init_jquery_var,
@@ -113,7 +112,7 @@ var SERVIR_PACKAGE = (function() {
             zoom: 4
         });
         layers = [baseLayer,pointLayer];
-        //Declare the map object itself.
+
         layersDict = {};
 
         map = new ol.Map({
@@ -153,43 +152,6 @@ var SERVIR_PACKAGE = (function() {
         $modalInterface.find('.success').html('');
     });
 
-    init_cluster = function(layer_source){
-        var clusterSource = new ol.source.Cluster({
-            distance: 10,
-            source: layer_source
-        });
-        var styleCache = {};
-        var clusters = new ol.layer.Vector({
-            source: clusterSource,
-            style: function(feature) {
-                var size = feature.get('features').length;
-                var style = styleCache[size];
-                if (!style) {
-                    style = new ol.style.Style({
-                        image: new ol.style.Circle({
-                            radius: 10,
-                            stroke: new ol.style.Stroke({
-                                color: '#fff'
-                            }),
-                            fill: new ol.style.Fill({
-                                color: '#3399CC'
-                            })
-                        }),
-                        text: new ol.style.Text({
-                            text: size.toString(),
-                            fill: new ol.style.Fill({
-                                color: '#fff'
-                            })
-                        })
-                    });
-                    styleCache[size] = style;
-                }
-                return style;
-            }
-        });
-        map.addLayer(clusters);
-    };
-
     get_his_server = function () {
         var datastring = $modalHIS.serialize();
         $.ajax({
@@ -213,8 +175,6 @@ var SERVIR_PACKAGE = (function() {
         });
     };
     $("#add-from-his").on('click',get_his_server);
-
-
 
     get_data_rods = function () {
         if (($("#gldas-lat-lon").val()=="")){
@@ -260,9 +220,6 @@ var SERVIR_PACKAGE = (function() {
                     for (var i = 0; i < server.length; i++) {
                         var title = server[i].title;
                         var url = server[i].url;
-                        var geoserver_url = server[i].geoserver_url;
-                        var layer_name = server[i].layer_name;
-                        var extents = server[i].extents;
                         HSTableHtml += '<tr>' +
                             '<td><input type="radio" name="server" id="server" value="' + title + '"></td>' +
                             '<td class="hs_title">' + title + '</td>' +
@@ -289,6 +246,7 @@ var SERVIR_PACKAGE = (function() {
             url: '/apps/servir/catalog/',
             dataType: 'JSON',
             success: function (result) {
+
                 var servers = result['hydroserver'];
                 $('#current-servers').empty();
                 servers.forEach(function (server) {
@@ -297,6 +255,7 @@ var SERVIR_PACKAGE = (function() {
                     var geoserver_url = server.geoserver_url;
                     var layer_name = server.layer_name;
                     var extents = server.extents;
+                    console.log(extents);
                     $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
                     var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+layer_name+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+set_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
@@ -315,13 +274,15 @@ var SERVIR_PACKAGE = (function() {
                     map.addLayer(wmsLayer);
 
                     layersDict[title] = wmsLayer;
-                    var layer_extent = wmsLayer.getExtent();
-                    map.getView().fit(layer_extent,map.getSize());
-
+                    // var layer_extent = wmsLayer.getExtent();
+                    // map.getView().fit(layer_extent,map.getSize());
                 });
 
                 // rand_lyr.getSource().changed();
-                // var layer_extent = layersDict[Object.keys(layersDict)[0]].getExtent();
+                // var layer_extent = layersDict[Object.keys(layersDict)[2]].getExtent();
+                // var layer_true = ol.proj.transformExtent(layer_extent,'EPSG:3857','EPSG:4326');
+                var layer_extent = [-15478192.4796,-8159805.6435,15497760.3589,8159805.6435];
+                map.getView().fit(layer_extent,map.getSize());
                 // Object.keys(layersDict).forEach(function (key) {
                 //     var layer_extent = layersDict[key].getExtent();
                 //     map.getView().fit(layer_extent,map.getSize());
@@ -336,8 +297,6 @@ var SERVIR_PACKAGE = (function() {
 
     };
 
-
-
     update_catalog = function () {
         $modalInterface.find('.success').html('');
         var datastring = $modalDelete.serialize();
@@ -350,9 +309,8 @@ var SERVIR_PACKAGE = (function() {
                 var json_response = JSON.parse(result);
                 var title = json_response.title;
                 $('#current-servers').empty();
-                $('#modalDelete').modal('hide');
 
-                //map.addLayer(new_layer);
+                $('#modalDelete').modal('hide');
                 $( '#modalDelete' ).each(function(){
                     this.reset();
                 });
@@ -361,7 +319,7 @@ var SERVIR_PACKAGE = (function() {
                 delete layersDict[title];
                 map.updateSize();
                 load_catalog();
-                click_catalog();
+                // click_catalog();
                 $modalInterface.find('.success').html('<b>Successfully Updated the Catalog!</b>');
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
@@ -537,7 +495,7 @@ var SERVIR_PACKAGE = (function() {
                     var extents = json_response.bounds;
                     var rest_url = json_response.rest_url;
                     var zoom = json_response.zoom;
-
+                    console.log(extents);
                     if (zoom == 'true'){
                         var level = json_response.level;
                     }
@@ -667,9 +625,9 @@ var SERVIR_PACKAGE = (function() {
             var zoom = map.getView().getZoom();
             var zoomInfo = '<h6>Current Zoom level = ' + zoom+'</h6>';
             document.getElementById('zoomlevel').innerHTML = zoomInfo;
-            Object.keys(layersDict).forEach(function(key){
-                var source =  layersDict[key].getSource();
-            });
+            // Object.keys(layersDict).forEach(function(key){
+            //     var source =  layersDict[key].getSource();
+            // });
         });
         map.on("singleclick",function(evt){
             //Check for each layer in the baselayers
@@ -966,7 +924,7 @@ var SERVIR_PACKAGE = (function() {
         init_menu();
         init_map();
         load_catalog();
-        setTimeout(click_catalog,1000);
+        // setTimeout(click_catalog,1000);
     });
 
 }()); // End of package wrapper

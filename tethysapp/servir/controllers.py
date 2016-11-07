@@ -24,6 +24,7 @@ from .model import engine, SessionMaker, Base, Catalog
 from pyproj import Proj, transform #Remember to install this in tethys.byu.edu
 from owslib.waterml.wml11 import WaterML_1_1 as wml11
 
+
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 geo_url_base = getattr(settings, "GEOSERVER_URL_BASE", "http://127.0.0.1:8181")
 geo_user = getattr(settings, "GEOSERVER_USER_NAME", "admin")
@@ -246,9 +247,17 @@ def delete(request):
     # Query DB for hydroservers
     if request.is_ajax() and request.method == 'POST':
         title = request.POST['server']
+        geo_url = geo_url_base + "/geoserver/rest/"
+        spatial_dataset_engine = GeoServerSpatialDatasetEngine(endpoint=geo_url, username=geo_user,
+                                                               password=geo_pw)
+        store_string = "catalog" + ":" + str(title)
+        spatial_dataset_engine.delete_layer(layer_id=store_string,purge=True)
+        spatial_dataset_engine.delete_store(store_id=store_string,purge=True)
         hydroservers = session.query(Catalog).filter(Catalog.title == title).delete(synchronize_session='evaluate')
         session.commit()
         session.close()
+
+        # spatial_dataset_engine.delete_store(title,purge=True,debug=True)
         list["title"] = title
     return JsonResponse(list)
 
