@@ -112,6 +112,17 @@ overflow-y: auto;
     height: 100%;
     padding: 15px;
 }
+#climate-serv-container {
+    height: 100%;
+    width: 100%;
+}
+#iframe-climate-viewer {
+    width: 100%;
+    height: 100%;
+    padding: 15px;
+}
+
+
 .close-modal{
     cursor: pointer;
     position: absolute;
@@ -167,6 +178,22 @@ overflow-y: auto;
     margin: 15px;
 }
 #modalViewRods .modal-content {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+}
+#modalClimateServ .modal-dialog {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: auto;
+    margin: 15px;
+}
+#modalClimateServ .modal-content {
     position: fixed;
     top: 0;
     bottom: 0;
@@ -246,3 +273,18 @@ overflow-y: auto;
 .datepicker-dropdown{
     z-index:10000 !important;
 }
+.polygon {
+    top: 6px;
+    left: 3em;
+}
+#type{
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    height: 29px;
+    overflow: hidden;
+    width: auto;
+    background-color: #006eff;
+    opacity: 1.0;
+}
+

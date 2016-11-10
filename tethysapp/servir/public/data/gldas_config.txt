@@ -5,10 +5,10 @@ Rainf|Rain rate|kg/m^2/s
 Snowf|Snow rate|kg/m^2/s
 Qs|Surface Runoff|kg/m^2/s
 Qsb|Subsurface Runoff|kg/m^2/s
-SOILM0_100cm|0-100 cm top 1 meter soil moisture content|kg/m^2
-SOILM0_10cm|0-10 cm layer 1 soil moisture content|kg/m^2
-SOILM10_40cm|10-40 cm layer 2 soil moisture content|kg/m^2
-SOILM40_100cm|40-100 cm layer 3 soil moisture content|kg/m^2
+SOILM0-100cm|0-100 cm top 1 meter soil moisture content|kg/m^2
+SOILM0-10cm|0-10 cm layer 1 soil moisture content|kg/m^2
+SOILM10-40cm|10-40 cm layer 2 soil moisture content|kg/m^2
+SOILM40-100cm|40-100 cm layer 3 soil moisture content|kg/m^2
 Tair|Near surface air temperature|K
-TSOIL0_10cm|Average layer 1 soil temperature|K
+TSOIL0-10cm|Average layer 1 soil temperature|K
 Wind|Near surface wind magnitude|m/s

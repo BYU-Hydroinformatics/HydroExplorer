@@ -20,8 +20,14 @@
 <!--<br>-->
 <!--<div align="center"><li><button id="delete-server" class="btn btn-primary" data-toggle="modal" data-target="#modalDelete">Update HS Catalog</button></li></div>-->
 <!--<br>-->
-<div align="center"><li><button id="load-datarods" class="btn btn-primary" data-toggle="modal" data-target="#modalDataRods">Explore NASA GLDAS</button></li></div>
+<!--<div align="center"><li><button id="load-datarods" class="btn btn-primary" data-toggle="modal" data-target="#modalDataRods">Explore NASA GLDAS</button></li></div>-->
+<!--<br>-->
+<div align="center"><li><button id="load-climateserv" class="btn btn-primary" data-toggle="modal" data-target="#modalClimateServ">Explore Climate Serv</button></li></div>
 <br>
+<div align="center"><li><button id="load-mapconsole" class="btn btn-primary" data-toggle="modal" data-target="#modalMapConsole">Explore Map Console</button></li></div>
+<br>
+
+
 <!--<div align="center"> <li><button id="get-api" class="btn btn-primary">API CALL</button></li></div>-->
 <!--<br>-->
 <!--<div align="center"> <li><button id="load-catalog" class="btn btn-primary" >Load Catalog</button></li></div>-->
@@ -65,6 +71,7 @@
 {% block content_dependent_styles %}
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'servir/vendor/openlayers/css/ol.css' %}" type="text/css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.11.2/css/bootstrap-select.min.css">
 <link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" />
 <link href="{% static 'servir/vendor/contextMenu/contextMenu.css' %}" rel="stylesheet" />
 <link href="{% static 'servir/css/main.css' %}" rel="stylesheet"/>
@@ -76,5 +83,6 @@
 <script src="{% static 'servir/vendor/openlayers/build/ol.js' %}"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.blockUI/2.70.0-2014.11.23/jquery.blockUI.min.js"></script>
 <script src="{% static 'servir/vendor/contextMenu/contextMenu.min.js' %}" async="async"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.11.2/js/bootstrap-select.min.js"></script>
 <script src="{% static 'servir/js/main.js' %}" type="text/javascript"></script>
 {% endblock %}

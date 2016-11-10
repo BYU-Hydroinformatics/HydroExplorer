@@ -81,6 +81,7 @@ var SERVIR_PACKAGE = (function() {
         return color;
     };
     init_map = function(){
+
         var projection = ol.proj.get('EPSG:3857');
         var baseLayer = new ol.layer.Tile({
             source: new ol.source.BingMaps({
@@ -88,30 +89,51 @@ var SERVIR_PACKAGE = (function() {
                 imagerySet: 'AerialWithLabels' // Options 'Aerial', 'AerialWithLabels', 'Road'
             })
         });
-        var image = new ol.style.Circle({
-            radius: 7,
-            fill: new ol.style.Fill({
-                color: 'rgba(255, 0, 0, 0.7)'
-            }),
-            stroke: new ol.style.Stroke({color: 'red', width: 1})
+        // var image = new ol.style.Circle({
+        //     radius: 7,
+        //     fill: new ol.style.Fill({
+        //         color: 'rgba(255, 0, 0, 0.7)'
+        //     }),
+        //     stroke: new ol.style.Stroke({color: 'red', width: 1})
+        // });
+        //
+        // var pointSource = new ol.source.Vector();
+        //
+        // var pointLayer = new ol.layer.Vector({
+        //     source: pointSource,
+        //     style: new ol.style.Style({
+        //         image: image
+        //     })
+        // });
+        var source = new ol.source.Vector({
+            wrapX: false
         });
-
-        var pointSource = new ol.source.Vector();
-
-        var pointLayer = new ol.layer.Vector({
-            source: pointSource,
+        var vector_layer = new ol.layer.Vector({
+            name: 'my_vectorlayer',
+            source: source,
             style: new ol.style.Style({
-                image: image
+                fill: new ol.style.Fill({
+                    color: 'rgba(255, 255, 255, 0.2)'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: '#ffcc33',
+                    width: 2
+                }),
+                image: new ol.style.Circle({
+                    radius: 7,
+                    fill: new ol.style.Fill({
+                        color: '#ffcc33'
+                    })
+                })
             })
         });
-
         var fullScreenControl = new ol.control.FullScreen();
         var view = new ol.View({
             center: [-11500000, 4735000],
             projection: projection,
             zoom: 4
         });
-        layers = [baseLayer,pointLayer];
+        layers = [baseLayer,vector_layer];
 
         layersDict = {};
 
@@ -133,7 +155,98 @@ var SERVIR_PACKAGE = (function() {
             stopEvent: true
         });
         map.addOverlay(popup);
+
+        var lastFeature, draw, featureType;
+        var removeLastFeature = function () {
+            if (lastFeature) source.removeFeature(lastFeature);
+        };
+        var addInteraction = function (geomtype) {
+            var typeSelect = document.getElementById('types');
+            var value = typeSelect.value;
+            $('#data').val('');
+            if (value !== 'None') {
+                if (draw)
+                    map.removeInteraction(draw);
+
+                draw = new ol.interaction.Draw({
+                    source: source,
+                    type: geomtype
+                });
+
+                if (featureType === 'Point') {
+
+                    draw.on('drawend', function (e) {
+                        removeLastFeature();
+                        lastFeature = e.feature;
+                    });
+
+                } else {
+
+                    draw.on('drawend', function (e) {
+                        lastFeature = e.feature;
+
+                    });
+
+                    draw.on('drawstart', function (e) {
+                        source.clear();
+                    });
+
+                }
+                map.addInteraction(draw);
+            }
+
+
+        };
+
+        vector_layer.getSource().on('addfeature', function(event){
+            var feature_json = saveData();
+            var parsed_feature = JSON.parse(feature_json);
+            var feature_type = parsed_feature["features"][0]["geometry"]["type"];
+            if (feature_type == 'Point'){
+                var coords = parsed_feature["features"][0]["geometry"]["coordinates"];
+                var proj_coords = ol.proj.transform(coords, 'EPSG:3857','EPSG:4326');
+                $("#gldas-lat-lon").val(proj_coords);
+                $modalDataRods.modal('show');
+
+            } else if (feature_type == 'Polygon'){
+                console.log("Get climate serv data");
+
+            }
+        });
+        function saveData() {
+            // get the format the user has chosen
+            var data_type = 'GeoJSON',
+                // define a format the data shall be converted to
+                format = new ol.format[data_type](),
+                // this will be the data in the chosen format
+                data;
+            try {
+                // convert the data of the vector_layer into the chosen format
+                data = format.writeFeatures(vector_layer.getSource().getFeatures());
+            } catch (e) {
+                // at time of creation there is an error in the GPX format (18.7.2014)
+                $('#data').val(e.name + ": " + e.message);
+                return;
+            }
+            // $('#data').val(JSON.stringify(data, null, 4));
+            return data;
+
+        }
+
+        $('#types').change(function (e) {
+            featureType = $(this).find('option:selected').val();
+            if(featureType == 'None'){
+                $('#data').val('');
+                map.removeInteraction(draw);
+                vector_layer.getSource().clear();
+            }else{
+                addInteraction(featureType);
+            }
+        }).change();
         init_events();
+
+
+
     };
 
     init_jquery_var = function () {
@@ -636,13 +749,15 @@ var SERVIR_PACKAGE = (function() {
             $(element).popover('destroy');
 
 
-            if (map.getTargetElement().style.cursor == "pointer") {
+            if (map.getTargetElement().style.cursor == "pointer" && $('#types').val() == 'None') {
                 var clickCoord = evt.coordinate;
                 popup.setPosition(clickCoord);
                 // map.getLayers().item(1).getSource().clear();
 
                 var view = map.getView();
                 var viewResolution = view.getResolution();
+
+
                 var wms_url = current_layer.getSource().getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {'INFO_FORMAT': 'application/json'});
                 if (wms_url) {
                     $.ajax({
@@ -687,35 +802,39 @@ var SERVIR_PACKAGE = (function() {
                         }
                     });
                 }
-
-
-            }else{
-                var coords = evt.coordinate;
-                var proj_coords = ol.proj.transform(coords, 'EPSG:3857','EPSG:4326');
-                var geojsonObject = {
-                    'type': 'FeatureCollection',
-                    'crs': {
-                        'type': 'name',
-                        'properties': {
-                            'name': 'EPSG:3857'
-                        }
-                    },
-                    'features': [{
-                        'type': 'Feature',
-                        'geometry': {
-                            'type': 'Point',
-                            'coordinates': coords
-                        }
-                    }]
-                };
-                var ptSource = map.getLayers().item(1).getSource();
-                ptSource.clear();
-                ptSource.addFeatures((new ol.format.GeoJSON()).readFeatures(geojsonObject));
-                $("#gldas-lat-lon").val(proj_coords);
-                if (($("#gldas-lat-lon").val()!= "")){
-                    $modalDataRods.find('.warning').html('');
-                }
             }
+
+            // else{
+            //     if ($("#data")!= ""){
+            //         console.log($('#data').val());
+            //     }
+            // var coords = evt.coordinate;
+            // var proj_coords = ol.proj.transform(coords, 'EPSG:3857','EPSG:4326');
+            // var geojsonObject = {
+            //     'type': 'FeatureCollection',
+            //     'crs': {
+            //         'type': 'name',
+            //         'properties': {
+            //             'name': 'EPSG:3857'
+            //         }
+            //     },
+            //     'features': [{
+            //         'type': 'Feature',
+            //         'geometry': {
+            //             'type': 'Point',
+            //             'coordinates': coords
+            //         }
+            //     }]
+            // };
+            // var ptSource = map.getLayers().item(1).getSource();
+            // ptSource.clear();
+            // ptSource.addFeatures((new ol.format.GeoJSON()).readFeatures(geojsonObject));
+            // $("#gldas-lat-lon").val(proj_coords);
+            // if (($("#gldas-lat-lon").val()!= "")){
+            //     $modalDataRods.find('.warning').html('');
+            // }
+
+            // }
 
 
         });
@@ -726,6 +845,9 @@ var SERVIR_PACKAGE = (function() {
         $('#close-modalViewRods').on('click', function () {
             $('#modalViewRods').modal('hide');
         });
+        $('#close-modalClimateServ').on('click', function () {
+            $('#modalClimateServ').modal('hide');
+        });
 
 
         map.on('pointermove', function(evt) {
@@ -734,7 +856,7 @@ var SERVIR_PACKAGE = (function() {
             }
             var pixel = map.getEventPixel(evt.originalEvent);
             var hit = map.forEachLayerAtPixel(pixel, function(layer) {
-                if (layer != layers[0] && layer != layers[1]){
+                if (layer != layers[0] && layer != layers[1] ){
                     current_layer = layer;
                     return true;}
             });
