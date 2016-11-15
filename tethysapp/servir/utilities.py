@@ -69,12 +69,14 @@ def parseOWS(wml):
     for site in wml.sites:
         hs_json = {}
         site_name =  site.name
+        site_name = site_name.encode("utf-8")
         site_code =  site.codes[0]
         latitude = site.latitudes
         longitude =  site.longitudes
         network =  site.site_info.elevation
-        print site.site_info.net_work
+
         hs_json["sitename"] = site_name
+
         hs_json["latitude"] = latitude
         hs_json["longitude"] = longitude
         hs_json["sitecode"] = site_code
@@ -117,6 +119,7 @@ def parseWML(bbox):
         for site in bbox_json['site']:
             hs_json = {}
             site_name =  site['siteInfo']['siteName']
+            site_name = site_name.encode("utf-8")
             latitude = site['siteInfo']['geoLocation']['geogLocation']['latitude']
             longitude = site['siteInfo']['geoLocation']['geogLocation']['longitude']
             network = site['siteInfo']['siteCode'][0]['_network']
@@ -132,6 +135,7 @@ def parseWML(bbox):
     else:
         hs_json = {}
         site_name = bbox_json['site']['siteInfo']['siteName']
+        site_name = site_name.encode("utf-8")
         latitude = bbox_json['site']['siteInfo']['geoLocation']['geogLocation']['latitude']
         longitude = bbox_json['site']['siteInfo']['geoLocation']['geogLocation']['longitude']
         network = bbox_json['site']['siteInfo']['siteCode'][0]['_network']
@@ -155,6 +159,7 @@ def parseJSON(json):
             latitude = site['siteInfo']['geoLocation']['geogLocation']['latitude']
             longitude = site['siteInfo']['geoLocation']['geogLocation']['longitude']
             site_name = site['siteInfo']['siteName']
+            site_name = site_name.encode("utf-8")
             network = site['siteInfo']['siteCode']["@network"]
             sitecode = site['siteInfo']['siteCode']["#text"]
 
@@ -170,6 +175,7 @@ def parseJSON(json):
         latitude = sites_object['siteInfo']['geoLocation']['geogLocation']['latitude']
         longitude = sites_object['siteInfo']['geoLocation']['geogLocation']['longitude']
         site_name = sites_object['siteInfo']['siteName']
+        site_name = site_name.encode("utf-8")
         network = sites_object['siteInfo']['siteCode']["@network"]
         sitecode = sites_object['siteInfo']['siteCode']["#text"]
 
@@ -199,6 +205,8 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
 
         for item in input:
             w.point(float(item['longitude']),float(item['latitude']))
+            site_name = item['sitename']
+            site_name.decode("utf-8")
             w.record(item['sitename'],item['sitecode'],item['network'],item['service'],hs_url, 'Point')
 
         w.save(file_location)
@@ -261,7 +269,6 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
         return layer_metadata
 
     except:
-
         return False
     finally:
         if temp_dir is not None:
@@ -330,8 +337,9 @@ def get_loc_name(lat,lon):
     geo_api = "http://maps.googleapis.com/maps/api/geocode/json?latlng={0}&sensor=true".format(geo_coords)
     open_geo = urllib2.urlopen(geo_api)
     open_geo = open_geo.read()
-    location_json = json.loads(open_geo)
-    name = str(location_json['results'][0]['formatted_address'])
+    location_json = json.loads(open_geo,"utf-8")
+    name = location_json['results'][0]['formatted_address']
+    name = name.encode("utf-8")
     return name
 
 def check_digit(num):

@@ -123,6 +123,7 @@ def datarods(request):
     coords_string = str(lon)+", "+str(lat)
 
     location_name = get_loc_name(lat,lon)
+    location_name = location_name.decode("utf-8")
     coords_str_formatted = str(lat)+","+str(lon)
     gldas_url = "http://hydro1.sci.gsfc.nasa.gov/daac-bin/access/timeseries.cgi?variable=GLDAS:GLDAS_NOAH025_3H.001:{0}&type=asc2&location=GEOM:POINT({1})&startDate={2}&endDate={3}".format(var_id,coords_string,start_str,end_str)
     gldas_url = urllib2.quote(gldas_url,safe=':/-()&=,?')
