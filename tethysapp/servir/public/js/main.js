@@ -581,6 +581,12 @@ var SERVIR_PACKAGE = (function() {
         }else{
             $modalAddSOAP.find('.warning').html('');
         }
+        if(($("#soap-url").val())=="http://hydroportal.cuahsi.org/nwisdv/cuahsi_1_1.asmx?WSDL" || ($("#soap-url").val())=="http://hydroportal.cuahsi.org/nwisuv/cuahsi_1_1.asmx?WSDL"){
+            $modalAddSOAP.find('.warning').html('<b>Please zoom in further to be able to access the NWIS Values</b>');
+            return false;
+        }else{
+            $modalAddSOAP.find('.warning').html('');
+        }
         if(($("#soap-title").val()) != ""){
             var regex = new RegExp("^[a-zA-Z ]+$");
             var title = $("#soap-title").val();
