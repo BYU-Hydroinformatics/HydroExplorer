@@ -106,16 +106,63 @@ def home(request):
     get_scenario_response = urllib2.urlopen(cs_get_scenario)
     read_scenario = get_scenario_response.read()
     read_scenario = json.loads(read_scenario)
+    datatype_capabilities = read_scenario['climate_DataTypeCapabilities']
+    model_ensemble = [["Ensemble 1","ens01"],["Ensemble 2","ens02"],["Ensemble 3","ens03"],["Ensemble 4","ens04"],["Ensemble 5","ens05"],["Ensemble 6","ens06"],["Ensemble 7","ens07"],["Ensemble 8","ens08"],["Ensemble 9","ens09"],["Ensemble 10","ens10"]]
+    for i in datatype_capabilities:
+        current_capabilities =  i['current_Capabilities']
+        capabilities_item = lambda:None
+        capabilities_item.__dict__ = json.loads(current_capabilities)
+        # print i['dataTypeNumber'], capabilities_item.variable,capabilities_item.startDateTime, capabilities_item.endDateTime, capabilities_item.ensemble
+        strt_date = capabilities_item.startDateTime
+        # model_ensemble.append([capabilities_item.ensemble,capabilities_item.ensemble])
+        strt_date = strt_date.split('_')
+        strt_date = '{0}-{1}-{2}'.format(strt_date[0],strt_date[1],strt_date[2])
+        last_date = capabilities_item.endDateTime
+        last_date = last_date.split('_')
+        last_date = '{0}-{1}-{2}'.format(last_date[0], last_date[1], last_date[2])
+
+        forecast_start = DatePicker(name='forecast_start',
+                                display_text='Start Date',
+                                autoclose=True,
+                                format='yyyy-mm-dd',
+                                start_view='month',
+                                today_button=True,
+                                initial=strt_date,
+                                start_date=strt_date,
+                                end_date=last_date)
+        forecast_end = DatePicker(name='forecast_end',
+                              display_text='End Date',
+                              autoclose=True,
+                              format='yyyy-mm-dd',
+                              start_view='month',
+                              today_button=True,
+                              initial=last_date,
+                              start_date=strt_date,
+                              end_date=last_date)
+
+    select_ensemble_model = SelectInput(display_text='Select Ensemble Model', name="select_ensemble_model", multiple=False,
+                                            options=model_ensemble)
+    # select_ensemble_var = SelectInput(display_text='Select a variable Model', name="select_ensemble_var", multiple=False,
+    #                                         options=[["Precipitation","prcp"],["Temperature","tref"]])
+    # select_ensemble_operation = SelectInput(display_text='Select a variable Model', name="select_ensemble_var", multiple=False,
+    #                                         options=[["Precipitation","prcp"],["Temperature","tref"]])
+        # for j in datatype_capabilities['current_Capabilities']:
+        #     datatype_number = j['dataTypeNumber']
+        #     data_cat = j['data_category']
+        #     data_desc = j['description']
+        #     data_variable = j['variable']
+        #     data_var_label = j['variable_Label']
+        #     print datatype_number,data_cat, data,data_desc,data_variable,data_var_label
 
 
 
 
 
 
-
-    context = {"select_his_server":select_his_server,"select_gldas_variable":select_gldas_variable,"start_date":start_date,"end_date":end_date}
+    context = {"select_his_server":select_his_server,"select_gldas_variable":select_gldas_variable,"start_date":start_date,"end_date":end_date,"forecast_start":forecast_start,"forecast_end":forecast_end,"select_ensemble_model":select_ensemble_model}
 
     return render(request, 'servir/home.html', context)
+
 def create(request):
     context = {}
     return render(request,'servir/create.html', context)
@@ -794,7 +841,7 @@ def soap_api(request):
                             count = 0
                             for k in times_series['values']['value']:
                                 try:
-                                    if k['@methodCode'] in times_series['values']['value']:
+                                    if k['@methodCode'] == variable_method:
                                         count = count + 1
                                         time = k['@dateTimeUTC']
                                         time1 = time.replace("T", "-")
@@ -810,6 +857,8 @@ def soap_api(request):
                                         time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
                                         data_values.append([time_stamp, value])
                                         data_values.sort()
+                                    graph_json["values"] = data_values
+                                    graph_json["count"] = count
                                 except KeyError:
                                     count = count + 1
                                     time = k['@dateTimeUTC']
@@ -864,7 +913,6 @@ def soap_api(request):
                                 data_values.sort()
                                 graph_json["values"] = data_values
                                 graph_json["count"] = 1
-
 
     return JsonResponse(graph_json)
 
