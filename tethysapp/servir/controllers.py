@@ -811,6 +811,7 @@ def soap_api(request):
     soap_object = None
     if 'soap_obj' in request.session:
             soap_object = request.session['soap_obj']
+            print soap_object
             url = soap_object['url']
             site_desc = soap_object['site']
             network = soap_object['network']
@@ -914,6 +915,8 @@ def soap_api(request):
                                 graph_json["values"] = data_values
                                 graph_json["count"] = 1
 
-    return JsonResponse(graph_json)
+    request.session['graph_obj'] = graph_json
 
+
+    return JsonResponse(graph_json)
 
