@@ -59,7 +59,7 @@ def home(request):
                                        options=gldas_dropdown)
 
 
-    date_range_txt = 'https://appsdev.hydroshare.org/static/data_rods_explorer/data/dates_and_spatial_range.txt'
+    date_range_txt = 'https://raw.githubusercontent.com/gespinoza/datarodsexplorer/dev-shawn/tethysapp/data_rods_explorer/public/data/dates_and_spatial_range.txt'
     range_txt_file = urllib2.urlopen(date_range_txt)
     range_data = range_txt_file.read()
     data = range_data.split("\n")
@@ -76,6 +76,7 @@ def home(request):
 
                 end_gldas = (datetime.strptime(linevals[2].split(' ')[0], '%m/%d/%Y') - timedelta(days=1)) \
                     .strftime('%Y-%m-%d')
+
 
     start_date = DatePicker(name='start_date',
                             display_text='Start Date',
@@ -95,53 +96,53 @@ def home(request):
                           initial=end_gldas,
                           start_date=start_gldas,
                           end_date=end_gldas)
-
-    #Start Climate Serv API Calls
-    cs_base_url = 'http://climateserv.servirglobal.net/chirps/'
-    cs_get_params = cs_base_url+'getParameterTypes/'
-    get_params_response = urllib2.urlopen(cs_get_params)
-    read_params = get_params_response.read()
-    # print read_params
-    cs_get_scenario = cs_base_url+'getClimateScenarioInfo/'
-    get_scenario_response = urllib2.urlopen(cs_get_scenario)
-    read_scenario = get_scenario_response.read()
-    read_scenario = json.loads(read_scenario)
-    datatype_capabilities = read_scenario['climate_DataTypeCapabilities']
-    model_ensemble = [["Ensemble 1","ens01"],["Ensemble 2","ens02"],["Ensemble 3","ens03"],["Ensemble 4","ens04"],["Ensemble 5","ens05"],["Ensemble 6","ens06"],["Ensemble 7","ens07"],["Ensemble 8","ens08"],["Ensemble 9","ens09"],["Ensemble 10","ens10"]]
-    for i in datatype_capabilities:
-        current_capabilities =  i['current_Capabilities']
-        capabilities_item = lambda:None
-        capabilities_item.__dict__ = json.loads(current_capabilities)
-        # print i['dataTypeNumber'], capabilities_item.variable,capabilities_item.startDateTime, capabilities_item.endDateTime, capabilities_item.ensemble
-        strt_date = capabilities_item.startDateTime
-        # model_ensemble.append([capabilities_item.ensemble,capabilities_item.ensemble])
-        strt_date = strt_date.split('_')
-        strt_date = '{0}-{1}-{2}'.format(strt_date[0],strt_date[1],strt_date[2])
-        last_date = capabilities_item.endDateTime
-        last_date = last_date.split('_')
-        last_date = '{0}-{1}-{2}'.format(last_date[0], last_date[1], last_date[2])
-
-        forecast_start = DatePicker(name='forecast_start',
-                                display_text='Start Date',
-                                autoclose=True,
-                                format='yyyy-mm-dd',
-                                start_view='month',
-                                today_button=True,
-                                initial=strt_date,
-                                start_date=strt_date,
-                                end_date=last_date)
-        forecast_end = DatePicker(name='forecast_end',
-                              display_text='End Date',
-                              autoclose=True,
-                              format='yyyy-mm-dd',
-                              start_view='month',
-                              today_button=True,
-                              initial=last_date,
-                              start_date=strt_date,
-                              end_date=last_date)
-
-    select_ensemble_model = SelectInput(display_text='Select Ensemble Model', name="select_ensemble_model", multiple=False,
-                                            options=model_ensemble)
+    #
+    # #Start Climate Serv API Calls
+    # cs_base_url = 'http://climateserv.servirglobal.net/chirps/'
+    # cs_get_params = cs_base_url+'getParameterTypes/'
+    # get_params_response = urllib2.urlopen(cs_get_params)
+    # read_params = get_params_response.read()
+    # # print read_params
+    # cs_get_scenario = cs_base_url+'getClimateScenarioInfo/'
+    # get_scenario_response = urllib2.urlopen(cs_get_scenario)
+    # read_scenario = get_scenario_response.read()
+    # read_scenario = json.loads(read_scenario)
+    # datatype_capabilities = read_scenario['climate_DataTypeCapabilities']
+    # model_ensemble = [["Ensemble 1","ens01"],["Ensemble 2","ens02"],["Ensemble 3","ens03"],["Ensemble 4","ens04"],["Ensemble 5","ens05"],["Ensemble 6","ens06"],["Ensemble 7","ens07"],["Ensemble 8","ens08"],["Ensemble 9","ens09"],["Ensemble 10","ens10"]]
+    # for i in datatype_capabilities:
+    #     current_capabilities =  i['current_Capabilities']
+    #     capabilities_item = lambda:None
+    #     capabilities_item.__dict__ = json.loads(current_capabilities)
+    #     # print i['dataTypeNumber'], capabilities_item.variable,capabilities_item.startDateTime, capabilities_item.endDateTime, capabilities_item.ensemble
+    #     strt_date = capabilities_item.startDateTime
+    #     # model_ensemble.append([capabilities_item.ensemble,capabilities_item.ensemble])
+    #     strt_date = strt_date.split('_')
+    #     strt_date = '{0}-{1}-{2}'.format(strt_date[0],strt_date[1],strt_date[2])
+    #     last_date = capabilities_item.endDateTime
+    #     last_date = last_date.split('_')
+    #     last_date = '{0}-{1}-{2}'.format(last_date[0], last_date[1], last_date[2])
+    #
+    #     forecast_start = DatePicker(name='forecast_start',
+    #                             display_text='Start Date',
+    #                             autoclose=True,
+    #                             format='yyyy-mm-dd',
+    #                             start_view='month',
+    #                             today_button=True,
+    #                             initial=strt_date,
+    #                             start_date=strt_date,
+    #                             end_date=last_date)
+    #     forecast_end = DatePicker(name='forecast_end',
+    #                           display_text='End Date',
+    #                           autoclose=True,
+    #                           format='yyyy-mm-dd',
+    #                           start_view='month',
+    #                           today_button=True,
+    #                           initial=last_date,
+    #                           start_date=strt_date,
+    #                           end_date=last_date)
+    #
+    # select_ensemble_model = SelectInput(display_text='Select Ensemble Model', name="select_ensemble_model", multiple=False,
+    #                                         options=model_ensemble)
     # select_ensemble_var = SelectInput(display_text='Select a variable Model', name="select_ensemble_var", multiple=False,
     #                                         options=[["Precipitation","prcp"],["Temperature","tref"]])
     # select_ensemble_operation = SelectInput(display_text='Select a variable Model', name="select_ensemble_var", multiple=False,
@@ -155,11 +156,7 @@ def home(request):
         #     print datatype_number,data_cat, data,data_desc,data_variable,data_var_label
 
 
-
-
-
-
-    context = {"select_his_server":select_his_server,"select_gldas_variable":select_gldas_variable,"start_date":start_date,"end_date":end_date,"forecast_start":forecast_start,"forecast_end":forecast_end,"select_ensemble_model":select_ensemble_model}
+    context = {"select_his_server":select_his_server, "select_gldas_variable":select_gldas_variable, "start_date":start_date, "end_date":end_date}
 
     return render(request, 'servir/home.html', context)
 

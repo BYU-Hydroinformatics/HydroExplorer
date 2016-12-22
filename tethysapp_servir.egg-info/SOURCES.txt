@@ -6,6 +6,7 @@ tethysapp/servir/controllers.py
 tethysapp/servir/handoff.py
 tethysapp/servir/init_stores.py
 tethysapp/servir/model.py
+tethysapp/servir/utilities.py
 tethysapp_servir.egg-info/PKG-INFO
 tethysapp_servir.egg-info/SOURCES.txt
 tethysapp_servir.egg-info/dependency_links.txt
