@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as et
+import xml.etree.ElementTree as ET
 import urllib2
 import shapefile as sf
 import os, tempfile, shutil, sys, zipfile, string, random
@@ -14,6 +14,10 @@ from owslib.waterml.wml11 import WaterML_1_1 as wml11
 from dateutil import parser as dateparser
 from datetime import datetime
 import inspect
+import xmltodict
+import dateutil.relativedelta
+from datetime import date, timedelta
+from datetime import *
 
 try:
     from cStringIO import StringIO
@@ -310,8 +314,8 @@ def parse_gldas_data(file):
             print str(e),"Exception"
             continue
 
-
     return data
+
 def gen_gldas_dropdown():
     gldas_options = []
     gldas_config_file = inspect.getfile(inspect.currentframe()).replace('utilities.py',
@@ -348,4 +352,90 @@ def check_digit(num):
         num_str = '0' + num_str
     return num_str
 
+def process_job_id(url,operation_type_var):
 
+    open_data_url = urllib2.urlopen(url)
+    read_data_response = open_data_url.read()
+    data_json = json.loads(read_data_response)
+    graph_values = []
+    for i in data_json["data"]:
+
+        time = int(i["epochTime"])
+
+        if operation_type_var == "max":
+            value = i["value"]["max"]
+        elif operation_type_var == "min":
+            value = i["value"]["min"]
+        elif operation_type_var == "avg":
+            value = i["value"]["avg"]
+
+        graph_values.append([datetime.fromtimestamp(time),value])
+
+
+    return graph_values
+
+def get_gldas_range():
+
+    begin_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=start_date"
+    open_begin_url1 = urllib2.urlopen(begin_url1)
+    read_begin_url1 = open_begin_url1.read()
+    begin_url1_data = xmltodict.parse(read_begin_url1)
+    begin_url2 = begin_url1_data['results']['references']['reference']['location']
+
+    open_begin_url2 = urllib2.urlopen(begin_url2)
+    read_begin_url2 = open_begin_url2.read()
+    begin_url2_data = xmltodict.parse(read_begin_url2)
+    start_date = begin_url2_data['Granule']['Temporal']['RangeDateTime']['BeginningDateTime']
+    start_date = start_date.split('T')[0]
+    # start_date = datetime.strptime(start_date, '%Y-%m-%d').strftime('%Y-%m-%d')
+    end_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=-start_date"
+    open_end_url1 = urllib2.urlopen(end_url1)
+    read_end_url1 = open_end_url1.read()
+    end_url1_data = xmltodict.parse(read_end_url1)
+    end_url2 = end_url1_data['results']['references']['reference']['location']
+
+    open_end_url2 = urllib2.urlopen(end_url2)
+    read_end_url2 = open_end_url2.read()
+    end_url2_data = xmltodict.parse(read_end_url2)
+    end_date = end_url2_data['Granule']['Temporal']['RangeDateTime']['BeginningDateTime']
+
+    end_date_str = end_date.split('T')[0]
+    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    first = end_date.replace(day=1)
+    lastMonth = first - timedelta(days=1)
+    end_date = lastMonth.strftime("%Y-%m-%d")
+    range = {"start":start_date,"end":end_date}
+
+    return range
+
+
+
+
+def get_sf_range():
+    scenario_url = "http://climateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
+    response = urllib2.urlopen(scenario_url)
+    read_response = response.read()
+    data_json = json.loads(read_response)
+    capability = data_json["climate_DataTypeCapabilities"][0]["current_Capabilities"]
+    capability = json.loads(capability)
+    start_date = capability["startDateTime"]
+    end_date = capability["endDateTime"]
+    start_date = datetime.strptime(start_date, '%Y_%m_%d').strftime('%m/%d/%Y')
+    end_date = datetime.strptime(end_date, '%Y_%m_%d').strftime('%m/%d/%Y')
+    range = {"start":start_date,"end":end_date}
+
+    return range
+
+def get_climate_scenario(ensemble,variable):
+
+    scenario_url = "http://climateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
+    response = urllib2.urlopen(scenario_url)
+    read_response =  response.read()
+    data_json = json.loads(read_response)
+
+    for i in data_json["climate_DatatypeMap"]:
+        if i["climate_Ensemble"] == ensemble:
+            for j in i["climate_DataTypes"]:
+                if j["climate_Variable_Label"] == variable:
+                    data_type_number = j["dataType_Number"]
+                    return data_type_number

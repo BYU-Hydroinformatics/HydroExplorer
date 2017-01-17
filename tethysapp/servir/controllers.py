@@ -51,32 +51,15 @@ def home(request):
         except Exception as e:
             print e
     select_his_server = SelectInput(display_text='Select HIS Server', name="select_server", multiple=False,
-                                       options=his_servers)
+                                    options=his_servers)
 
 
     gldas_dropdown = gen_gldas_dropdown()
     select_gldas_variable = SelectInput(display_text='Select Variable', name="select_gldas_var", multiple=False,
-                                       options=gldas_dropdown)
+                                        options=gldas_dropdown)
 
 
-    date_range_txt = 'https://raw.githubusercontent.com/gespinoza/datarodsexplorer/dev-shawn/tethysapp/data_rods_explorer/public/data/dates_and_spatial_range.txt'
-    range_txt_file = urllib2.urlopen(date_range_txt)
-    range_data = range_txt_file.read()
-    data = range_data.split("\n")
-    iterdata = iter(data)
-    next(iterdata)
-
-    for line in iterdata:
-        if not (line == '' or 'Model name' in line):
-            line = line.strip()
-            linevals = line.split('|')
-            if linevals[0] == 'GLDAS':
-                start_gldas = (datetime.strptime(linevals[1].split(' ')[0], '%m/%d/%Y') + timedelta(days=1)) \
-                    .strftime('%Y-%m-%d')
-
-                end_gldas = (datetime.strptime(linevals[2].split(' ')[0], '%m/%d/%Y') - timedelta(days=1)) \
-                    .strftime('%Y-%m-%d')
-
+    gldas_dates = get_gldas_range()
 
     start_date = DatePicker(name='start_date',
                             display_text='Start Date',
@@ -84,85 +67,136 @@ def home(request):
                             format='yyyy-mm-dd',
                             start_view='month',
                             today_button=True,
-                            initial=start_gldas,
-                            start_date=start_gldas,
-                            end_date=end_gldas)
+                            initial=gldas_dates["start"],
+                            start_date=gldas_dates["start"],
+                            end_date=gldas_dates["end"])
     end_date = DatePicker(name='end_date',
                           display_text='End Date',
                           autoclose=True,
                           format='yyyy-mm-dd',
                           start_view='month',
                           today_button=True,
-                          initial=end_gldas,
-                          start_date=start_gldas,
-                          end_date=end_gldas)
-    #
-    # #Start Climate Serv API Calls
-    # cs_base_url = 'http://climateserv.servirglobal.net/chirps/'
-    # cs_get_params = cs_base_url+'getParameterTypes/'
-    # get_params_response = urllib2.urlopen(cs_get_params)
-    # read_params = get_params_response.read()
-    # # print read_params
-    # cs_get_scenario = cs_base_url+'getClimateScenarioInfo/'
-    # get_scenario_response = urllib2.urlopen(cs_get_scenario)
-    # read_scenario = get_scenario_response.read()
-    # read_scenario = json.loads(read_scenario)
-    # datatype_capabilities = read_scenario['climate_DataTypeCapabilities']
-    # model_ensemble = [["Ensemble 1","ens01"],["Ensemble 2","ens02"],["Ensemble 3","ens03"],["Ensemble 4","ens04"],["Ensemble 5","ens05"],["Ensemble 6","ens06"],["Ensemble 7","ens07"],["Ensemble 8","ens08"],["Ensemble 9","ens09"],["Ensemble 10","ens10"]]
-    # for i in datatype_capabilities:
-    #     current_capabilities =  i['current_Capabilities']
-    #     capabilities_item = lambda:None
-    #     capabilities_item.__dict__ = json.loads(current_capabilities)
-    #     # print i['dataTypeNumber'], capabilities_item.variable,capabilities_item.startDateTime, capabilities_item.endDateTime, capabilities_item.ensemble
-    #     strt_date = capabilities_item.startDateTime
-    #     # model_ensemble.append([capabilities_item.ensemble,capabilities_item.ensemble])
-    #     strt_date = strt_date.split('_')
-    #     strt_date = '{0}-{1}-{2}'.format(strt_date[0],strt_date[1],strt_date[2])
-    #     last_date = capabilities_item.endDateTime
-    #     last_date = last_date.split('_')
-    #     last_date = '{0}-{1}-{2}'.format(last_date[0], last_date[1], last_date[2])
-    #
-    #     forecast_start = DatePicker(name='forecast_start',
-    #                             display_text='Start Date',
-    #                             autoclose=True,
-    #                             format='yyyy-mm-dd',
-    #                             start_view='month',
-    #                             today_button=True,
-    #                             initial=strt_date,
-    #                             start_date=strt_date,
-    #                             end_date=last_date)
-    #     forecast_end = DatePicker(name='forecast_end',
-    #                           display_text='End Date',
-    #                           autoclose=True,
-    #                           format='yyyy-mm-dd',
-    #                           start_view='month',
-    #                           today_button=True,
-    #                           initial=last_date,
-    #                           start_date=strt_date,
-    #                           end_date=last_date)
-    #
-    # select_ensemble_model = SelectInput(display_text='Select Ensemble Model', name="select_ensemble_model", multiple=False,
-    #                                         options=model_ensemble)
-    # select_ensemble_var = SelectInput(display_text='Select a variable Model', name="select_ensemble_var", multiple=False,
-    #                                         options=[["Precipitation","prcp"],["Temperature","tref"]])
-    # select_ensemble_operation = SelectInput(display_text='Select a variable Model', name="select_ensemble_var", multiple=False,
-    #                                         options=[["Precipitation","prcp"],["Temperature","tref"]])
-        # for j in datatype_capabilities['current_Capabilities']:
-        #     datatype_number = j['dataTypeNumber']
-        #     data_cat = j['data_category']
-        #     data_desc = j['description']
-        #     data_variable = j['variable']
-        #     data_var_label = j['variable_Label']
-        #     print datatype_number,data_cat, data,data_desc,data_variable,data_var_label
+                          initial=gldas_dates["end"],
+                          start_date=gldas_dates["start"],
+                          end_date=gldas_dates["end"])
+
+    data_type_options = [["CHIRPS Precipitation","0|CHIRPS Precipitation(mm/day)"],["IMERG 1 Day","26|IMERG 1 Day(1 mm/day)"],["Seasonal Forecast","6|Seasonal Forecast"]]
+    operation_type_options = [["Max", "0|max"], ["Min", "1|min"], ["Average", "5|avg"]]
+    interval_type_options = [["Daily","0"]]
+
+    select_data_type = SelectInput(display_text='Select a data type', name='cs_data_type',multiple=False,options=data_type_options)
+    select_operation_type = SelectInput(display_text='Select a operation type', name='cs_operation_type', multiple=False,
+                                        options=operation_type_options)
+    select_interval_type = SelectInput(display_text='Select a date interval', name='cs_interval_type', multiple=False,
+                                       options=interval_type_options)
+    select_forecast_variable = SelectInput(display_text='Select a variable', name='cs_forecast_variable', multiple=False,
+                                           options=[("Precipitation","Precipitation"),("Temperature","Temperature")])
+
+    seasonal_forecast_range = get_sf_range()
+    today = time.strftime("%m/%d/%Y")
+
+    forecast_start = DatePicker(name='forecast_start',
+                                display_text='Start Date',
+                                autoclose=True,
+                                format='mm/dd/yyyy',
+                                start_view='month',
+                                today_button=True,
+                                initial="01/10/2016")
+
+    forecast_end = DatePicker(name='forecast_end',
+                              display_text='End Date',
+                              autoclose=True,
+                              format='mm/dd/yyyy',
+                              start_view='month',
+                              today_button=True,
+                              initial="01/20/2016")
+
+    seasonal_forecast_start = DatePicker(name='seasonal_forecast_start',
+                                         display_text='Start Date',
+                                         autoclose=True,
+                                         format='mm/dd/yyyy',
+                                         start_view='month',
+                                         today_button=True,
+                                         initial=today,
+                                         start_date=seasonal_forecast_range["start"],
+                                         end_date=seasonal_forecast_range["end"])
+
+    seasonal_forecast_end = DatePicker(name='seasonal_forecast_end',
+                                       display_text='End Date',
+                                       autoclose=True,
+                                       format='mm/dd/yyyy',
+                                       start_view='month',
+                                       today_button=True,
+                                       initial=today,
+                                       start_date=seasonal_forecast_range["start"],
+                                       end_date=seasonal_forecast_range["end"])
 
 
-    context = {"select_his_server":select_his_server, "select_gldas_variable":select_gldas_variable, "start_date":start_date, "end_date":end_date}
+    context = {"select_his_server":select_his_server, "select_gldas_variable":select_gldas_variable, "start_date":start_date, "end_date":end_date,"select_data_type":select_data_type,"select_operation_type":select_operation_type,"select_interval_type":select_interval_type,"forecast_start":forecast_start,"forecast_end":forecast_end,"select_forecast_variable":select_forecast_variable,"seasonal_forecast_start":seasonal_forecast_start,"seasonal_forecast_end":seasonal_forecast_end}
 
     return render(request, 'servir/home.html', context)
 
 def create(request):
     context = {}
     return render(request,'servir/create.html', context)
+def cserv(request):
+
+    data_type = request.GET['cs_data_type']
+    data_type = data_type.split("|")
+    data_type_int = data_type[0]
+    data_type_title = data_type[1]
+    geometry = request.GET['cserv_lat_lon']
+    operation_type = request.GET['cs_operation_type']
+    operation_type = operation_type.split("|")
+    operation_type_int = operation_type[0]
+    operation_type_var = operation_type[1]
+    interval_type = request.GET['cs_interval_type']
+    begin_data = request.GET['forecast_start']
+    end_data = request.GET['forecast_end']
+    data_type_category = "default"
+
+    if data_type_title == "Seasonal Forecast":
+        model_ensemble = request.GET['cs_model_ensemble']
+        forecast_variable = request.GET['cs_forecast_variable']
+        data_type_info = get_climate_scenario(model_ensemble,forecast_variable)
+        datatype = data_type_info
+        data_type_title = data_type[1] +' ' +str(forecast_variable)
+        begin_data = request.GET['seasonal_forecast_start']
+        end_data = request.GET['seasonal_forecast_end']
+        data_type_category = "ClimateModel"
+    else:
+        datatype = data_type_int
+
+
+    submit_data_request = "http://chirps.nsstc.nasa.gov/chirps/submitDataRequest/?begintime={0}&endtime={1}&datatype={2}&operationtype={3}&intervaltype={4}&geometry={5}".format(begin_data,end_data,datatype,operation_type_int,interval_type,geometry)
+    # submit_data_request = urllib2.quote(submit_data_request,safe=':/-()&=,?[]"')
+    submit_response = urllib2.urlopen(submit_data_request)
+    submit_response_data = submit_response.read()
+    job_id = str(submit_response_data)
+    job_id = job_id.strip('[]"')
+
+    actual_data_url = "http://chirps.nsstc.nasa.gov/chirps/getDataFromRequest/?id={0}".format(job_id)
+
+    time.sleep(3)
+    graph = process_job_id(actual_data_url,operation_type_var)
+
+    timeseries_plot = TimeSeries(
+        height='400px',
+        width='100%',
+        engine='highcharts',
+        title= data_type_title,
+        y_axis_title= data_type_title ,
+        y_axis_units= str(operation_type_var),
+        series=[{
+            'name': data_type_title,
+            'data': graph
+        }]
+    )
+
+    context = {"timeseries_plot":timeseries_plot}
+
+    return render(request,'servir/cserv.html', context)
+
 def datarods(request):
     context = {}
 
@@ -218,17 +252,17 @@ def add_site(request):
                                 multiple=False,
                                 options=[('One', '1'), ('Two', '2'), ('Three', '3')])
     select_site_type = SelectInput(display_text='Select Site Type',
-                                name='select-site-type',
-                                multiple=False,
-                                options=[('Four', '4'), ('Five', '5'), ('Six', '6')])
+                                   name='select-site-type',
+                                   multiple=False,
+                                   options=[('Four', '4'), ('Five', '5'), ('Six', '6')])
     select_vertical_datum = SelectInput(display_text='Select Vertical Datum',
-                                name='select-vertical-datum',
-                                multiple=False,
-                                options=[('MSL', 'MSL'), ('NAVD88', 'NAVDD88'), ('NGVD29', 'NGVD29'),('Something', 'Something'),('Unknown', 'Unknown')])
-    select_spatial_reference = SelectInput(display_text='Select Spatial Reference',
-                                        name='select-spatial-reference',
+                                        name='select-vertical-datum',
                                         multiple=False,
-                                        options=[('WGS84', 'WGS84'), ('NAD27', 'NAD27')])
+                                        options=[('MSL', 'MSL'), ('NAVD88', 'NAVDD88'), ('NGVD29', 'NGVD29'),('Something', 'Something'),('Unknown', 'Unknown')])
+    select_spatial_reference = SelectInput(display_text='Select Spatial Reference',
+                                           name='select-spatial-reference',
+                                           multiple=False,
+                                           options=[('WGS84', 'WGS84'), ('NAD27', 'NAD27')])
     google_map_view = GoogleMapView(height='400px',
                                     width='100%',
                                     maps_api_key='S0mEaPIk3y',
@@ -415,14 +449,10 @@ def soap(request):
         else:
             return_obj['zoom'] = 'false'
             sites = client.service.GetSites('[:]')
-            # sites = sites.encode('utf-8')
-            # wml_sites = wml11(sites).response
             sites_dict = xmltodict.parse(sites)
             sites_json_object = json.dumps(sites_dict)
             sites_json = json.loads(sites_json_object)
             sites_object = parseJSON(sites_json)
-            # sites_ows = parseOWS(wml_sites)
-            # ows_shapefile = genShapeFile(sites_ows,title, geo_url, geo_user, geo_pw, url)
             shapefile_object = genShapeFile(sites_object, title, geo_url, geo_user, geo_pw, url)
 
             geoserver_rest_url = geo_url_base + "/geoserver/wms"
@@ -434,9 +464,7 @@ def soap(request):
             return_obj['url'] = url
             return_obj['status'] = "true"
 
-            # return_obj['ows'] = ows_shapefile["layer"]
-            # return_obj['bounds'] = ows_shapefile["extents"]
-            # ows_extents_string = str(ows_shapefile["extents"])
+
 
 
             Base.metadata.create_all(engine)
@@ -480,10 +508,10 @@ def details(request):
         site_info_json = json.loads(site_info_json_object)
 
         start_date = "00-00-00"
-            # variable_series[0]['variableTimeInterval']['beginDateTime'][:-9]
+        # variable_series[0]['variableTimeInterval']['beginDateTime'][:-9]
 
         end_date = "3000-01-01"
-            # variable_series[0]['variableTimeInterval']['endDateTime'][:-9]
+        # variable_series[0]['variableTimeInterval']['endDateTime'][:-9]
 
 
         site_values_url = hs_url +"GetValuesForASiteObject?site="+site_object+"&startDate="+start_date+"&endDate="+end_date
@@ -595,43 +623,18 @@ def details(request):
 
         graphs_object = {}
         graphs_object["graph"] = graphs
-        # print graphs_object
         graph_variables = []
         for var in graphs_object["graph"]:
             graph_variables.append([var["variable"],var["variable"]])
 
-        # graph_title = site_name + ":" + graphs_object['graph'][-1]['variable']
-        # graph_axis_title = graphs_object['graph'][-1]['variable']
-        # graph_unit = graphs_object['graph'][-1]['unit']
-        #
-        # timeseries_plot = TimeSeries(
-        #     height='250px',
-        #     width='500px',
-        #     engine='highcharts',
-        #     title=graph_title,
-        #     y_axis_title= graph_axis_title,
-        #     y_axis_units=graph_unit,
-        #     series=[{
-        #         'name': graph_axis_title,
-        #         'data': graphs_object['graph'][-1]['values']
-        #     }]
-        # )
 
         select_variable = SelectInput(display_text='Select variable',name="select_var",multiple=False,options=graph_variables)
         select_soap_variable = []
-            # print i['variable']
 
-        # for i in series:
-        #     print i['variable']['variableName']
-        #     print i['variableTimeInterval']['beginDateTime'][:-9]
-        #     print i['variableTimeInterval']['endDateTime'][:-9]
-
-        # print graphs_object
         json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
         request.session['graphs_object'] = graphs_object
         soap_obj = {}
         t_now = datetime.now()
-        now_str = "{0}-{1}-{2}".format(t_now.year, check_digit(t_now.month), check_digit(t_now.day))
         start_date = {}
         end_date = {}
 
@@ -647,16 +650,11 @@ def details(request):
         soap_obj["network"] = network
         site_info = client.service.GetSiteInfo(site_desc)
         site_info = site_info.encode('utf-8')
-        # site_values = client.service.GetValuesForASiteObject(site_desc,"","","")
-        # print site_values
         info_dict = xmltodict.parse(site_info)
         info_json_object = json.dumps(info_dict)
         info_json = json.loads(info_json_object)
-        # print site_values
-        # print info_json
         site_variables = []
         site_object_info = info_json['sitesResponse']['site']['seriesCatalog']
-        # print info_json
         try:
             site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
         except KeyError:
@@ -807,57 +805,39 @@ def soap_var(request):
 def soap_api(request):
     soap_object = None
     if 'soap_obj' in request.session:
-            soap_object = request.session['soap_obj']
-            print soap_object
-            url = soap_object['url']
-            site_desc = soap_object['site']
-            network = soap_object['network']
-            variable =  request.POST['select_var']
-            start_date = request.POST["start_date"]
-            end_date = request.POST["end_date"]
-            variable =  str(variable)
-            variable =  variable.replace("[","").replace("]","").replace("u","").replace(" ","").replace("'","")
-            variable = variable.split(',')
-            variable_text = variable[0]
-            variable_method = variable[1]
-            variable_desc = network+':'+variable_text
-            client = Client(url)
-            values = client.service.GetValues(site_desc,variable_desc,start_date,end_date,"")
-            values_dict = xmltodict.parse(values)
-            values_json_object = json.dumps(values_dict)
-            values_json = json.loads(values_json_object)
-            times_series = values_json['timeSeriesResponse']['timeSeries']
-            if times_series['values'] is not None:
-                graph_json = {}
-                graph_json["variable"] = times_series['variable']['variableName']
-                graph_json["unit"] = times_series['variable']['unit']['unitAbbreviation']
-                graph_json["title"] = site_desc + ':' + times_series['variable']['variableName']
-                for j in times_series['values']:
-                    data_values = []
-                    if j == "value":
-                        if type((times_series['values']['value'])) is list:
-                            count = 0
-                            for k in times_series['values']['value']:
-                                try:
-                                    if k['@methodCode'] == variable_method:
-                                        count = count + 1
-                                        time = k['@dateTimeUTC']
-                                        time1 = time.replace("T", "-")
-                                        time_split = time1.split("-")
-                                        year = int(time_split[0])
-                                        month = int(time_split[1])
-                                        day = int(time_split[2])
-                                        hour_minute = time_split[3].split(":")
-                                        hour = int(hour_minute[0])
-                                        minute = int(hour_minute[1])
-                                        value = float(str(k['#text']))
-                                        date_string = datetime(year, month, day, hour, minute)
-                                        time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
-                                        data_values.append([time_stamp, value])
-                                        data_values.sort()
-                                    graph_json["values"] = data_values
-                                    graph_json["count"] = count
-                                except KeyError:
+        soap_object = request.session['soap_obj']
+
+        url = soap_object['url']
+        site_desc = soap_object['site']
+        network = soap_object['network']
+        variable =  request.POST['select_var']
+        start_date = request.POST["start_date"]
+        end_date = request.POST["end_date"]
+        variable =  str(variable)
+        variable =  variable.replace("[","").replace("]","").replace("u","").replace(" ","").replace("'","")
+        variable = variable.split(',')
+        variable_text = variable[0]
+        variable_method = variable[1]
+        variable_desc = network+':'+variable_text
+        client = Client(url)
+        values = client.service.GetValues(site_desc,variable_desc,start_date,end_date,"")
+        values_dict = xmltodict.parse(values)
+        values_json_object = json.dumps(values_dict)
+        values_json = json.loads(values_json_object)
+        times_series = values_json['timeSeriesResponse']['timeSeries']
+        if times_series['values'] is not None:
+            graph_json = {}
+            graph_json["variable"] = times_series['variable']['variableName']
+            graph_json["unit"] = times_series['variable']['unit']['unitAbbreviation']
+            graph_json["title"] = site_desc + ':' + times_series['variable']['variableName']
+            for j in times_series['values']:
+                data_values = []
+                if j == "value":
+                    if type((times_series['values']['value'])) is list:
+                        count = 0
+                        for k in times_series['values']['value']:
+                            try:
+                                if k['@methodCode'] == variable_method:
                                     count = count + 1
                                     time = k['@dateTimeUTC']
                                     time1 = time.replace("T", "-")
@@ -875,26 +855,27 @@ def soap_api(request):
                                     data_values.sort()
                                 graph_json["values"] = data_values
                                 graph_json["count"] = count
-                        else:
-                            try:
-                                if times_series['values']['value']['@methodCode'] == variable_method:
-                                    time = times_series['values']['value']['@dateTimeUTC']
-                                    time1 = time.replace("T", "-")
-                                    time_split = time1.split("-")
-                                    year = int(time_split[0])
-                                    month = int(time_split[1])
-                                    day = int(time_split[2])
-                                    hour_minute = time_split[3].split(":")
-                                    hour = int(hour_minute[0])
-                                    minute = int(hour_minute[1])
-                                    value = float(str(times_series['values']['value']['#text']))
-                                    date_string = datetime(year, month, day, hour, minute)
-                                    time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
-                                    data_values.append([time_stamp, value])
-                                    data_values.sort()
-                                    graph_json["values"] = data_values
-                                    graph_json["count"] = 1
                             except KeyError:
+                                count = count + 1
+                                time = k['@dateTimeUTC']
+                                time1 = time.replace("T", "-")
+                                time_split = time1.split("-")
+                                year = int(time_split[0])
+                                month = int(time_split[1])
+                                day = int(time_split[2])
+                                hour_minute = time_split[3].split(":")
+                                hour = int(hour_minute[0])
+                                minute = int(hour_minute[1])
+                                value = float(str(k['#text']))
+                                date_string = datetime(year, month, day, hour, minute)
+                                time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
+                                data_values.append([time_stamp, value])
+                                data_values.sort()
+                            graph_json["values"] = data_values
+                            graph_json["count"] = count
+                    else:
+                        try:
+                            if times_series['values']['value']['@methodCode'] == variable_method:
                                 time = times_series['values']['value']['@dateTimeUTC']
                                 time1 = time.replace("T", "-")
                                 time_split = time1.split("-")
@@ -911,6 +892,23 @@ def soap_api(request):
                                 data_values.sort()
                                 graph_json["values"] = data_values
                                 graph_json["count"] = 1
+                        except KeyError:
+                            time = times_series['values']['value']['@dateTimeUTC']
+                            time1 = time.replace("T", "-")
+                            time_split = time1.split("-")
+                            year = int(time_split[0])
+                            month = int(time_split[1])
+                            day = int(time_split[2])
+                            hour_minute = time_split[3].split(":")
+                            hour = int(hour_minute[0])
+                            minute = int(hour_minute[1])
+                            value = float(str(times_series['values']['value']['#text']))
+                            date_string = datetime(year, month, day, hour, minute)
+                            time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
+                            data_values.append([time_stamp, value])
+                            data_values.sort()
+                            graph_json["values"] = data_values
+                            graph_json["count"] = 1
 
     request.session['graph_obj'] = graph_json
 

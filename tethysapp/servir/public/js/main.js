@@ -38,6 +38,7 @@ var SERVIR_PACKAGE = (function() {
         click_catalog,
         generate_graph,
         generate_plot,
+        get_climate_serv,
         get_data_rods,
         get_his_server,
         get_hs_list,
@@ -212,7 +213,14 @@ var SERVIR_PACKAGE = (function() {
 
             } else if (feature_type == 'Polygon'){
                 $modalClimate.modal('show');
-
+                var coords = parsed_feature["features"][0]["geometry"]["coordinates"][0];
+                proj_coords = [];
+                coords.forEach(function (coord) {
+                    var transformed = ol.proj.transform(coord,'EPSG:3857','EPSG:4326');
+                    proj_coords.push('['+transformed+']');
+                });
+                var json_object = '{"type":"Polygon","coordinates":[['+proj_coords+']]}';
+                $("#cserv_lat_lon").val(json_object);
             }
         });
         function saveData() {
@@ -262,7 +270,52 @@ var SERVIR_PACKAGE = (function() {
         $modalInterface = $('#modalInterface');
         $hs_list = $('#current-servers-list');
         $modalClimate = $('#modalClimate');
+
     };
+
+    // $(function(){
+    //     $('#cs_data_type').change(function () {
+    //         //     var option = $(this).find('option:selected').val();
+    //         // if(option == '6|Seasonal Forecast'){
+    //         //     $modalClimate.append('<b>Bunch of random stuff</b>');
+    //         //     $("#cs_forecast_variable").removeClass('hidden');
+    //         // }else{
+    //         //     $("#cs_forecast_variable").addClass('hidden');
+    //         // }
+    //
+    //         var option = $(this).find('option:selected').val() != '6|Seasonal Forecast' ?  $("#cs_forecast_variable").addClass('hidden') : $('#cs_forecast_variable').show();
+    //         // $('#cs_forecast_variable')[ ($(this).find('option:selected').val()=='6|Seasonal Forecast')? "hide" : "show" ]();
+    //     });
+    // });
+
+    $(function() {
+        $('#cs_data_type').change(function(){
+            var selected_option = $(this).find('option:selected').val();
+            $('#seasonal_forecast_start')[ (selected_option =='6|Seasonal Forecast') ? "show" : "hide" ]();
+            $('#seasonal_forecast_end')[ (selected_option =='6|Seasonal Forecast') ? "show" : "hide" ]();
+            $('#forecast_start')[ (selected_option =='6|Seasonal Forecast') ? "hide" : "show" ]();
+            $('#forecast_end')[ (selected_option =='6|Seasonal Forecast') ? "hide" : "show" ]();
+            $('#forecast')[ (selected_option =='6|Seasonal Forecast') ? "show" : "hide" ]();
+            $('#ensemble')[ (selected_option =='6|Seasonal Forecast') ? "show" : "hide" ]();
+            if(selected_option =='6|Seasonal Forecast'){
+                $('label[for="forecast_start"]').hide();
+                $('label[for="forecast_end"]').hide();
+                $('label[for="seasonal_forecast_start"]').show();
+                $('label[for="seasonal_forecast_end"]').show();
+            }else{
+                $('label[for="forecast_start"]').show();
+                $('label[for="forecast_end"]').show();
+                $('label[for="seasonal_forecast_start"]').hide();
+                $('label[for="seasonal_forecast_end"]').hide();
+            }
+
+
+        }).change();
+    });
+
+
+
+
 
     $(".settings").click(function(){
         $modalInterface.find('.success').html('');
@@ -304,6 +357,7 @@ var SERVIR_PACKAGE = (function() {
 
         var datastring = $modalDataRods.serialize();
         var details_url = "/apps/servir/datarods/?"+datastring;
+        console.log(details_url);
         var $loading = $('#view-gldas-loading');
         $('#gldas-container').addClass('hidden');
         $loading.removeClass('hidden');
@@ -318,9 +372,50 @@ var SERVIR_PACKAGE = (function() {
             $loading.addClass('hidden');
         });
 
-
     };
     $("#get-data-rods").on('click',get_data_rods);
+
+    get_climate_serv = function () {
+        // if (($("#cserv-lat-lon").val()=="")){
+        //     $modalDataRods.find('.warning').html('<b>Please select a point on the map.</b>');
+        //     return false;
+        // }
+        // if (($("#cserv-lat-lon").val()!= "")){
+        //     $modalDataRods.find('.warning').html('');
+        // }
+        var datastring = $modalClimate.serialize();
+        $('#modalClimate').modal('hide');
+        //
+        var details_url = "/apps/servir/cserv/?"+datastring;
+        // var data_type = $("#cs_data_type").val();
+        // var operation_type = $("#cs_operation_type").val();
+        // operation_type = operation_type.split("|");
+        // var operation_int = operation_type[0];
+        // var operation_var = operation_type[1];
+        // var interval_type = $("#cs_interval_type").val();
+        // var forecast_start = $("#forecast_start").val();
+        // var forecast_end = $("#forecast_end").val();
+        // var cserv_lat_lon = $("#cserv_lat_lon").val();
+        //
+        // var new_url = "cserv/?data_type="+data_type+"&operation_type_int="+operation_int+"&forecast_start="+forecast_start+"&forecast_end="+forecast_end+"&cserv_lat_lot="+cserv_lat_lon+"&operation_type_var="+operation_var+"&interval_type="+interval_type;
+        // console.log(new_url);
+        var $loading = $('#view-cserv-loading');
+        $('#cserv-container').addClass('hidden');
+        $loading.removeClass('hidden');
+
+        $('#cserv-container').empty().append('<iframe id="cserv-viewer" src="' + details_url + '" allowfullscreen></iframe>');
+        $('#modalViewCS').modal('show');
+        $('#cserv-viewer').one('load', function () {
+            $loading.addClass('hidden');
+            $('#cserv-container').removeClass('hidden');
+            $loading.addClass('hidden');
+        });
+
+
+
+
+    };
+    $('#get-climate-serv').on('click',get_climate_serv);
 
     get_hs_list = function(){
         $.ajax({
@@ -856,6 +951,9 @@ var SERVIR_PACKAGE = (function() {
         });
         $('#close-modalClimateServ').on('click', function () {
             $('#modalClimateServ').modal('hide');
+        });
+        $('#close-modalViewCS').on('click', function () {
+            $('#modalViewCS').modal('hide');
         });
 
 

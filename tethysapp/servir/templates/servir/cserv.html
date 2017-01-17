@@ -3,15 +3,14 @@
 {% load tethys_gizmos %}
 
 {% block app_navigation_items%}
-<li class="active">Data Rods</li>
+<li class="active">Climate Serv</li>
 {% endblock %}
 
 {% block app_content%}
-<h1>NASA GLDAS-Noah (LSM) Data </h1>
+<h1>Climate Serv Data </h1>
 
 {% gizmo plot_view timeseries_plot %}
 
-<h1 style="color:red">{{error_message}}</h1>
 </div>
 <script>
     $(function(){

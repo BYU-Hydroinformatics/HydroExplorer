@@ -68,6 +68,9 @@ class ServirCatalog(TethysAppBase):
                     UrlMap(name='datarods',
                            url='servir/datarods',
                            controller='servir.controllers.datarods'),
+                    UrlMap(name='cserv',
+                           url='servir/cserv',
+                           controller='servir.controllers.cserv'),
 
         )
 
