@@ -1042,6 +1042,7 @@ var SERVIR_PACKAGE = (function() {
 
                         });
 
+
                     }
 
                 }
@@ -1096,8 +1097,7 @@ var SERVIR_PACKAGE = (function() {
 
                     },
                     exporting: {
-                        enabled: true,
-                        width: 5000
+                        enabled: true
                     },
                     series: [{
                         data: result['values'],
@@ -1107,6 +1107,7 @@ var SERVIR_PACKAGE = (function() {
                 });
                 $("#plotter").removeClass('hidden');
                 $loading.addClass('hidden');
+
             },
             error: function(XMLHttpRequest, textStatus, errorThrown)
             {

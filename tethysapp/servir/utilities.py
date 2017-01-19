@@ -8,7 +8,6 @@ import requests
 from owslib.waterml.wml11 import WaterML_1_1 as wml11
 from suds.client import Client
 from suds.sudsobject import asdict
-from suds.sudsobject import asdict
 import json
 from owslib.waterml.wml11 import WaterML_1_1 as wml11
 from dateutil import parser as dateparser
