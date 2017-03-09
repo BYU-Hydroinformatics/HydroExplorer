@@ -411,19 +411,22 @@ def get_gldas_range():
 
 
 def get_sf_range():
-    scenario_url = "http://climateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
-    response = urllib2.urlopen(scenario_url)
-    read_response = response.read()
-    data_json = json.loads(read_response)
-    capability = data_json["climate_DataTypeCapabilities"][0]["current_Capabilities"]
-    capability = json.loads(capability)
-    start_date = capability["startDateTime"]
-    end_date = capability["endDateTime"]
-    start_date = datetime.strptime(start_date, '%Y_%m_%d').strftime('%m/%d/%Y')
-    end_date = datetime.strptime(end_date, '%Y_%m_%d').strftime('%m/%d/%Y')
-    range = {"start":start_date,"end":end_date}
-
-    return range
+    try:
+        scenario_url = "http://limateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
+        response = urllib2.urlopen(scenario_url)
+        read_response = response.read()
+        data_json = json.loads(read_response)
+        capability = data_json["climate_DataTypeCapabilities"][0]["current_Capabilities"]
+        capability = json.loads(capability)
+        start_date = capability["startDateTime"]
+        end_date = capability["endDateTime"]
+        start_date = datetime.strptime(start_date, '%Y_%m_%d').strftime('%m/%d/%Y')
+        end_date = datetime.strptime(end_date, '%Y_%m_%d').strftime('%m/%d/%Y')
+        range = {"start":start_date,"end":end_date}
+        return range
+    except Exception as e:
+        range = {"start": "00/00/0000", "end": "00/00/0000"}
+        return range
 
 def get_climate_scenario(ensemble,variable):
 
