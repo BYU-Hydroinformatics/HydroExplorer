@@ -24,6 +24,14 @@ from .model import engine, SessionMaker, Base, Catalog
 from pyproj import Proj, transform #Remember to install this in tethys.byu.edu
 from owslib.waterml.wml11 import WaterML_1_1 as wml11
 import json
+import functools
+import fiona
+import geojson
+import pyproj
+import shapely.geometry
+import shapely.ops
+import os, tempfile, shutil, sys
+from json import dumps
 
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 geo_url_base = getattr(settings, "GEOSERVER_URL_BASE", "http://127.0.0.1:8181")
@@ -146,6 +154,8 @@ def cserv(request):
     data_type_int = data_type[0]
     data_type_title = data_type[1]
     geometry = request.GET['cserv_lat_lon']
+
+
     operation_type = request.GET['cs_operation_type']
     operation_type = operation_type.split("|")
     operation_type_int = operation_type[0]
@@ -191,7 +201,7 @@ def cserv(request):
             'name': data_type_title,
             'data': graph
         }]
-    )
+     )
 
     context = {"timeseries_plot":timeseries_plot}
 
@@ -914,4 +924,26 @@ def soap_api(request):
 
 
     return JsonResponse(graph_json)
+
+def upload_shp(request):
+
+    return_obj = {
+        'success':False
+    }
+
+    if request.is_ajax() and request.method == 'POST':
+
+
+        file_list = request.FILES.getlist('files')
+        shp_json = convert_shp(file_list)
+        gjson_obj = json.loads(shp_json)
+        geometry = gjson_obj["features"][0]["geometry"]
+        shape_obj = shapely.geometry.asShape(geometry)
+        poly_bounds = shape_obj.bounds
+        return_obj["geometry"] = geometry
+        return_obj["bounds"] = poly_bounds
+        return_obj["geo_json"] = gjson_obj
+        return_obj["success"] = True
+
+    return JsonResponse(return_obj)
 

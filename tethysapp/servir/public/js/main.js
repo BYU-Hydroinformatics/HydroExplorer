@@ -27,6 +27,8 @@ var SERVIR_PACKAGE = (function() {
         layersDict,
         map,
         popup,
+        shpSource,
+        shpLayer,
         wmsLayer,
         wmsSource;
     /************************************************************************
@@ -35,7 +37,11 @@ var SERVIR_PACKAGE = (function() {
     var addContextMenuToListItem,
         add_server,
         add_soap,
+        addDefaultBehaviorToAjax,
+        checkCsrfSafe,
+        getCookie,
         click_catalog,
+        clear_coords,
         generate_graph,
         generate_plot,
         get_climate_serv,
@@ -58,10 +64,14 @@ var SERVIR_PACKAGE = (function() {
         $modalDelete,
         $modalDataRods,
         $modalInterface,
+        $modalUpload,
+        $btnUpload,
         onClickZoomTo,
         onClickDeleteLayer,
         $hs_list,
+        prepare_files,
         update_catalog,
+        upload_file,
         createExportCanvas;
 
     /************************************************************************
@@ -72,6 +82,10 @@ var SERVIR_PACKAGE = (function() {
     set_color = function(){
         var color = colors[Math.floor(Math.random() * colors.length)];
         return color;
+    };
+    clear_coords = function(){
+        $("#poly-lat-lon").val('');
+        $("#point-lat-lon").val('');
     };
     get_random_color = function() {
         var letters = '012345'.split('');
@@ -92,22 +106,11 @@ var SERVIR_PACKAGE = (function() {
                 imagerySet: 'AerialWithLabels' // Options 'Aerial', 'AerialWithLabels', 'Road'
             })
         });
-        // var image = new ol.style.Circle({
-        //     radius: 7,
-        //     fill: new ol.style.Fill({
-        //         color: 'rgba(255, 0, 0, 0.7)'
-        //     }),
-        //     stroke: new ol.style.Stroke({color: 'red', width: 1})
-        // });
-        //
-        // var pointSource = new ol.source.Vector();
-        //
-        // var pointLayer = new ol.layer.Vector({
-        //     source: pointSource,
-        //     style: new ol.style.Style({
-        //         image: image
-        //     })
-        // });
+
+        shpSource = new ol.source.Vector();
+        shpLayer = new ol.layer.Vector({
+                    source: shpSource
+                });
         var source = new ol.source.Vector({
             wrapX: false
         });
@@ -136,7 +139,7 @@ var SERVIR_PACKAGE = (function() {
             projection: projection,
             zoom: 4
         });
-        layers = [baseLayer,vector_layer];
+        layers = [baseLayer,vector_layer,shpLayer];
 
         layersDict = {};
 
@@ -220,6 +223,7 @@ var SERVIR_PACKAGE = (function() {
                     proj_coords.push('['+transformed+']');
                 });
                 var json_object = '{"type":"Polygon","coordinates":[['+proj_coords+']]}';
+                console.log(json_object);
                 $("#cserv_lat_lon").val(json_object);
             }
         });
@@ -247,10 +251,25 @@ var SERVIR_PACKAGE = (function() {
             featureType = $(this).find('option:selected').val();
             if(featureType == 'None'){
                 $('#data').val('');
+                clear_coords();
                 map.removeInteraction(draw);
                 vector_layer.getSource().clear();
-            }else{
+                shpLayer.getSource().clear();
+            }else if(featureType=='Point'){
+                clear_coords();
+                shpLayer.getSource().clear();
                 addInteraction(featureType);
+            }else if(featureType=='Polygon'){
+                clear_coords();
+                shpLayer.getSource().clear();
+                addInteraction(featureType);
+            }
+            else if(featureType =='Upload'){
+                clear_coords();
+                vector_layer.getSource().clear();
+                shpLayer.getSource().clear();
+                map.removeInteraction(draw);
+                $modalUpload.modal('show');
             }
         }).change();
         init_events();
@@ -270,6 +289,8 @@ var SERVIR_PACKAGE = (function() {
         $modalInterface = $('#modalInterface');
         $hs_list = $('#current-servers-list');
         $modalClimate = $('#modalClimate');
+        $modalUpload = $("#modalUpload");
+        $btnUpload = $("#btn-add-shp");
 
     };
 
@@ -567,30 +588,6 @@ var SERVIR_PACKAGE = (function() {
         }else{
             $modalAddSOAP.find('.warning').html('');
         }
-        // if(($("#hs-code").val())==""){
-        //     alert("Please enter a Code for the site.");
-        //     return false;
-        // }
-        // if(($("#hs-website").val())==""){
-        //     alert("Please enter a Website for the Organization.");
-        //     return false;
-        // }
-        // if(($("#hs-citation").val())==""){
-        //     alert("Please enter a Citation for the source.");
-        //     return false;
-        // }
-        // if(($("#hs-contact").val())==""){
-        //     alert("Please enter a Contact for the Organization.");
-        //     return false;
-        // }
-        // if(($("#hs-abstract").val())==""){
-        //     alert("Please enter an Abstract for the Source.");
-        //     return false;
-        // }
-        // if(($("#hs-email").val())==""){
-        //     alert("Please enter an Email for the Contact.");
-        //     return false;
-        // }
 
         $.ajax({
             type: "POST",
@@ -909,37 +906,6 @@ var SERVIR_PACKAGE = (function() {
                 }
             }
 
-            // else{
-            //     if ($("#data")!= ""){
-            //         console.log($('#data').val());
-            //     }
-            // var coords = evt.coordinate;
-            // var proj_coords = ol.proj.transform(coords, 'EPSG:3857','EPSG:4326');
-            // var geojsonObject = {
-            //     'type': 'FeatureCollection',
-            //     'crs': {
-            //         'type': 'name',
-            //         'properties': {
-            //             'name': 'EPSG:3857'
-            //         }
-            //     },
-            //     'features': [{
-            //         'type': 'Feature',
-            //         'geometry': {
-            //             'type': 'Point',
-            //             'coordinates': coords
-            //         }
-            //     }]
-            // };
-            // var ptSource = map.getLayers().item(1).getSource();
-            // ptSource.clear();
-            // ptSource.addFeatures((new ol.format.GeoJSON()).readFeatures(geojsonObject));
-            // $("#gldas-lat-lon").val(proj_coords);
-            // if (($("#gldas-lat-lon").val()!= "")){
-            //     $modalDataRods.find('.warning').html('');
-            // }
-
-            // }
 
 
         });
@@ -964,7 +930,7 @@ var SERVIR_PACKAGE = (function() {
             }
             var pixel = map.getEventPixel(evt.originalEvent);
             var hit = map.forEachLayerAtPixel(pixel, function(layer) {
-                if (layer != layers[0] && layer != layers[1] ){
+                if (layer != layers[0] && layer != layers[1] && layer != layers[2] ){
                     current_layer = layer;
                     return true;}
             });
@@ -1193,8 +1159,111 @@ var SERVIR_PACKAGE = (function() {
             pdf.save('FloodAlert.pdf');
         });
         map.renderSync();
-
     });
+
+    upload_file = function(){
+        var files = $("#shp-upload-input")[0].files;
+        var data;
+        $modalUpload.modal('hide');
+        $("#modalMapConsole").modal('hide');
+        data = prepare_files(files);
+        $.ajax({
+            url: '/apps/servir/upload-shp/',
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            processData: false,
+            contentType: false,
+            error: function (status) {
+
+            }, success: function (response) {
+                var extents = response.bounds;
+                shpSource = new ol.source.Vector({
+                    features: (new ol.format.GeoJSON()).readFeatures(response.geo_json)
+                });
+                shpLayer = new ol.layer.Vector({
+                    name:'shp_layer',
+                    extent:[extents[0],extents[1],extents[2],extents[3]],
+                    source: shpSource,
+                    style:new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: 'blue',
+                            lineDash: [4],
+                            width: 3
+                        }),
+                        fill: new ol.style.Fill({
+                            color: 'rgba(0, 0, 255, 0.1)'
+                        })
+                    })
+                });
+                map.addLayer(shpLayer);
+
+
+                map.getView().fit(shpLayer.getExtent(), map.getSize());
+                map.updateSize();
+                map.render();
+
+                var min = ol.proj.transform([extents[0],extents[1]],'EPSG:3857','EPSG:4326');
+                var max = ol.proj.transform([extents[2],extents[3]],'EPSG:3857','EPSG:4326');
+                var min2 = ol.proj.transform([extents[0],extents[3]],'EPSG:3857','EPSG:4326');
+                var max2 = ol.proj.transform([extents[2],extents[1]],'EPSG:3857','EPSG:4326');
+                var coord_list = ['['+min+']','['+max2+']','['+max+']','['+min2+']','['+min+']'];
+                var json_str = '{"type":"Polygon","coordinates":[['+coord_list+']]}';
+
+                $("#cserv_lat_lon").val(json_str);
+                $modalClimate.modal('show');
+
+            }
+        });
+    };
+
+    $("#btn-add-shp").on('click',upload_file);
+
+    prepare_files = function (files) {
+        var data = new FormData();
+
+        Object.keys(files).forEach(function (file) {
+            data.append('files', files[file]);
+        });
+
+        return data;
+    };
+
+    addDefaultBehaviorToAjax = function () {
+        // Add CSRF token to appropriate ajax requests
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (!checkCsrfSafe(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
+                }
+            }
+        });
+    };
+
+    checkCsrfSafe = function (method) {
+        // these HTTP methods do not require CSRF protection
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    };
+
+    getCookie = function (name) {
+        var cookie;
+        var cookies;
+        var cookieValue = null;
+        var i;
+
+        if (document.cookie && document.cookie !== '') {
+            cookies = document.cookie.split(';');
+            for (i = 0; i < cookies.length; i += 1) {
+                cookie = $.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    };
 
     /************************************************************************
      *                  INITIALIZATION / CONSTRUCTOR
@@ -1202,6 +1271,7 @@ var SERVIR_PACKAGE = (function() {
     $(function () {
 
         init_jquery_var();
+        addDefaultBehaviorToAjax();
         init_menu();
         init_map();
         load_catalog();

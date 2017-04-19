@@ -71,6 +71,9 @@ class ServirCatalog(TethysAppBase):
                     UrlMap(name='cserv',
                            url='servir/cserv',
                            controller='servir.controllers.cserv'),
+                    UrlMap(name='upload-shp',
+                           url='servir/upload-shp',
+                           controller='servir.controllers.upload_shp'),
 
         )
 

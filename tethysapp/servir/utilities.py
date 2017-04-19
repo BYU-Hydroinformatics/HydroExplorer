@@ -17,6 +17,15 @@ import xmltodict
 import dateutil.relativedelta
 from datetime import date, timedelta
 from datetime import *
+from json import dumps
+import time, calendar
+import functools
+import fiona
+import geojson
+import pyproj
+import shapely.geometry
+import shapely.ops
+import os, tempfile, shutil, sys
 
 try:
     from cStringIO import StringIO
@@ -441,3 +450,65 @@ def get_climate_scenario(ensemble,variable):
                 if j["climate_Variable_Label"] == variable:
                     data_type_number = j["dataType_Number"]
                     return data_type_number
+
+def convert_shp(files):
+    geojson_string = ''
+    try:
+        temp_dir = tempfile.mkdtemp()
+        for f in files:
+            f_name = f.name
+            f_path = os.path.join(temp_dir,f_name)
+
+            with open(f_path,'wb') as f_local:
+                f_local.write(f.read())
+
+
+        for file in os.listdir(temp_dir):
+            if file.endswith(".shp"):
+                f_path = os.path.join(temp_dir,file)
+                omit = ['SHAPE_AREA', 'SHAPE_LEN']
+
+                with fiona.open(f_path) as source:
+                    project = functools.partial(pyproj.transform,
+                                                pyproj.Proj(**source.crs),
+                                                pyproj.Proj(init='epsg:3857'))
+                    features = []
+                    for f in source:
+                        shape = shapely.geometry.shape(f['geometry'])
+                        projected_shape = shapely.ops.transform(project, shape)
+
+                        # Remove the properties we don't want
+                        props = f['properties']  # props is a reference
+                        for k in omit:
+                            if k in props:
+                                del props[k]
+
+                        feature = geojson.Feature(id=f['id'],
+                                                  geometry=projected_shape,
+                                                  properties=props)
+                        features.append(feature)
+                    fc = geojson.FeatureCollection(features)
+
+                    geojson_string = geojson.dumps(fc)
+
+
+    except:
+        return 'error'
+    finally:
+        if temp_dir is not None:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+                # for file in files:
+                #     if str(file).endswith('.shp'):
+                #         reader = shapefile.Reader(file)
+                #         fields = reader.fields[1:]
+                #         field_names = [field[0] for field in fields]
+                #         buffer = []
+                #         for sr in reader.shapeRecords():
+                #             atr = dict(zip(field_names, sr.record))
+                #             geom = sr.shape.__geo_interface__
+                #             buffer.append(dict(type="Feature", geometry=geom, properties=atr))
+
+                # print buffer
+
+    return geojson_string

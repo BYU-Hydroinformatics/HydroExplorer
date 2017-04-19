@@ -277,7 +277,6 @@
 
 
                 <input type="text" name="cserv_lat_lon" id="cserv_lat_lon" hidden>
-
                 <div class="warning">
                 </div>
             </div>
@@ -334,6 +333,7 @@
                     <option value="None">None</option>
                     <option value="Point">Point</option>
                     <option value="Polygon">Polygon</option>
+                    <option value="Upload">Upload Shapefile</option>
                 </select>
                 <h6 style="color:red;">Map Interaction must be set to none to be able to access the HydroServers!</h6>
                 <!--<textarea id="data" rows="12" style="width:100%"></textarea>-->
@@ -341,6 +341,31 @@
         </div>
     </div>
     <!--End modal content-->
+    </div>
+</form>
+<form id="modalUpload" class="modal fade" action="upload-shp/" method="POST" role="dialog">
+    {% csrf_token %}
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Upload Shapefile</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group shp_upload">
+                    <label class="control-label" for="shp-upload-input">Multiple Files are allowed</label>
+                    <input id="shp-upload-input" name="shp-upload-input" type="file" multiple>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="button-group">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" id="btn-add-shp" class="btn btn-default">Add</button>
+                </div>
+            </div>
+        </div>
+        <!--End modal content-->
     </div>
 </form>
 {% endblock %}
