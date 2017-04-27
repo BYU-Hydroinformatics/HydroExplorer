@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as et
 import urllib2
 import shapefile as sf
 import os, tempfile, shutil, sys, zipfile, string, random
@@ -33,6 +33,8 @@ except ImportError:
     from io import BytesIO as StringIO
 
 extract_base_path = '/tmp'
+
+#Function for parsing a raw xml file. This function is not really used as REST is not supported.
 def parseSites(xml):
     response = urllib2.urlopen(xml)
     data = response.read()
@@ -76,12 +78,14 @@ def parseSites(xml):
                 hs_sites.append(hs_json)
 
     return hs_sites
+
+#Function for creating a list of json dictionary objects. Each json dictionary object has site metadata such latitude, longitude, sitecode, and network.
 def parseOWS(wml):
     hs_sites = []
     for site in wml.sites:
         hs_json = {}
         site_name =  site.name
-        site_name = site_name.encode("utf-8")
+        site_name = site_name.encode("utf-8") #Encoding is important to ensure that you can accomodate sitenames with special characters.
         site_code =  site.codes[0]
         latitude = site.latitudes
         longitude =  site.longitudes
@@ -118,16 +122,18 @@ def recursive_asdict(d):
 
 
 def suds_to_json(data):
+    #Converting suds object to json
     return json.dumps(recursive_asdict(data))
 
+#Function for parsing the sites within a given bounding box
 def parseWML(bbox):
     hs_sites = []
     # print bbox
 
 
-    bbox_json = recursive_asdict(bbox)
+    bbox_json = recursive_asdict(bbox) #Convert bounding box to json
 
-    if type(bbox_json['site']) is list:
+    if type(bbox_json['site']) is list: #If there are multiple sites, create a list of of dictionaries with metadata
         for site in bbox_json['site']:
             hs_json = {}
             site_name =  site['siteInfo']['siteName']
@@ -144,7 +150,7 @@ def parseWML(bbox):
             hs_json["network"] = network
             hs_json["service"] = "SOAP"
             hs_sites.append(hs_json)
-    else:
+    else: #If there is just one site within the bounding box, add that site as dictionary object
         hs_json = {}
         site_name = bbox_json['site']['siteInfo']['siteName']
         site_name = site_name.encode("utf-8")
@@ -162,9 +168,14 @@ def parseWML(bbox):
         hs_sites.append(hs_json)
 
     return hs_sites
+
+#Function for parsing all the sites within a HydroServer
 def parseJSON(json):
     hs_sites = []
     sites_object =  json['sitesResponse']['site']
+
+    #If statement is executed for multiple sites within the HydroServer, if there is a single site then it goes to the else statement
+    #Parse through the HydroServer and each site with its metadata as a dictionary object to the hs_sites list
     if type(sites_object) is list:
         for site in sites_object:
             hs_json = {}
@@ -201,13 +212,14 @@ def parseJSON(json):
 
     return hs_sites
 
-
+#Function for adding the sites to a geoserver as a layer.
 def genShapeFile(input,title,geo_url,username,password,hs_url):
     try:
         file_name = 'hs_sites'
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = tempfile.mkdtemp() #Create a temp dir
         file_location = temp_dir+"/"+file_name
-        w = sf.Writer(sf.POINT)
+        w = sf.Writer(sf.POINT) #Writing a new shapefile
+        #Define the shapefile fields
         w.field('sitename')
         w.field('sitecode')
         w.field('network')
@@ -215,22 +227,25 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
         w.field('url','C',200)
         # w.field('elevation')
 
+        #For each site within the sites object, retrieve their location and add them to the shapefile with the respective metadata.
         for item in input:
             w.point(float(item['longitude']),float(item['latitude']))
             site_name = item['sitename']
             site_name.decode("utf-8")
             w.record(item['sitename'],item['sitecode'],item['network'],item['service'],hs_url, 'Point')
 
-        w.save(file_location)
-        prj = open("%s.prj" % file_location, "w")
+        w.save(file_location) #Save the shapefile
+        prj = open("%s.prj" % file_location, "w") #Creating a projection file
+        #Projection of the file is EPSG 4326
         epsg = 'GEOGCS["WGS84",DATUM["WGS_1984",SPHEROID["WGS84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]'
         prj.write(epsg)
         prj.close()
 
-        file_list = os.listdir(temp_dir)
+        file_list = os.listdir(temp_dir) #Listing all the files within the temp dir
 
         zip_file_full_path = temp_dir + "/" + "shapefile.zip"
 
+        #Zipping all the files in the temp directory
         with zipfile.ZipFile(zip_file_full_path, 'a') as myzip:
             for fn in file_list:
                 shapefile_fp = temp_dir + "/"+ fn  # tif full path
@@ -242,18 +257,18 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
         layer_metadata = {}
 
         response = None
+        #Connect to a workspace called catalog. If there is no workspace, create one.
         ws_name = "catalog"
         result = spatial_dataset_engine.create_workspace(workspace_id=ws_name, uri="www.servir.org")
         if result['success']:
             print "Created workspace " + ws_name + " successfully"
         else:
             print "Creating workspace " + ws_name + " failed"
-        #print result
 
-        store_id = ws_name + ":" + title
+        store_id = ws_name + ":" + title #Creating the geoserver storeid
 
         result = None
-        result = spatial_dataset_engine.create_shapefile_resource(store_id=store_id, shapefile_zip=zip_file_full_path)
+        result = spatial_dataset_engine.create_shapefile_resource(store_id=store_id, shapefile_zip=zip_file_full_path) #Adding the zipshapefile to geoserver as a layer
         if result['success']:
             print "Created store " + title + " successfully"
         else:
@@ -262,7 +277,7 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
 
         #find the bbox area
         wms_rest_url = '{}workspaces/{}/datastores/{}/featuretypes/{}.json'.format(geo_url,ws_name,title,title)
-        print wms_rest_url
+
         r = requests.get(wms_rest_url, auth=(username,password))
         if r.status_code != 200:
             print 'The Geoserver appears to be down.'
@@ -272,6 +287,7 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
         # wms_response = urllib2.urlopen(wms_rest_url)
         # wms_data = wms_response.read()
         # print wms_data
+        #Returning the layer name and the extents for that layer. This data will be used to add the geoserver layer to the openlayers3 map.
         layer_metadata["layer"] = store_id
         layer_metadata["extents"] = extents
 
@@ -283,9 +299,12 @@ def genShapeFile(input,title,geo_url,username,password,hs_url):
     except:
         return False
     finally:
+        #Delete the temp dir after uploading the shapefile
         if temp_dir is not None:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
+
+#Function for parsing the GLDAS data
 def parse_gldas_data(file):
     data = []
     data_flag_text = 'Date&Time'
@@ -295,12 +314,13 @@ def parse_gldas_data(file):
     file = file.split("\n")
     s_lines = []
 
+    #Parsing the text file.
     for line in file:
         if data_flag_text in line:
-            found_data = True
+            found_data = True #skip the line that says Date&Time
             continue
         if found_data:
-            s_lines.append(line)
+            s_lines.append(line) #Append all the lines to the empty list
 
 
     try:
@@ -309,6 +329,7 @@ def parse_gldas_data(file):
     except Exception as e:
         raise e
 
+    #Parsing the lines with data
     for row in s_lines:
         row_ls = row.strip().replace(' ', '-', 1).split()
 
@@ -317,13 +338,14 @@ def parse_gldas_data(file):
                 date = row_ls[0]
                 val = row_ls[1]
                 date_val_pair =[datetime.strptime(date, '%Y-%m-%d-%HZ'),float(val)]
-                data.append(date_val_pair)
+                data.append(date_val_pair) #Adding the date and value to the data list
         except Exception as e:
             print str(e),"Exception"
             continue
 
     return data
 
+#Generate gldas options from the gldas_config.txt file
 def gen_gldas_dropdown():
     gldas_options = []
     gldas_config_file = inspect.getfile(inspect.currentframe()).replace('utilities.py',
@@ -343,6 +365,7 @@ def gen_gldas_dropdown():
 
     return gldas_options
 
+#Reverse Geocoding the lat and lon to get the name of the location
 def get_loc_name(lat,lon):
 
     geo_coords = str(lat) + "," + str(lon)
@@ -350,8 +373,8 @@ def get_loc_name(lat,lon):
     open_geo = urllib2.urlopen(geo_api)
     open_geo = open_geo.read()
     location_json = json.loads(open_geo,"utf-8")
-    name = location_json['results'][0]['formatted_address']
-    name = name.encode("utf-8")
+    name = location_json['results'][0]['formatted_address'] #Formatted address as returned by the google api
+    name = name.encode("utf-8") #Be sure to encode it to take special characters into consideration
     return name
 
 def check_digit(num):
@@ -360,11 +383,12 @@ def check_digit(num):
         num_str = '0' + num_str
     return num_str
 
+#Function for retrieving the values from the Climate Serv API
 def process_job_id(url,operation_type_var):
 
     open_data_url = urllib2.urlopen(url)
     read_data_response = open_data_url.read()
-    data_json = json.loads(read_data_response)
+    data_json = json.loads(read_data_response) #Converting the response to json
     graph_values = []
     for i in data_json["data"]:
 
@@ -377,13 +401,15 @@ def process_job_id(url,operation_type_var):
         elif operation_type_var == "avg":
             value = i["value"]["avg"]
 
-        graph_values.append([datetime.fromtimestamp(time),value])
+        graph_values.append([datetime.fromtimestamp(time),value]) #Adding the time and its corresponding value to a list. This list will be used by the tethys Timeseries gizmo.
 
 
     return graph_values
 
+#Function for dynamically generating the date ranges for the GLDAS variables
 def get_gldas_range():
 
+    #Get the begin and end dates as the sort key is slightly different
     begin_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=start_date"
     open_begin_url1 = urllib2.urlopen(begin_url1)
     read_begin_url1 = open_begin_url1.read()
@@ -418,7 +444,7 @@ def get_gldas_range():
 
 
 
-
+#Functino for getting the Climate Serv seasonal forecast date range
 def get_sf_range():
     try:
         scenario_url = "http://limateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
@@ -437,6 +463,7 @@ def get_sf_range():
         range = {"start": "00/00/0000", "end": "00/00/0000"}
         return range
 
+#Function for getting the climate serv seasonal forecast scenario
 def get_climate_scenario(ensemble,variable):
 
     scenario_url = "http://climateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
@@ -451,10 +478,11 @@ def get_climate_scenario(ensemble,variable):
                     data_type_number = j["dataType_Number"]
                     return data_type_number
 
+#Convert uploaded shapefile into geojson object
 def convert_shp(files):
     geojson_string = ''
     try:
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = tempfile.mkdtemp() #Create temp dir and save the uploaded files there
         for f in files:
             f_name = f.name
             f_path = os.path.join(temp_dir,f_name)
@@ -462,9 +490,9 @@ def convert_shp(files):
             with open(f_path,'wb') as f_local:
                 f_local.write(f.read())
 
-
+        #Parse through the temp dir for a shapefile
         for file in os.listdir(temp_dir):
-            if file.endswith(".shp"):
+            if file.endswith(".shp"): #Read the shapefile and tranform it
                 f_path = os.path.join(temp_dir,file)
                 omit = ['SHAPE_AREA', 'SHAPE_LEN']
 
@@ -485,30 +513,20 @@ def convert_shp(files):
 
                         feature = geojson.Feature(id=f['id'],
                                                   geometry=projected_shape,
-                                                  properties=props)
+                                                  properties=props) #Creating the geojson object based on the shapefile properties
                         features.append(feature)
                     fc = geojson.FeatureCollection(features)
 
-                    geojson_string = geojson.dumps(fc)
+                    geojson_string = geojson.dumps(fc) #Return the geojson string
 
 
     except:
         return 'error'
     finally:
         if temp_dir is not None:
+            #Remove the temp dir after uploading.
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
-                # for file in files:
-                #     if str(file).endswith('.shp'):
-                #         reader = shapefile.Reader(file)
-                #         fields = reader.fields[1:]
-                #         field_names = [field[0] for field in fields]
-                #         buffer = []
-                #         for sr in reader.shapeRecords():
-                #             atr = dict(zip(field_names, sr.record))
-                #             geom = sr.shape.__geo_interface__
-                #             buffer.append(dict(type="Feature", geometry=geom, properties=atr))
 
-                # print buffer
 
     return geojson_string

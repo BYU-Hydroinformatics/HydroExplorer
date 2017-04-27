@@ -1,5 +1,6 @@
 from .model import engine, SessionMaker, Base, Catalog
 
+#Initialize an empty database, if the database has not been created already.
 def init_catalog_db(first_time):
     Base.metadata.create_all(engine)
 

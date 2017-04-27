@@ -14,6 +14,8 @@
 {% if error_message != None %}
     <h1 style="color:red">{{error_message}}</h1>
     {% endif %}
+
+<!-- This code will be functional once the REST endpoints are enabled again-->
 {% if rest %}
 {% gizmo select_input select_variable %}
 <button id="generate-graph" class="btn btn-primary">Generate Graph</button>
@@ -27,7 +29,7 @@
 </div>
 {% endif %}
 
-
+<!-- This segment triggers the timeseries plot of the SOAP endpoint-->
 {% if soap %}
 <form id="soap_variable" action="/apps/servir/soap-api/" method="POST">
     {% csrf_token %}
@@ -49,6 +51,7 @@
 {% endif %}
 
 <!--{% gizmo plot_view timeseries_plot %}-->
+<!-- Hiding the default tehtys styling-->
 {% if hidenav %}
 
 <script>
@@ -57,6 +60,8 @@
         $('#app-content-wrapper').removeClass('show-nav');
         $('.tethys-app-header').hide();
     });
+
+    //Get the start date and end date for datepickers
     $(document).ready(function() {
         $.ajax({
             type: "GET",
@@ -74,6 +79,8 @@
 
 
     });
+
+    //Setting the start and the date dates for the datepickers in the sire details page
     $("#select_var").on('change', function () {
         var variable = $("#select_var option:selected").val();
         var selected_index = $("#select_var").prop('selectedIndex');
@@ -91,6 +98,7 @@
 
         });
     });
+
     $(document).on('change', $("#start_date"), function () {
         var date_val = $("#start_date").val();
         $("#start_date").val(date_val);

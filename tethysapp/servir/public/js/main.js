@@ -24,7 +24,7 @@ var SERVIR_PACKAGE = (function() {
         current_layer,
         element,
         layers,
-        layersDict,
+        layersDict, //Dictionary for keeping track of the new layers that are being added to the map
         map,
         popup,
         shpSource,
@@ -78,15 +78,15 @@ var SERVIR_PACKAGE = (function() {
      *                    PRIVATE FUNCTION IMPLEMENTATIONS
      *************************************************************************/
 
-    colors = ['#ff0000','#0033cc','#000099','#ff0066','#ff00ff','#800000','#6699ff','#6600cc','#00ffff'];
+    colors = ['#ff0000','#0033cc','#000099','#ff0066','#ff00ff','#800000','#6699ff','#6600cc','#00ffff']; // List of colors for generating the styling of the points on the map
     set_color = function(){
         var color = colors[Math.floor(Math.random() * colors.length)];
         return color;
-    };
+    }; // Return a random color from the list of colors
     clear_coords = function(){
         $("#poly-lat-lon").val('');
         $("#point-lat-lon").val('');
-    };
+    }; //Clear the point/polygon coordinates so that its easier for the post request to process the form
     get_random_color = function() {
         var letters = '012345'.split('');
         var color = '#';
@@ -96,7 +96,7 @@ var SERVIR_PACKAGE = (function() {
             color += letters[Math.round(Math.random() * 15)];
         }
         return color;
-    };
+    }; // Leaving this here as it is pretty neat snippet of code
     init_map = function(){
 
         var projection = ol.proj.get('EPSG:3857');
@@ -107,10 +107,13 @@ var SERVIR_PACKAGE = (function() {
             })
         });
 
+        //Creating an empty source and layer to store the shapefile geojson object
         shpSource = new ol.source.Vector();
         shpLayer = new ol.layer.Vector({
-                    source: shpSource
-                });
+            source: shpSource
+        });
+
+        //Creating an empty source and layer to store the point/polygon features.
         var source = new ol.source.Vector({
             wrapX: false
         });
@@ -163,9 +166,13 @@ var SERVIR_PACKAGE = (function() {
         map.addOverlay(popup);
 
         var lastFeature, draw, featureType;
+
+        //Remove the last feature before drawing a new one
         var removeLastFeature = function () {
             if (lastFeature) source.removeFeature(lastFeature);
         };
+
+        //Add the point/polygon interaction to the map
         var addInteraction = function (geomtype) {
             var typeSelect = document.getElementById('types');
             var value = typeSelect.value;
@@ -179,35 +186,47 @@ var SERVIR_PACKAGE = (function() {
                     type: geomtype
                 });
 
-                if (featureType === 'Point') {
 
-                    draw.on('drawend', function (e) {
-                        removeLastFeature();
-                        lastFeature = e.feature;
-                    });
-
-                } else {
-
-                    draw.on('drawend', function (e) {
-                        lastFeature = e.feature;
-
-                    });
-
-                    draw.on('drawstart', function (e) {
-                        source.clear();
-                    });
-
-                }
                 map.addInteraction(draw);
+            }
+            if (featureType === 'Point') {
+
+                // draw.on('drawend', function (e) {
+                //     removeLastFeature();
+                //     lastFeature = e.feature;
+                // });
+                draw.on('drawend', function (e) {
+                    lastFeature = e.feature;
+
+                });
+
+                draw.on('drawstart', function (e) {
+                    source.clear();
+                });
+
+            } else {
+
+                draw.on('drawend', function (e) {
+                    lastFeature = e.feature;
+
+                });
+
+                draw.on('drawstart', function (e) {
+                    source.clear();
+                });
+
             }
 
 
         };
 
+        //Extracting information from the saved json object data
         vector_layer.getSource().on('addfeature', function(event){
             var feature_json = saveData();
             var parsed_feature = JSON.parse(feature_json);
             var feature_type = parsed_feature["features"][0]["geometry"]["type"];
+
+            //Save the point values to the point-lat-lon field
             if (feature_type == 'Point'){
                 var coords = parsed_feature["features"][0]["geometry"]["coordinates"];
                 var proj_coords = ol.proj.transform(coords, 'EPSG:3857','EPSG:4326');
@@ -215,6 +234,7 @@ var SERVIR_PACKAGE = (function() {
                 $modalDataRods.modal('show');
 
             } else if (feature_type == 'Polygon'){
+                //Save the coordinates to the cserv-lat-lon field
                 $modalClimate.modal('show');
                 var coords = parsed_feature["features"][0]["geometry"]["coordinates"][0];
                 proj_coords = [];
@@ -223,10 +243,11 @@ var SERVIR_PACKAGE = (function() {
                     proj_coords.push('['+transformed+']');
                 });
                 var json_object = '{"type":"Polygon","coordinates":[['+proj_coords+']]}';
-                console.log(json_object);
                 $("#cserv_lat_lon").val(json_object);
             }
         });
+
+        //Save the drawn feature as a json object
         function saveData() {
             // get the format the user has chosen
             var data_type = 'GeoJSON',
@@ -247,6 +268,7 @@ var SERVIR_PACKAGE = (function() {
 
         }
 
+        //Change the map based on the interaction type. Add/remove interaction accordingly.
         $('#types').change(function (e) {
             featureType = $(this).find('option:selected').val();
             if(featureType == 'None'){
@@ -311,6 +333,7 @@ var SERVIR_PACKAGE = (function() {
 
     $(function() {
 
+        //Change the Climate Serv Modal Form if Seasonal Forecast is selected
         $('#cs_data_type').change(function(){
             var selected_option = $(this).find('option:selected').val();
             $('#seasonal_forecast_start')[ (selected_option =='6|Seasonal Forecast') ? "show" : "hide" ]();
@@ -343,6 +366,7 @@ var SERVIR_PACKAGE = (function() {
         $modalInterface.find('.success').html('');
     });
 
+    //Get a list of current HydroServers in the CUAHSI HIS central
     get_his_server = function () {
         var datastring = $modalHIS.serialize();
         $.ajax({
@@ -367,6 +391,7 @@ var SERVIR_PACKAGE = (function() {
     };
     $("#add-from-his").on('click',get_his_server);
 
+    //Load the data rods page as modal
     get_data_rods = function () {
         if (($("#gldas-lat-lon").val()=="")){
             $modalDataRods.find('.warning').html('<b>Please select a point on the map.</b>');
@@ -378,8 +403,8 @@ var SERVIR_PACKAGE = (function() {
         $('#modalDataRods').modal('hide');
 
         var datastring = $modalDataRods.serialize();
-        var details_url = "/apps/servir/datarods/?"+datastring;
-        console.log(details_url);
+        var details_url = "/apps/servir/datarods/?"+datastring; //Sending the datarods modal information via the url
+
         var $loading = $('#view-gldas-loading');
         $('#gldas-container').addClass('hidden');
         $loading.removeClass('hidden');
@@ -397,6 +422,7 @@ var SERVIR_PACKAGE = (function() {
     };
     $("#get-data-rods").on('click',get_data_rods);
 
+    //Loading the climate serv main page as a modal
     get_climate_serv = function () {
         // if (($("#cserv-lat-lon").val()=="")){
         //     $modalDataRods.find('.warning').html('<b>Please select a point on the map.</b>');
@@ -407,7 +433,7 @@ var SERVIR_PACKAGE = (function() {
         // }
         var datastring = $modalClimate.serialize();
         $('#modalClimate').modal('hide');
-        //
+        //Sending the climate serv data via the url
         var details_url = "/apps/servir/cserv/?"+datastring;
         // var data_type = $("#cs_data_type").val();
         // var operation_type = $("#cs_operation_type").val();
@@ -439,12 +465,14 @@ var SERVIR_PACKAGE = (function() {
     };
     $('#get-climate-serv').on('click',get_climate_serv);
 
+    //Get a list of current HydroServers in the local database
     get_hs_list = function(){
         $.ajax({
             type: "GET",
             url: '/apps/servir/catalog/',
             dataType: 'JSON',
             success: function (result) {
+                //Dynamically generate the list of existing hydroservers
                 var server = result['hydroserver'];
                 var HSTableHtml = '<table id="tbl-hydroservers"><thead><th></th><th>Title</th><th>URL</th></thead><tbody>';
                 if (server.length === 0) {
@@ -473,6 +501,7 @@ var SERVIR_PACKAGE = (function() {
     };
     $("#delete-server").on('click',get_hs_list);
 
+    //Load all the existing layers from the database
     load_catalog = function () {
         $.ajax({
             type: "GET",
@@ -481,7 +510,7 @@ var SERVIR_PACKAGE = (function() {
             success: function (result) {
 
                 var servers = result['hydroserver'];
-                $('#current-servers').empty();
+                $('#current-servers').empty(); //Resetting the catalog
                 servers.forEach(function (server) {
                     var title = server.title;
                     var url = server.url;
@@ -530,9 +559,10 @@ var SERVIR_PACKAGE = (function() {
 
     };
 
+    //Deleting a layer from the database and then deleting it from the frontend
     update_catalog = function () {
         $modalInterface.find('.success').html('');
-        var datastring = $modalDelete.serialize();
+        var datastring = $modalDelete.serialize(); //Delete the record in the database
         $.ajax({
             type: "POST",
             url: '/apps/servir/delete/',
@@ -541,17 +571,19 @@ var SERVIR_PACKAGE = (function() {
             success: function (result) {
                 var json_response = JSON.parse(result);
                 var title = json_response.title;
-                $('#current-servers').empty();
+                $('#current-servers').empty(); //Resetting the catalog. So that it is updated.
 
                 $('#modalDelete').modal('hide');
                 $( '#modalDelete' ).each(function(){
                     this.reset();
                 });
 
+
+                //Removing layer from the frontend
                 map.removeLayer(layersDict[title]);
                 delete layersDict[title];
                 map.updateSize();
-                load_catalog();
+                load_catalog(); //Reloading the new catalog
                 // click_catalog();
                 $modalInterface.find('.success').html('<b>Successfully Updated the Catalog!</b>');
             },
@@ -564,6 +596,7 @@ var SERVIR_PACKAGE = (function() {
     };
     $("#btn-del-server").on('click',update_catalog);
 
+    //Adding a REST endpoint. Obsolete for now. Can be put enabled to allow REST layers.
     add_server = function(){
         var datastring = $modalAddHS.serialize();
         if(($("#hs-title").val())==""){
@@ -650,8 +683,10 @@ var SERVIR_PACKAGE = (function() {
 
     $('#btn-add-server').on('click', add_server);
 
+    //Adding the SOAP endpoint layer to the map
     add_soap = function () {
         $modalInterface.find('.success').html('');
+        //Validations to make sure that there are no issues with the form data
         if(($("#extent")).is(':checked')){
             var zoom = map.getView().getZoom();
             if (zoom < 8){
@@ -694,6 +729,8 @@ var SERVIR_PACKAGE = (function() {
             $modalAddSOAP.find('.warning').html('');
         }
         var datastring = $modalAddSOAP.serialize();
+
+        //Submitting the data to the controller
         $.ajax({
             type: "POST",
             url: '/apps/servir/soap/',
@@ -701,6 +738,7 @@ var SERVIR_PACKAGE = (function() {
             data: datastring,
             success: function(result)
             {
+                //Returning the geoserver layer metadata from the controller
                 var json_response = JSON.parse(result);
                 if (json_response.status === 'true')
                 {
@@ -716,7 +754,7 @@ var SERVIR_PACKAGE = (function() {
 
                     $('<li class="ui-state-default"'+'layer-name="'+title+'"'+'><input class="chkbx-layer" type="checkbox" checked><span class="server-name">'+title+'</span><div class="hmbrgr-div"><img src="/static/servir/images/hamburger.svg"></div></li>').appendTo('#current-servers');
 
-                    addContextMenuToListItem($('#current-servers').find('li:last-child'));
+                    addContextMenuToListItem($('#current-servers').find('li:last-child')); //Adding the element to the Current HydroServers box
 
                     $('#modalAddSoap').modal('hide');
 
@@ -724,7 +762,11 @@ var SERVIR_PACKAGE = (function() {
                     $( '#modalAddSoap' ).each(function(){
                         this.reset();
                     });
+
+                    //Stlying string to manage the styling of the points on the layer
                     var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>'+wms_url+'</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">'+set_color()+'</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
+
+                    //Adding the wms layer to the gloval source/layer
                     wmsSource = new ol.source.TileWMS({
                         url: rest_url,
                         params: {'LAYERS':wms_url,
@@ -739,6 +781,7 @@ var SERVIR_PACKAGE = (function() {
 
                     map.addLayer(wmsLayer);
 
+                    //Adding the layer to the global layers dict to keep track of layers
                     layersDict[title] = wmsLayer;
 
                     var layer_extent = wmsLayer.getExtent();
@@ -752,6 +795,7 @@ var SERVIR_PACKAGE = (function() {
             },
             error: function(XMLHttpRequest, textStatus, errorThrown)
             {
+                //Error handling
                 $modalAddSOAP.find('.warning').html('<b>Invalid Hydroserver SOAP Url. Please check and try again.</b>');
                 if(($("#extent")).is(':checked')){
                     $modalAddSOAP.find('.warning').html('<b>The requested area does not have any sites. Please try another area.</b>');
@@ -767,7 +811,7 @@ var SERVIR_PACKAGE = (function() {
     $('#btn-add-soap').on('click', add_soap);
 
 
-
+    //Reverse coding to find the name of the clicked location
     location_search = function(){
         function geocoder_success(results, status) {
             if (status == google.maps.GeocoderStatus.OK) {
@@ -794,6 +838,7 @@ var SERVIR_PACKAGE = (function() {
     };
     $('#location_search').on('click',location_search);
 
+    //On click zoom to the relevant layer
     onClickZoomTo = function(e){
         var clickedElement = e.trigger.context;
         var $lyrListItem = $(clickedElement).parent().parent();
@@ -802,6 +847,8 @@ var SERVIR_PACKAGE = (function() {
         map.getView().fit(layer_extent,map.getSize());
         map.updateSize();
     };
+
+    //On click delete the layer, but it won't delete it from the database
     onClickDeleteLayer = function(e){
         var clickedElement = e.trigger.context;
         var $lyrListItem = $(clickedElement).parent().parent();
@@ -831,12 +878,16 @@ var SERVIR_PACKAGE = (function() {
 
             observer.observe(target, config);
         }());
+
+        //Toggle the layer on and off on click
         $(document).on('change', '.chkbx-layer', function () {
             var displayName = $(this).next().text();
             layersDict[displayName].setVisible($(this).is(':checked'));
         });
 
         // $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
+
+        //Map on zoom function. To keep track of the zoom level. Certain HydroServers can only be added at a certain zoom level.
         map.on("moveend", function() {
             var zoom = map.getView().getZoom();
             var zoomInfo = '<h6>Current Zoom level = ' + zoom+'</h6>';
@@ -845,14 +896,14 @@ var SERVIR_PACKAGE = (function() {
             //     var source =  layersDict[key].getSource();
             // });
         });
+
         map.on("singleclick",function(evt){
-            //Check for each layer in the baselayers
 
             $(element).popover('destroy');
 
 
             if (map.getTargetElement().style.cursor == "pointer" && $('#types').val() == 'None') {
-                var clickCoord = evt.coordinate;
+                var clickCoord = evt.coordinate; //Get the coordinate of the clicked point
                 popup.setPosition(clickCoord);
                 // map.getLayers().item(1).getSource().clear();
 
@@ -860,29 +911,32 @@ var SERVIR_PACKAGE = (function() {
                 var viewResolution = view.getResolution();
 
 
-                var wms_url = current_layer.getSource().getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {'INFO_FORMAT': 'application/json'});
+                var wms_url = current_layer.getSource().getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {'INFO_FORMAT': 'application/json'}); //Get the wms url for the clicked point
                 if (wms_url) {
+                    //Retrieving the details for clicked point via the url
                     $.ajax({
                         type: "GET",
                         url: wms_url,
                         dataType: 'json',
                         success: function (result) {
+
                             var site_name = result["features"][0]["properties"]["sitename"];
                             var site_code = result["features"][0]["properties"]["sitecode"];
                             var network = result["features"][0]["properties"]["network"];
                             var hs_url = result["features"][0]["properties"]["url"];
                             var service = result["features"][0]["properties"]["service"];
-                            var details_html = "/apps/servir/details/?sitename="+site_name+"&sitecode="+site_code+"&network="+network+"&hsurl="+hs_url+"&service="+service+"&hidenav=true";
+                            var details_html = "/apps/servir/details/?sitename="+site_name+"&sitecode="+site_code+"&network="+network+"&hsurl="+hs_url+"&service="+service+"&hidenav=true"; //passing the information through the url
 
                             $(element).popover({
                                 'placement': 'top',
                                 'html': true,
-                                // 'content': '<b>Name:</b>'+site_name+'<br><b>Code:</b>'+site_code+'<br><button type="button" class="mod_link btn-primary" data-html="'+details_html+'" >Site Details</button>'
+                                //Dynamically Generating the popup content
                                 'content':'<table border="1"><tbody><tr><th>Site Name</th><th>Site Id</th><th>Details</th></tr>'+'<tr><td>'+site_name +'</td><td>'+ site_code + '</td><td><button type="button" class="mod_link btn-primary" data-html="'+details_html+'" >Site Details</button></td></tr>'
                             });
 
                             $(element).popover('show');
                             $(element).next().css('cursor', 'text');
+                            //Showing the details page when clicking on site details
                             $('.mod_link').on('click',function(){
                                 var $loading = $('#view-file-loading');
                                 $('#iframe-container').addClass('hidden');
@@ -923,7 +977,7 @@ var SERVIR_PACKAGE = (function() {
             $('#modalViewCS').modal('hide');
         });
 
-
+        //Only show the pointer for layers that aren't base layer, shapefile layer and the point/polygon feature layer
         map.on('pointermove', function(evt) {
             if (evt.dragging) {
                 return;
@@ -939,6 +993,8 @@ var SERVIR_PACKAGE = (function() {
 
 
     };
+
+    //Initialize the context menu (The little hamburger in the Current HydroServers list item). It currently supports zoom to or delete layer. You can add more functionality here.
     init_menu = function(){
         ContextMenuBase = [
             {
@@ -958,6 +1014,7 @@ var SERVIR_PACKAGE = (function() {
         ];
     };
 
+    //Generate a graph based on the REST endpoint request. Somewhat obsolete now, but leaving it here in case you want to allow REST endpoints in the future.
     generate_graph = function(){
         $(document).find('.warning').html('');
         var variable = $('#select_var option:selected').val();
@@ -1024,17 +1081,21 @@ var SERVIR_PACKAGE = (function() {
     };
 
     $('#generate-graph').on('click',generate_graph);
+
+    //Generate the time series plot of SOAP request
     generate_plot = function(){
         var $loading = $('#view-file-loading');
         $loading.removeClass('hidden');
         $("#plotter").addClass('hidden');
-        var datastring = $SoapVariable.serialize();
+        var datastring = $SoapVariable.serialize(); //Can change this approach by adopting the workflow used in the upload_shp function
         $.ajax({
             type: "POST",
             url: '/apps/servir/soap-api/',
             dataType: 'JSON',
             data: datastring,
             success: function(result){
+                //Using Highcharts JavaScript Code to create a time series plot
+                //Using the json response to render the chart as needed
                 $('#plotter').highcharts({
                     chart: {
                         type:'area',
@@ -1088,6 +1149,7 @@ var SERVIR_PACKAGE = (function() {
 
     $('#generate-plot').on('click',generate_plot);
 
+    //Adding the context menu capability to a list item aka the recently added HydroServer layer
     addContextMenuToListItem = function ($listItem) {
         var contextMenuId;
 
@@ -1109,12 +1171,14 @@ var SERVIR_PACKAGE = (function() {
         $listItem.attr('data-context-menu', contextMenuId);
     };
 
+    //This clicks on each element in the Current HydroServers box. This was experimental.
     click_catalog = function(){
         $('.iw-contextMenu').find('[title="Zoom To"]').each(function (index, obj) {
             obj.click();
         });
         map.updateSize();
     };
+
     createExportCanvas = function(mapCanvas){
 
         var exportCanvas;
@@ -1129,6 +1193,8 @@ var SERVIR_PACKAGE = (function() {
         return exportCanvas;
 
     };
+
+    //The following is hidden for now. But in the future can be used to generate an alert with the screenshot of the map
     $('#gen-alert').on('click', function () {
         var dims = {
             a0: [1189, 841],
@@ -1145,7 +1211,7 @@ var SERVIR_PACKAGE = (function() {
             var canvas = createExportCanvas(event.context.canvas);
             var pdf = new jsPDF('potrait', undefined, 'a4');
             var data = canvas.toDataURL('image/png');
-            var servir_logo = "data:image/jpeg;base64"
+            var servir_logo = "data:image/jpeg;base64";
             pdf.setFontSize(25);
             pdf.setTextColor(255, 0, 0);
             pdf.text(75, 15, "FLOOD ALERT");
@@ -1162,6 +1228,7 @@ var SERVIR_PACKAGE = (function() {
     });
 
     upload_file = function(){
+        //Preparing the data to be sent as an ajax request
         var files = $("#shp-upload-input")[0].files;
         var data;
         $modalUpload.modal('hide');
@@ -1179,38 +1246,40 @@ var SERVIR_PACKAGE = (function() {
             }, success: function (response) {
                 var extents = response.bounds;
                 shpSource = new ol.source.Vector({
-                    features: (new ol.format.GeoJSON()).readFeatures(response.geo_json)
+                    features: (new ol.format.GeoJSON()).readFeatures(response.geo_json) //Reading the geojson object
                 });
                 shpLayer = new ol.layer.Vector({
                     name:'shp_layer',
-                    extent:[extents[0],extents[1],extents[2],extents[3]],
+                    extent:[extents[0],extents[1],extents[2],extents[3]], //Note: If you don't define the extents, you cannot get OpenLayers to zoom to it. It just doesn't do it.
                     source: shpSource,
-                    style:new ol.style.Style({
-                        stroke: new ol.style.Stroke({
+                    style:new ol.style.Style({ //Change the following to change the styling of the shapefile object
+                        stroke: new ol.style.Stroke({ //This defines the boundary
                             color: 'blue',
                             lineDash: [4],
                             width: 3
                         }),
                         fill: new ol.style.Fill({
-                            color: 'rgba(0, 0, 255, 0.1)'
+                            color: 'rgba(0, 0, 255, 0.1)' //The 0.1 refers to opacity
                         })
                     })
                 });
                 map.addLayer(shpLayer);
 
 
-                map.getView().fit(shpLayer.getExtent(), map.getSize());
+                map.getView().fit(shpLayer.getExtent(), map.getSize()); //Zoom to the map after adding the geojson object
                 map.updateSize();
                 map.render();
 
+                //Creating geojson string so that it can be passed through the cserv-lat-lon hidden field
+                //Reprojecting the coordinates
                 var min = ol.proj.transform([extents[0],extents[1]],'EPSG:3857','EPSG:4326');
                 var max = ol.proj.transform([extents[2],extents[3]],'EPSG:3857','EPSG:4326');
                 var min2 = ol.proj.transform([extents[0],extents[3]],'EPSG:3857','EPSG:4326');
                 var max2 = ol.proj.transform([extents[2],extents[1]],'EPSG:3857','EPSG:4326');
-                var coord_list = ['['+min+']','['+max2+']','['+max+']','['+min2+']','['+min+']'];
-                var json_str = '{"type":"Polygon","coordinates":[['+coord_list+']]}';
+                var coord_list = ['['+min+']','['+max2+']','['+max+']','['+min2+']','['+min+']']; //Creating a list of coordinates
+                var json_str = '{"type":"Polygon","coordinates":[['+coord_list+']]}'; //Creating the json string
 
-                $("#cserv_lat_lon").val(json_str);
+                $("#cserv_lat_lon").val(json_str); //Setting the json string as the value of the cserv-lat-lon
                 $modalClimate.modal('show');
 
             }
@@ -1219,6 +1288,7 @@ var SERVIR_PACKAGE = (function() {
 
     $("#btn-add-shp").on('click',upload_file);
 
+    //Preparing files so that they can be submitted via an ajax request
     prepare_files = function (files) {
         var data = new FormData();
 
@@ -1229,6 +1299,7 @@ var SERVIR_PACKAGE = (function() {
         return data;
     };
 
+    //The following three functions are necessary to make dynamic ajax requests
     addDefaultBehaviorToAjax = function () {
         // Add CSRF token to appropriate ajax requests
         $.ajaxSetup({
@@ -1275,7 +1346,7 @@ var SERVIR_PACKAGE = (function() {
         init_menu();
         init_map();
         load_catalog();
-        // setTimeout(click_catalog,1000);
+
     });
 
 }()); // End of package wrapper

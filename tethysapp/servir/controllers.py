@@ -15,25 +15,23 @@ from datetime import datetime, timedelta
 from tethys_sdk.gizmos import TimeSeries, SelectInput, DatePicker, TextInput
 from tethys_sdk.gizmos import MapView, MVDraw, MVView, MVLayer, MVLegendClass, GoogleMapView
 import time, calendar
-from suds.client import Client
+from suds.client import Client #For parsing WaterML/XML
 from django.core import serializers
 import logging
 import unicodedata
 import ast
 from .model import engine, SessionMaker, Base, Catalog
-from pyproj import Proj, transform #Remember to install this in tethys.byu.edu
+from pyproj import Proj, transform #Reprojecting/Transforming coordinates
 from owslib.waterml.wml11 import WaterML_1_1 as wml11
 import json
-import functools
-import fiona
-import geojson
-import pyproj
-import shapely.geometry
+import shapely.geometry #Get the bounds of a given geometry
 import shapely.ops
 import os, tempfile, shutil, sys
 from json import dumps
 
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
+#IMPORTANT: Be sure add the GEOSERVER_URL_BASE,GEOSERVER_USER_NAME and GEOSERVER_USER_PASSWORD parameters to settings.py in /usr/lib/tethys/src/tethys_apps
+#Get the geoserver_url,geoserver username and geoserver password from settings.py
 geo_url_base = getattr(settings, "GEOSERVER_URL_BASE", "http://127.0.0.1:8181")
 geo_user = getattr(settings, "GEOSERVER_USER_NAME", "admin")
 geo_pw = getattr(settings, "GEOSERVER_USER_PASSWORD", "geoserver")
@@ -43,8 +41,10 @@ def home(request):
     """
     Controller for the app home page.
     """
-    his_servers = []
 
+
+    #Connecting to the CUAHSI HIS central to retrieve all the avaialable HydroServers.
+    his_servers = []
     his_url = "http://hiscentral.cuahsi.org/webservices/hiscentral.asmx?WSDL"
     client = Client(his_url)
     service_info = client.service.GetWaterOneFlowServiceInfo()
@@ -58,16 +58,19 @@ def home(request):
             his_servers.append([variable_str,url])
         except Exception as e:
             print e
+
+
     select_his_server = SelectInput(display_text='Select HIS Server', name="select_server", multiple=False,
-                                    options=his_servers)
+                                    options=his_servers) #Dropdown for selecting the HIS server
 
+    #Start the GLDAS code
+    gldas_dropdown = gen_gldas_dropdown() #Generate the dropdown options for GLDAS. See utilities.py for gen_gldas_dropdown function
 
-    gldas_dropdown = gen_gldas_dropdown()
     select_gldas_variable = SelectInput(display_text='Select Variable', name="select_gldas_var", multiple=False,
-                                        options=gldas_dropdown)
+                                        options=gldas_dropdown) #Dropdown for selecting the GLDAS Variable
 
 
-    gldas_dates = get_gldas_range()
+    gldas_dates = get_gldas_range() #Get the GLDAS date range. See utilities.py for get_gldas_range function
 
     start_date = DatePicker(name='start_date',
                             display_text='Start Date',
@@ -77,7 +80,7 @@ def home(request):
                             today_button=True,
                             initial=gldas_dates["start"],
                             start_date=gldas_dates["start"],
-                            end_date=gldas_dates["end"])
+                            end_date=gldas_dates["end"]) #Datepicker object for selecting the GLDAS start date
     end_date = DatePicker(name='end_date',
                           display_text='End Date',
                           autoclose=True,
@@ -86,21 +89,24 @@ def home(request):
                           today_button=True,
                           initial=gldas_dates["end"],
                           start_date=gldas_dates["start"],
-                          end_date=gldas_dates["end"])
+                          end_date=gldas_dates["end"]) #Datepicker object for selecting the GLDAS end date
 
-    data_type_options = [["CHIRPS Precipitation","0|CHIRPS Precipitation(mm/day)"],["IMERG 1 Day","26|IMERG 1 Day(1 mm/day)"],["Seasonal Forecast","6|Seasonal Forecast"]]
-    operation_type_options = [["Max", "0|max"], ["Min", "1|min"], ["Average", "5|avg"]]
-    interval_type_options = [["Daily","0"]]
+    #End of GLDAS code segment
 
-    select_data_type = SelectInput(display_text='Select a data type', name='cs_data_type',multiple=False,options=data_type_options)
+    #Start Climate Serv code
+    data_type_options = [["CHIRPS Precipitation","0|CHIRPS Precipitation(mm/day)"],["IMERG 1 Day","26|IMERG 1 Day(1 mm/day)"],["Seasonal Forecast","6|Seasonal Forecast"]] #Climate Serv Data Type Options
+    operation_type_options = [["Max", "0|max"], ["Min", "1|min"], ["Average", "5|avg"]] #Climate Serv Operation Type options
+    interval_type_options = [["Daily","0"]] #Climate Serv interval type options
+
+    select_data_type = SelectInput(display_text='Select a data type', name='cs_data_type',multiple=False,options=data_type_options) #Dropdown object for the select data type
     select_operation_type = SelectInput(display_text='Select a operation type', name='cs_operation_type', multiple=False,
-                                        options=operation_type_options)
+                                        options=operation_type_options) #Dropdown for select operation type
     select_interval_type = SelectInput(display_text='Select a date interval', name='cs_interval_type', multiple=False,
-                                       options=interval_type_options)
+                                       options=interval_type_options) #Dropdown for select interval type
     select_forecast_variable = SelectInput(display_text='Select a variable', name='cs_forecast_variable', multiple=False,
-                                           options=[("Precipitation","Precipitation"),("Temperature","Temperature")])
+                                           options=[("Precipitation","Precipitation"),("Temperature","Temperature")]) #A dropdown object for selecting the forecast variable
 
-    seasonal_forecast_range = get_sf_range()
+    seasonal_forecast_range = get_sf_range() #Get the seasonal forecast range. See utilities.py.
     today = time.strftime("%m/%d/%Y")
 
     forecast_start = DatePicker(name='forecast_start',
@@ -109,7 +115,7 @@ def home(request):
                                 format='mm/dd/yyyy',
                                 start_view='month',
                                 today_button=True,
-                                initial="01/10/2016")
+                                initial="01/10/2016") #Datepicker object for Climate Serv forecast start date
 
     forecast_end = DatePicker(name='forecast_end',
                               display_text='End Date',
@@ -117,7 +123,7 @@ def home(request):
                               format='mm/dd/yyyy',
                               start_view='month',
                               today_button=True,
-                              initial="01/20/2016")
+                              initial="01/20/2016") #Datepicker object for Climate Serv forecast end date
 
     seasonal_forecast_start = DatePicker(name='seasonal_forecast_start',
                                          display_text='Start Date',
@@ -127,7 +133,7 @@ def home(request):
                                          today_button=True,
                                          initial=today,
                                          start_date=seasonal_forecast_range["start"],
-                                         end_date=seasonal_forecast_range["end"])
+                                         end_date=seasonal_forecast_range["end"]) #Datepicker object for Climate Serv seasonal forecast start date
 
     seasonal_forecast_end = DatePicker(name='seasonal_forecast_end',
                                        display_text='End Date',
@@ -137,18 +143,25 @@ def home(request):
                                        today_button=True,
                                        initial=today,
                                        start_date=seasonal_forecast_range["start"],
-                                       end_date=seasonal_forecast_range["end"])
+                                       end_date=seasonal_forecast_range["end"]) #Datepicker object for Climate Serv seasonal forecast end date
+    #End Climate Serv code block
 
-
+    #Django context variables that will be used in home.html
     context = {"select_his_server":select_his_server, "select_gldas_variable":select_gldas_variable, "start_date":start_date, "end_date":end_date,"select_data_type":select_data_type,"select_operation_type":select_operation_type,"select_interval_type":select_interval_type,"forecast_start":forecast_start,"forecast_end":forecast_end,"select_forecast_variable":select_forecast_variable,"seasonal_forecast_start":seasonal_forecast_start,"seasonal_forecast_end":seasonal_forecast_end}
 
     return render(request, 'servir/home.html', context)
 
+#No real use for this controller at the moment
 def create(request):
     context = {}
     return render(request,'servir/create.html', context)
-def cserv(request):
 
+def cserv(request):
+    """
+        Controller for generating timeseries plot through the Climate Serv API.
+    """
+
+    #Defining all the parameters that will be used to make the Climate Serv API call
     data_type = request.GET['cs_data_type']
     data_type = data_type.split("|")
     data_type_int = data_type[0]
@@ -165,10 +178,11 @@ def cserv(request):
     end_data = request.GET['forecast_end']
     data_type_category = "default"
 
+    #The seasonal forecast requires a couple of additional variables. This process runs if seasonal forecast is selected.
     if data_type_title == "Seasonal Forecast":
         model_ensemble = request.GET['cs_model_ensemble']
         forecast_variable = request.GET['cs_forecast_variable']
-        data_type_info = get_climate_scenario(model_ensemble,forecast_variable)
+        data_type_info = get_climate_scenario(model_ensemble,forecast_variable) #Get the datatype number from the model ensemble and forecast variable. See utlities.py.
         datatype = data_type_info
         data_type_title = data_type[1] +' ' +str(forecast_variable)
         begin_data = request.GET['seasonal_forecast_start']
@@ -177,18 +191,20 @@ def cserv(request):
     else:
         datatype = data_type_int
 
-
+    #Submit a request to the Climate Serv API based on the paramters that were defined earlier
     submit_data_request = "http://chirps.nsstc.nasa.gov/chirps/submitDataRequest/?begintime={0}&endtime={1}&datatype={2}&operationtype={3}&intervaltype={4}&geometry={5}".format(begin_data,end_data,datatype,operation_type_int,interval_type,geometry)
     # submit_data_request = urllib2.quote(submit_data_request,safe=':/-()&=,?[]"')
     submit_response = urllib2.urlopen(submit_data_request)
     submit_response_data = submit_response.read()
     job_id = str(submit_response_data)
-    job_id = job_id.strip('[]"')
+    job_id = job_id.strip('[]"') #Retrieving the jobid from the request
 
+    #Now getting the data with the jobib
     actual_data_url = "http://chirps.nsstc.nasa.gov/chirps/getDataFromRequest/?id={0}".format(job_id)
 
+    #I have no explanation for why this delay is necessary, but without this the code will break.
     time.sleep(3)
-    graph = process_job_id(actual_data_url,operation_type_var)
+    graph = process_job_id(actual_data_url,operation_type_var) #Generate a timeseries from the data url
 
     timeseries_plot = TimeSeries(
         height='400px',
@@ -201,15 +217,19 @@ def cserv(request):
             'name': data_type_title,
             'data': graph
         }]
-     )
+     ) #Timeseries object for the Climate Serv request
 
     context = {"timeseries_plot":timeseries_plot}
 
     return render(request,'servir/cserv.html', context)
 
 def datarods(request):
-    context = {}
+    """
+        Controller for generating timeseries plot through the Datarods API.
+    """
+    context = {} #Empty context, so that I can redirect the page in case of errors.
 
+    #Getting the POST request data with the variable info, date range, and point lat lon.
     variable = request.GET['select_gldas_var']
     variable = variable.split('|')
     var_id = variable[0]
@@ -226,12 +246,14 @@ def datarods(request):
     lat = round(lat, 2)
     coords_string = str(lon)+", "+str(lat)
 
-    location_name = get_loc_name(lat,lon)
-    location_name = location_name.decode("utf-8")
+    location_name = get_loc_name(lat,lon) #Geocoding to get the location name. See utilities.py.
+    location_name = location_name.decode("utf-8")   #Since some places have unique and interesting characters. It is important to encode and then decode them.
     coords_str_formatted = str(lat)+","+str(lon)
+    #GLDAS request url
     gldas_url = "http://hydro1.sci.gsfc.nasa.gov/daac-bin/access/timeseries.cgi?variable=GLDAS:GLDAS_NOAH025_3H.001:{0}&type=asc2&location=GEOM:POINT({1})&startDate={2}&endDate={3}".format(var_id,coords_string,start_str,end_str)
-    gldas_url = urllib2.quote(gldas_url,safe=':/-()&=,?')
+    gldas_url = urllib2.quote(gldas_url,safe=':/-()&=,?') #Using safe as the url as several special characters
     try:
+        #Retrieve the data and creating a timeseries object from the request. See utilities.py.
         gldas_response = urllib2.urlopen(gldas_url)
         gldas_data = gldas_response.read()
         parsed_gldas = parse_gldas_data(gldas_data)
@@ -247,15 +269,17 @@ def datarods(request):
                 'name': coords_str_formatted,
                 'data': parsed_gldas
             }]
-        )
+        )#Timeseries object for the GLDAS request
 
         context = {"timeseries_plot": timeseries_plot}
     except Exception as e:
+        #Return an error for any exceptions.
         error_message = "There was a problem retrieving data from the NASA Server"
         context = {"error_message": error_message}
 
     return render(request,'servir/datarods.html', context)
 
+#A use-case scenario for making an in-built hydroserver within Tethys.
 def add_site(request):
     select_source = SelectInput(display_text='Select Source',
                                 name='select-source',
@@ -284,6 +308,7 @@ def add_site(request):
     context = {"select_source":select_source, "select_site_type":select_site_type,"select_vertical_datum":select_vertical_datum,"select_spatial_reference":select_spatial_reference,"google_map_view":google_map_view}
     return render(request,'servir/addsite.html', context)
 
+#Controller for passing the selected HIS server to the Add SOAP server modal.
 def get_his_server(request):
     server = {}
     if request.is_ajax() and request.method == 'POST':
@@ -291,6 +316,7 @@ def get_his_server(request):
         server['url'] = url
     return JsonResponse(server)
 
+#A test to check for good hydroservers. Not used in the user interface
 def his(request):
     list = {}
     hs_list = []
@@ -322,10 +348,16 @@ def his(request):
     context = {"hs_list":hs_list,"error_list":error_list}
 
     return render(request, 'servir/his.html', context)
+
+
 def catalog(request):
+    '''
+    Controller for retrieving the list of available HydroServers in the local database.
+    '''
     list = {}
 
-    session = SessionMaker()
+
+    session = SessionMaker() #Initiate a session
 
     # Query DB for hydroservers
     hydroservers = session.query(Catalog).all()
@@ -341,10 +373,15 @@ def catalog(request):
         layer_obj["extents"] = json_encoded
 
         hs_list.append(layer_obj)
-    list["hydroserver"] = hs_list
+    list["hydroserver"] = hs_list #A json list object with the HydroServer metadata. This object will be used to add layers to the catalog table on the homepage.
 
     return JsonResponse(list)
+
+
 def delete(request):
+    '''
+    Controller for deleting a user selected HydroServer from the local database
+    '''
     list = {}
 
     session = SessionMaker()
@@ -354,18 +391,19 @@ def delete(request):
         title = request.POST['server']
         geo_url = geo_url_base + "/geoserver/rest/"
         spatial_dataset_engine = GeoServerSpatialDatasetEngine(endpoint=geo_url, username=geo_user,
-                                                               password=geo_pw)
+                                                               password=geo_pw) #Connecting to the geoserver
         store_string = "catalog" + ":" + str(title)
-        spatial_dataset_engine.delete_layer(layer_id=store_string,purge=True)
-        spatial_dataset_engine.delete_store(store_id=store_string,purge=True)
-        hydroservers = session.query(Catalog).filter(Catalog.title == title).delete(synchronize_session='evaluate')
+        spatial_dataset_engine.delete_layer(layer_id=store_string,purge=True) #Deleting the layer on geoserver
+        spatial_dataset_engine.delete_store(store_id=store_string,purge=True) #Deleting the store on geoserver
+        hydroservers = session.query(Catalog).filter(Catalog.title == title).delete(synchronize_session='evaluate') #Deleting the record from the local catalog
         session.commit()
         session.close()
 
         # spatial_dataset_engine.delete_store(title,purge=True,debug=True)
-        list["title"] = title
+        list["title"] = title #Returning the deleted title. To let the user know that the particular title is deleted.
     return JsonResponse(list)
 
+#Controller for adding a REST endpoint. As of today, this controller is not being used in the front end. Just leaving it here for future reference.
 def add_server(request):
     return_obj = {}
     geo_url = geo_url_base +"/geoserver/rest/"
@@ -406,35 +444,44 @@ def add_server(request):
 
 
 def soap(request):
+    '''
+    Controller for adding a SOAP endpoint
+    '''
     return_obj = {}
     if request.is_ajax() and request.method == 'POST':
 
         logging.getLogger('suds.client').setLevel(logging.CRITICAL)
         geo_url = geo_url_base + "/geoserver/rest/"
+
+        #Defining variables based on the POST request
         url = request.POST['soap-url']
         title = request.POST['soap-title']
         title = title.replace(" ", "")
-        true_extent = request.POST.get('extent')
+        true_extent = request.POST.get('extent') #Getting the current map extent
 
 
-        client = Client(url)
+        client = Client(url) #Connecting to the endpoint using SUDS
+
+        #True Extent is on and necessary if the user is trying to add USGS or some of the bigger HydroServers.
         if true_extent == 'on':
-
             extent_value = request.POST['extent_val']
             return_obj['zoom'] = 'true'
             return_obj['level'] = extent_value
             ext_list = extent_value.split(',')
+            #Reprojecting the coordinates from 3857 to 4326 using pyproj
             inProj = Proj(init='epsg:3857')
             outProj = Proj(init='epsg:4326')
             minx, miny = ext_list[0], ext_list[1]
             maxx,maxy = ext_list[2],ext_list[3]
             x1, y1 = transform(inProj, outProj, minx, miny)
             x2, y2 = transform(inProj, outProj, maxx, maxy)
-            bbox = client.service.GetSitesByBoxObject(x1,y1,x2,y2,'1','')
-            wml_sites = parseWML(bbox)
+            bbox = client.service.GetSitesByBoxObject(x1,y1,x2,y2,'1','') #Get Sites by bounding box using suds
+            wml_sites = parseWML(bbox) #Creating a sites object from the endpoint. This site object will be used to generate the geoserver layer. See utilities.py.
 
-            shapefile_object = genShapeFile(wml_sites, title, geo_url, geo_user, geo_pw, url)
+            shapefile_object = genShapeFile(wml_sites, title, geo_url, geo_user, geo_pw, url) #Generating a shapefile from the sites object and title. Then add it to the local geoserver. See utilities.py.
             geoserver_rest_url = geo_url_base + "/geoserver/wms"
+
+            #The json response will have the metadata information about the geoserver layer
             return_obj['rest_url'] = geoserver_rest_url
             return_obj['wms'] = shapefile_object["layer"]
             return_obj['bounds'] = shapefile_object["extents"]
@@ -451,21 +498,23 @@ def soap(request):
             session = SessionMaker()
             hs_one = Catalog(title=title,
                              url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"],
-                             extents=extents_string)
+                             extents=extents_string) #Adding all the HydroServer geoserver layer metadata to the local database
             session.add(hs_one)
             session.commit()
             session.close()
 
         else:
             return_obj['zoom'] = 'false'
-            sites = client.service.GetSites('[:]')
+            sites = client.service.GetSites('[:]') #Get a list of all the sites and their respective lat lon.
             sites_dict = xmltodict.parse(sites)
             sites_json_object = json.dumps(sites_dict)
             sites_json = json.loads(sites_json_object)
-            sites_object = parseJSON(sites_json)
-            shapefile_object = genShapeFile(sites_object, title, geo_url, geo_user, geo_pw, url)
+            sites_object = parseJSON(sites_json) #Parsing the sites and creating a sites object. See utilities.py
+            shapefile_object = genShapeFile(sites_object, title, geo_url, geo_user, geo_pw, url) #Generate a shapefile from the sites object and title. Then add it to the geoserver.
 
             geoserver_rest_url = geo_url_base + "/geoserver/wms"
+
+            # The json response will have the metadata information about the geoserver layer
             return_obj['rest_url'] = geoserver_rest_url
             return_obj['wms'] = shapefile_object["layer"]
             return_obj['bounds'] = shapefile_object["extents"]
@@ -480,7 +529,7 @@ def soap(request):
             Base.metadata.create_all(engine)
             session = SessionMaker()
             hs_one = Catalog(title=title,
-                             url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"],extents=extents_string)
+                             url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"],extents=extents_string) #Adding the HydroServer geosever layer metadata to the local database
             session.add(hs_one)
             session.commit()
             session.close()
@@ -489,11 +538,19 @@ def soap(request):
         return_obj['message'] = 'This request can only be made through a "POST" AJAX call.'
 
     return JsonResponse(return_obj)
+
+#Controller for intitializing the error page
 def error(request):
     context = {}
     return render(request, 'servir/error.html', context)
-def details(request):
 
+
+def details(request):
+    '''
+    Controller for the Site Details page
+    '''
+
+    #Defining the variables for site name, site code, network and hydroserver url.
     site_name = request.GET['sitename']
     site_code = request.GET['sitecode']
     network = request.GET['network']
@@ -504,7 +561,7 @@ def details(request):
     soap = None
     error_message = None
 
-
+    #REST not really supported. I wont explain this code.
     if service == 'REST':
         if hs_url.endswith(''):
             hs_url = hs_url + "/"
@@ -648,35 +705,40 @@ def details(request):
         start_date = {}
         end_date = {}
 
+
     if service == 'SOAP':
-        soap_obj = {}
+        soap_obj = {} #soap_obj json dictionary is used so that part of the important metadata can be stored as a session object
         soap = service
         soap_obj["url"] = hs_url
 
-        client = Client(hs_url)
+        client = Client(hs_url) #Connecting to the HydroServer via suds
         client.set_options(port='WaterOneFlow')
         site_desc = network+":"+site_code
         soap_obj["site"] = site_desc
         soap_obj["network"] = network
-        site_info = client.service.GetSiteInfo(site_desc)
-        site_info = site_info.encode('utf-8')
-        info_dict = xmltodict.parse(site_info)
-        info_json_object = json.dumps(info_dict)
+        site_info = client.service.GetSiteInfo(site_desc) #Get site info
+        site_info = site_info.encode('utf-8') #Encoding is necessary for making sure that this thing works for sites with weird characters
+        info_dict = xmltodict.parse(site_info) #Converting xml2dict to make it easier to parse
+        info_json_object = json.dumps(info_dict) #Converting the dict to a json object
         info_json = json.loads(info_json_object)
         site_variables = []
         site_object_info = info_json['sitesResponse']['site']['seriesCatalog']
+
+        #This exception was necessary as there were some sites with no data
         try:
             site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
         except KeyError:
             error_message = "Site Details do not exist"
             context = {"site_name":site_name,"site_code":site_code,"service":service,"error_message":error_message}
             return render(request, 'servir/error.html', context)
-        graph_variables = []
-        var_json = []
+        graph_variables = [] #List for storing all avaiable variables
+        var_json = [] #List for storing the variable metadata such as the date range for the data for that variable
+
+        #Check if there are multiple variables in the selected site
         if type(site_object) is list:
             count = 0
             for i in site_object:
-                var_obj = {}
+                var_obj = {} #var_obj json dictionary is used so that the variable selected by the user can be retrieved as a session object
                 count = count + 1
 
                 variable_name = i['variable']['variableName']
@@ -712,15 +774,17 @@ def details(request):
                 # qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
                 # qc_definition = i["qualityControlLevel"]["definition"]
                 # print variable_name,variable_id, source_id,method_id, qc_code
+                #Generating the string that the user sees
                 variable_string = str(
                     count) + '. Variable Name:' + variable_name + ',' + 'Count: ' + value_count + ',Variable ID:' + variable_id + ', Start Date:' + begin_time + ', End Date:' + end_time
                 # value_string = variable_id,variable_text,source_id,method_id,qc_code, variable_name
                 value_list = [variable_text, method_id]
                 value_string = str(value_list)
-                graph_variables.append([variable_string, value_string])
-                var_json.append(var_obj)
-                # print variable_name, variable_id, value_type, data_type, unit_name,unit_type, unit_abbr,unit_abbr,unit_code, time_support, time_support_name, time_support_type
+                graph_variables.append([variable_string, value_string]) #Creating a list of lists. The graph variables list will be used for generating a select variable dropdown.
+                var_json.append(var_obj) #Adding all the important variable metadata to a json object, so that it can be retrieved later through request.session
+
         else:
+            #If there is a single variable do the following. The struture is slightly different if there is only one variable in the site. Thus this method is implemented
             var_obj = {}
             variable_name = site_object['variable']['variableName']
             variable_id = site_object['variable']['variableCode']['@variableID']
@@ -758,14 +822,14 @@ def details(request):
             var_obj["variableID"] = variable_id
             var_obj["startDate"] = begin_time
             var_obj["endDate"] = end_time
-            var_json.append(var_obj)
-            graph_variables.append([variable_string, value_string])
+            var_json.append(var_obj) #Adding the variable metadata to a json object so that it can retrieved using request.session
+            graph_variables.append([variable_string, value_string]) #Appending the solo variable to the empty list. This will be used to generate the dropdown.
 
         # print site_values
         # values = client.service.GetSiteInfo(site_desc)
         # print values
         select_soap_variable = SelectInput(display_text='Select Variable', name="select_var", multiple=False,
-                                           options=graph_variables)
+                                           options=graph_variables) #Dropdown object for selecting a soap variable
 
         t_now = datetime.now()
         now_str = "{0}-{1}-{2}".format(t_now.year, check_digit(t_now.month), check_digit(t_now.day))
@@ -775,20 +839,20 @@ def details(request):
                                 format='yyyy-mm-dd',
                                 start_view='month',
                                 today_button=True,
-                                initial=now_str)
+                                initial=now_str) #Datepicker object for selecting the start date. This simply initializes the datepicker. The actual validation is done directly through JavaScript.
         end_date = DatePicker(name='end_date',
                               display_text='End Date',
                               autoclose=True,
                               format='yyyy-mm-dd',
                               start_view='month',
                               today_button=True,
-                              initial=now_str)
+                              initial=now_str) #Datepicker object for selecting the end date. Same as above.
 
         select_variable = []
         graphs_object = {}
-        json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None)
+        json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime) else None) #Encoding everything so that it can be retrieved as session object
         soap_obj["var_list"] = var_json
-        request.session['soap_obj'] = soap_obj
+        request.session['soap_obj'] = soap_obj #Saving the var_json as a session obj
 
 
 
@@ -800,12 +864,14 @@ def details(request):
 
     return render(request, 'servir/details.html', context)
 
-
+#Controller for retrieving the REST api data
 def rest_api(request):
     graphs_object = None
     if 'graphs_object' in request.session:
         graphs_object = request.session['graphs_object']
     return JsonResponse(graphs_object)
+
+#Controller for retrieving the user selected variable for the SOAP site details
 def soap_var(request):
     var_object = None
     if 'soap_obj' in request.session:
@@ -813,9 +879,13 @@ def soap_var(request):
     return JsonResponse(var_object)
 
 def soap_api(request):
+    '''
+    Controller for generating the plot for the SOAP site for a selected variable and data range
+    '''
     soap_object = None
     if 'soap_obj' in request.session:
-        soap_object = request.session['soap_obj']
+        soap_object = request.session['soap_obj'] #Requesting the session object to retrieve metadata about the site
+
 
         url = soap_object['url']
         site_desc = soap_object['site']
@@ -823,27 +893,30 @@ def soap_api(request):
         variable =  request.POST['select_var']
         start_date = request.POST["start_date"]
         end_date = request.POST["end_date"]
+        #Manipulating the variable string to get the relevant string
         variable =  str(variable)
         variable =  variable.replace("[","").replace("]","").replace("u","").replace(" ","").replace("'","")
         variable = variable.split(',')
         variable_text = variable[0]
         variable_method = variable[1]
         variable_desc = network+':'+variable_text
-        client = Client(url)
-        values = client.service.GetValues(site_desc,variable_desc,start_date,end_date,"")
-        values_dict = xmltodict.parse(values)
-        values_json_object = json.dumps(values_dict)
+        client = Client(url) #Connect to the HydroServer endpoint
+        values = client.service.GetValues(site_desc,variable_desc,start_date,end_date,"") #Get values for the given site,variable, start date, end date.
+        values_dict = xmltodict.parse(values) #Converting xml to dict
+        values_json_object = json.dumps(values_dict) #Converting the dict to json to make it easy to parse the data
         values_json = json.loads(values_json_object)
-        times_series = values_json['timeSeriesResponse']['timeSeries']
+        times_series = values_json['timeSeriesResponse']['timeSeries'] #Timeseries object for the variable
+
+        #Parsing the timeseries if its not null
         if times_series['values'] is not None:
-            graph_json = {}
+            graph_json = {} #json object that will be returned to the front end
             graph_json["variable"] = times_series['variable']['variableName']
             graph_json["unit"] = times_series['variable']['unit']['unitAbbreviation']
             graph_json["title"] = site_desc + ':' + times_series['variable']['variableName']
-            for j in times_series['values']:
-                data_values = []
+            for j in times_series['values']: #Parsing the timeseries
+                data_values = [] #empty list which will have the time stamp and values within the specified date range.
                 if j == "value":
-                    if type((times_series['values']['value'])) is list:
+                    if type((times_series['values']['value'])) is list: #If there are multiple timeseries than value the following code is executed
                         count = 0
                         for k in times_series['values']['value']:
                             try:
@@ -860,12 +933,12 @@ def soap_api(request):
                                     minute = int(hour_minute[1])
                                     value = float(str(k['#text']))
                                     date_string = datetime(year, month, day, hour, minute)
-                                    time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000
+                                    time_stamp = calendar.timegm(date_string.utctimetuple()) * 1000 #Creating a timestamp as javascript cannot recognize datetime object
                                     data_values.append([time_stamp, value])
                                     data_values.sort()
                                 graph_json["values"] = data_values
                                 graph_json["count"] = count
-                            except KeyError:
+                            except KeyError: #The Key Error kicks in when there is only one timeseries
                                 count = count + 1
                                 time = k['@dateTimeUTC']
                                 time1 = time.replace("T", "-")
@@ -883,7 +956,7 @@ def soap_api(request):
                                 data_values.sort()
                             graph_json["values"] = data_values
                             graph_json["count"] = count
-                    else:
+                    else: #The else statement is executed is there is only one value in the timeseries
                         try:
                             if times_series['values']['value']['@methodCode'] == variable_method:
                                 time = times_series['values']['value']['@dateTimeUTC']
@@ -920,7 +993,7 @@ def soap_api(request):
                             graph_json["values"] = data_values
                             graph_json["count"] = 1
 
-    request.session['graph_obj'] = graph_json
+    request.session['graph_obj'] = graph_json #Returning the timeseries object along with the relevant metadata
 
 
     return JsonResponse(graph_json)
@@ -931,19 +1004,21 @@ def upload_shp(request):
         'success':False
     }
 
+    #Converting the uploaded files into geojson object
     if request.is_ajax() and request.method == 'POST':
 
 
         file_list = request.FILES.getlist('files')
-        shp_json = convert_shp(file_list)
+        shp_json = convert_shp(file_list) #Convert the shapefile to geojson object. See utilities.py
         gjson_obj = json.loads(shp_json)
         geometry = gjson_obj["features"][0]["geometry"]
-        shape_obj = shapely.geometry.asShape(geometry)
+        shape_obj = shapely.geometry.asShape(geometry)  #Getting the bounds from the geometry using shapely
         poly_bounds = shape_obj.bounds
         return_obj["geometry"] = geometry
         return_obj["bounds"] = poly_bounds
         return_obj["geo_json"] = gjson_obj
         return_obj["success"] = True
 
+        #The return object has the bounds, geometry and the geojson string.
     return JsonResponse(return_obj)
 
