@@ -408,37 +408,40 @@ def process_job_id(url,operation_type_var):
 
 #Function for dynamically generating the date ranges for the GLDAS variables
 def get_gldas_range():
+    range = {}
+    try:
+        #Get the begin and end dates as the sort key is slightly different
+        begin_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=start_date"
+        open_begin_url1 = urllib2.urlopen(begin_url1)
+        read_begin_url1 = open_begin_url1.read()
+        begin_url1_data = xmltodict.parse(read_begin_url1)
+        begin_url2 = begin_url1_data['results']['references']['reference']['location']
 
-    #Get the begin and end dates as the sort key is slightly different
-    begin_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=start_date"
-    open_begin_url1 = urllib2.urlopen(begin_url1)
-    read_begin_url1 = open_begin_url1.read()
-    begin_url1_data = xmltodict.parse(read_begin_url1)
-    begin_url2 = begin_url1_data['results']['references']['reference']['location']
+        open_begin_url2 = urllib2.urlopen(begin_url2)
+        read_begin_url2 = open_begin_url2.read()
+        begin_url2_data = xmltodict.parse(read_begin_url2)
+        start_date = begin_url2_data['Granule']['Temporal']['RangeDateTime']['BeginningDateTime']
+        start_date = start_date.split('T')[0]
+        # start_date = datetime.strptime(start_date, '%Y-%m-%d').strftime('%Y-%m-%d')
+        end_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=-start_date"
+        open_end_url1 = urllib2.urlopen(end_url1)
+        read_end_url1 = open_end_url1.read()
+        end_url1_data = xmltodict.parse(read_end_url1)
+        end_url2 = end_url1_data['results']['references']['reference']['location']
 
-    open_begin_url2 = urllib2.urlopen(begin_url2)
-    read_begin_url2 = open_begin_url2.read()
-    begin_url2_data = xmltodict.parse(read_begin_url2)
-    start_date = begin_url2_data['Granule']['Temporal']['RangeDateTime']['BeginningDateTime']
-    start_date = start_date.split('T')[0]
-    # start_date = datetime.strptime(start_date, '%Y-%m-%d').strftime('%Y-%m-%d')
-    end_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=-start_date"
-    open_end_url1 = urllib2.urlopen(end_url1)
-    read_end_url1 = open_end_url1.read()
-    end_url1_data = xmltodict.parse(read_end_url1)
-    end_url2 = end_url1_data['results']['references']['reference']['location']
+        open_end_url2 = urllib2.urlopen(end_url2)
+        read_end_url2 = open_end_url2.read()
+        end_url2_data = xmltodict.parse(read_end_url2)
+        end_date = end_url2_data['Granule']['Temporal']['RangeDateTime']['BeginningDateTime']
 
-    open_end_url2 = urllib2.urlopen(end_url2)
-    read_end_url2 = open_end_url2.read()
-    end_url2_data = xmltodict.parse(read_end_url2)
-    end_date = end_url2_data['Granule']['Temporal']['RangeDateTime']['BeginningDateTime']
-
-    end_date_str = end_date.split('T')[0]
-    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-    first = end_date.replace(day=1)
-    lastMonth = first - timedelta(days=1)
-    end_date = lastMonth.strftime("%Y-%m-%d")
-    range = {"start":start_date,"end":end_date}
+        end_date_str = end_date.split('T')[0]
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        first = end_date.replace(day=1)
+        lastMonth = first - timedelta(days=1)
+        end_date = lastMonth.strftime("%Y-%m-%d")
+        range = {"start":start_date,"end":end_date,"success":"success"}
+    except:
+        range = {"start":"2010-08-08","end":"2016-10-10","fail":"fail"}
 
     return range
 
