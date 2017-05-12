@@ -189,23 +189,12 @@ var SERVIR_PACKAGE = (function() {
 
                 map.addInteraction(draw);
             }
-            if (featureType === 'Point') {
+            if (featureType === 'Point'|| featureType === 'Polygon') {
 
                 // draw.on('drawend', function (e) {
                 //     removeLastFeature();
                 //     lastFeature = e.feature;
                 // });
-                draw.on('drawend', function (e) {
-                    lastFeature = e.feature;
-
-                });
-
-                draw.on('drawstart', function (e) {
-                    source.clear();
-                });
-
-            } else {
-
                 draw.on('drawend', function (e) {
                     lastFeature = e.feature;
 
