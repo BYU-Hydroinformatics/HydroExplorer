@@ -13,21 +13,32 @@ See: https://github.com/tethysplatform/tethys and http://docs.tethysplatform.org
 ###Install Tathys Platform
 See: http://docs.tethysplatform.org/en/latest/installation.html
 
-###Install pyshp into Tethys' Python environment:
+###Install Dependencies
+The below dependencies will be installed when you run the following command
+
+```
+python setup.py develop
+```
+
+However, if the installation fails, you may be able to install the dependencies individually by following the steps below: 
+
+###Manual Dependency Installation:
+
+####Install pyshp into Tethys' Python environment:
 ```
 $ sudo su
 $ . /usr/lib/tethys/bin/activate
 $ pip install pyshp
 $ exit
 ```
-###Install pyproj into Tethys' Python environment:
+####Install pyproj into Tethys' Python environment:
 ```
 $ sudo su
 $ . /usr/lib/tethys/bin/activate
 $ pip install pyproj
 $ exit
 ```
-###Install suds into Tethys' Python environment:
+####Install suds into Tethys' Python environment:
 ```
 $ sudo su
 $ . /usr/lib/tethys/bin/activate
@@ -57,7 +68,12 @@ $ cd servirdi
 $ python setup.py install
 $ tethys manage collectstatic
 ```
-####Modify the tethys settings.py file for providing geoserver url:
+####Ensure services are provided to the app : 
+
+@TODO : 
+
+
+
 ```
 $ . /usr/lib/tethys/bin/activate
 $ sudo su

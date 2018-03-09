@@ -1,0 +1,24 @@
+{% extends "hydroexplorer/base.html" %}
+{% load staticfiles %}
+{% load tethys_gizmos %}
+
+{% block app_navigation_items%}
+<li class="active">Climate Serv</li>
+{% endblock %}
+
+{% block app_content%}
+<h1>Climate Serv Data </h1>
+
+{% gizmo plot_view timeseries_plot %}
+
+</div>
+<!-- Hide the default tethys styling -->
+<script>
+    $(function(){
+        $('#app-content-wrapper').removeClass('show-nav');
+        $('.tethys-app-header').hide();
+    });
+</script>
+{% endblock %}
+
+

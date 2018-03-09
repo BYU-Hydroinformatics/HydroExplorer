@@ -1,0 +1,25 @@
+{% extends "hydroexplorer/base.html" %}
+{% load staticfiles %}
+{% load tethys_gizmos %}
+
+{% block app_navigation_items%}
+<li class="active">Data Rods</li>
+{% endblock %}
+
+{% block app_content%}
+<h1>NASA GLDAS-Noah (LSM) Data </h1>
+
+{% gizmo plot_view timeseries_plot %}
+
+<h1 style="color:red">{{error_message}}</h1>
+</div>
+<script>
+    //Hiding the deafult tethys page styling
+    $(function(){
+        $('#app-content-wrapper').removeClass('show-nav');
+        $('.tethys-app-header').hide();
+    });
+</script>
+{% endblock %}
+
+
