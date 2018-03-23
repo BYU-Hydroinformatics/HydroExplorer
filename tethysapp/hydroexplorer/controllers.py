@@ -44,7 +44,7 @@ logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 spatial_dataset_engine = app.get_spatial_dataset_service(
     'primary_geoserver', as_engine=True)
 
-if spatial_dataset_engine is not None
+if type(spatial_dataset_engine) != type(None)
     geo_url_base = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '')
 
 @login_required()
