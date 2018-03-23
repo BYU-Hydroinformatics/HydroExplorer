@@ -43,8 +43,6 @@ logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
 spatial_dataset_engine = app.get_spatial_dataset_service(
     'primary_geoserver', as_engine=True)
-geo_url_base = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '')
-
 
 @login_required()
 def home(request):
@@ -77,7 +75,6 @@ def home(request):
     # Generate the dropdown options for GLDAS. See utilities.py for
     # gen_gldas_dropdown function
     gldas_dropdown = gen_gldas_dropdown()
-    print gldas_dropdown
     select_gldas_variable = SelectInput(display_text='Select Variable', name="select_gldas_var", multiple=False,
                                         options=gldas_dropdown)  # Dropdown for selecting the GLDAS Variable
 
@@ -478,7 +475,7 @@ def delete(request):
 
 def add_server(request):
     return_obj = {}
-    geo_url = geo_url_base + "/geoserver/rest/"
+    geo_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/rest/"
 
     if request.is_ajax() and request.method == 'POST':
         url = request.POST['hs-url']
@@ -493,7 +490,7 @@ def add_server(request):
         sites_object = parseSites(get_sites)
         shapefile_object = genShapeFile(sites_object, title, url)
 
-        geoserver_rest_url = geo_url_base + "/geoserver/wms"
+        geoserver_rest_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/wms"
         return_obj['rest_url'] = geoserver_rest_url
         return_obj['wms'] = shapefile_object["layer"]
         return_obj['bounds'] = shapefile_object["extents"]
@@ -526,7 +523,7 @@ def soap(request):
 
         logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
-        geo_url = geo_url_base + "/geoserver/rest/"
+        geo_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/rest/"
 
         # Defining variables based on the POST request
         url = request.POST['soap-url']
@@ -560,7 +557,7 @@ def soap(request):
             # Generating a shapefile from the sites object and title. Then add
             # it to the local geoserver. See utilities.py.
             shapefile_object = genShapeFile(wml_sites, title,  url)
-            geoserver_rest_url = geo_url_base + "/geoserver/wms"
+            geoserver_rest_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/wms"
 
             # The json response will have the metadata information about the
             # geoserver layer
@@ -600,7 +597,7 @@ def soap(request):
             # to the geoserver.
             shapefile_object = genShapeFile(sites_object, title, url)
 
-            geoserver_rest_url = geo_url_base + "/geoserver/wms"
+            geoserver_rest_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/wms"
 
             # The json response will have the metadata information about the
             # geoserver layer

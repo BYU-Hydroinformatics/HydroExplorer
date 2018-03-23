@@ -29,7 +29,7 @@
 <!--The settings capbility is only given to staff or super user-->
 <div align="center">
     <div class="settings" data-target="#modalInterface" data-toggle="modal">
-        <img src="/static/hydroexplorer/images/settings.svg" class="settings">
+        <img src="{% static 'hydroexplorer/images/settings.svg' %}" class="settings">
         <p>Settings</p>
     </div>
 </div>
@@ -55,6 +55,12 @@
 
 {% block scripts %}
 {{ block.super }}
+
+<script>
+	var baseStatic = "{% static 'hydroexplorer/index.html' %}";
+	baseStatic = baseStatic.replace('\/index.html','');
+</script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js" type="text/javascript"></script>
 
 
