@@ -11,8 +11,8 @@
  *                      LIBRARY WRAPPER
  *****************************************************************************/
 
-
-var apiServer = '/apps/hydroexplorer';
+var staticPath = baseStatic;
+var apiServer = `${staticPath.replace('\/static','\/apps')}`;
 
 var HYDROEXPLORER_PACKAGE = (function() {
     // Wrap the library in a package function
@@ -511,12 +511,36 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         extents
                     } = server;
 
-                    console.log(extents);
+                    let newHtml = `<li class="ui-state-default" layer-name="${title}">
+                    <input class="chkbx-layer" type="checkbox" checked><span class="server-name">${title}</span>
+                    <div class="hmbrgr-div"><img src="${staticPath}/images/hamburger.svg"></div>
+                    </li>`;
 
+                    let sld_string = `<StyledLayerDescriptor version="1.0.0">
+                        <NamedLayer>
+                            <Name>${layer_name}</Name>
+                            <UserStyle>
+                                <FeatureTypeStyle>
+                                    <Rule>
+                                        <PointSymbolizer>
+                                            <Graphic>
+                                                <Mark>
+                                                    <WellKnownName>circle</WellKnownName>
+                                                    <Fill>
+                                                        <CssParameter name="fill">${set_color()}</CssParameter>
+                                                    </Fill>
+                                                </Mark>
+                                                <Size>10</Size>
+                                            </Graphic>
+                                        </PointSymbolizer>
+                                    </Rule>
+                                </FeatureTypeStyle>
+                            </UserStyle>
+                        </NamedLayer>
+                    </StyledLayerDescriptor>`;
 
-                    $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/hydroexplorer/images/hamburger.svg"></div></li>').appendTo('#current-servers');
+                    $(newHtml).appendTo('#current-servers');
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
-                    var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>' + layer_name + '</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">' + set_color() + '</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
 
                     // var layers = [
                     //     new ol.layer.Tile({
@@ -544,14 +568,12 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     //     serverType: 'geoserver',
                     //     crossOrigin: 'Anonymous'
                     // });
-                  
+
                     let ext = ol.extent.boundingExtent([
                         [parseFloat(extents[0]), parseFloat(extents[2])],
                         [parseFloat(extents[1]), parseFloat(extents[3])]
                     ]);
                     let layerExtent = ol.proj.transformExtent(ext, ol.proj.get('EPSG:4326'), ol.proj.get('EPSG:3857'));
-
-                    console.log(layerExtent);
 
                     wmsLayer = new ol.layer.Tile({
                         extent: layerExtent,
@@ -659,13 +681,20 @@ var HYDROEXPLORER_PACKAGE = (function() {
             success: function(result) {
                 var json_response = JSON.parse(result);
                 if (json_response.status === 'true') {
-                    var title = json_response.title;
-                    var wms_url = json_response.wms;
-                    var extents = json_response.bounds;
-                    var rest_url = json_response.rest_url;
 
+                    let {
+                        title,
+                        wms: wms_url,
+                        bounds: extents,
+                        rest_url
+                    } = json_response;
 
-                    $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/hydroexplorer/images/hamburger.svg"></div></li>').appendTo('#current-servers');
+                    let newHtml = `<li class="ui-state-default" layer-name="${title}">
+                    <input class="chkbx-layer" type="checkbox" checked><span class="server-name">${title}</span>
+                    <div class="hmbrgr-div"><img src="${staticPath}/images/hamburger.svg"></div>
+                    </li>`;
+
+                    $(newHtml).appendTo('#current-servers');
 
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
 
@@ -777,7 +806,12 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         var level = json_response.level;
                     }
 
-                    $('<li class="ui-state-default"' + 'layer-name="' + title + '"' + '><input class="chkbx-layer" type="checkbox" checked><span class="server-name">' + title + '</span><div class="hmbrgr-div"><img src="/static/hydroexplorer/images/hamburger.svg"></div></li>').appendTo('#current-servers');
+                    let newHtml = `<li class="ui-state-default" layer-name="${title}">
+                    <input class="chkbx-layer" type="checkbox" checked><span class="server-name">${title}</span>
+                    <div class="hmbrgr-div"><img src="${staticPath}/images/hamburger.svg"></div>
+                    </li>`;
+
+                    $(newHtml).appendTo('#current-servers');
 
                     addContextMenuToListItem($('#current-servers').find('li:last-child')); //Adding the element to the Current HydroServers box
 

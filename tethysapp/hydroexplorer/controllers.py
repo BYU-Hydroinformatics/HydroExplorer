@@ -75,7 +75,6 @@ def home(request):
     # Generate the dropdown options for GLDAS. See utilities.py for
     # gen_gldas_dropdown function
     gldas_dropdown = gen_gldas_dropdown()
-    print gldas_dropdown
     select_gldas_variable = SelectInput(display_text='Select Variable', name="select_gldas_var", multiple=False,
                                         options=gldas_dropdown)  # Dropdown for selecting the GLDAS Variable
 
