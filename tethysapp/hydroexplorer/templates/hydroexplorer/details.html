@@ -42,7 +42,7 @@
     <div>
         <div class="chart-wrapper">
             <div class="chart-inner">
-                <div class="flex-container-row"><img id="view-file-loading" class="view-file hidden" src="/static/hydroexplorer/images/loader.gif" /></div>
+                <div class="flex-container-row"><img id="view-file-loading" class="view-file hidden" src="{% static 'hydroexplorer/images/loader.gif' %}" /></div>
                 <div id="plotter" style="height:275px;width:90%" ></div>
             </div>
         </div>
@@ -54,7 +54,10 @@
 {% if hidenav %}
 
 <script>
-//     $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
+    
+let baseStatic = "{% static 'hydroexplorer/index.html' %}",
+    apiServer = `${baseStatic.replace('\/index.html','').replace('\/static','\/apps')}`
+
     $(function(){
         $('#app-content-wrapper').removeClass('show-nav');
         $('.tethys-app-header').hide();
