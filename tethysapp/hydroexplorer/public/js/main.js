@@ -542,64 +542,38 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     $(newHtml).appendTo('#current-servers');
                     addContextMenuToListItem($('#current-servers').find('li:last-child'));
 
-                    // var layers = [
-                    //     new ol.layer.Tile({
-                    //         source: new ol.source.OSM()
-                    //     }),
-                    //     new ol.layer.Tile({
-                    //         extent: [-13884991, 2870341, -7455066, 6338219],
-                    //         source: new ol.source.TileWMS({
-                    //             url: 'https://ahocevar.com/geoserver/wms',
-                    //             params: { 'LAYERS': 'topp:states', 'TILED': true },
-                    //             serverType: 'geoserver',
-                    //             // Countries have transparency, so do not fade tiles:
-                    //             transition: 0
-                    //         })
-                    //     })
-                    // ];
+                    wmsSource = new ol.source.TileWMS({
+                        url: geoserver_url,
+                        params: {
+                            'LAYERS': layer_name,
+                            'SLD_BODY': sld_string
+                        },
+                        serverType: 'geoserver',
+                        crossOrigin: 'Anonymous'
+                    });
 
+                    let projectedExtents = ol.proj.transformExtent([
+                        parseFloat(extents.minx),
+                        parseFloat(extents.miny),
+                        parseFloat(extents.maxx),
+                        parseFloat(extents.maxy)
+                    ], 'EPSG:4326', 'EPSG:3857');
 
-                    // wmsSource = new ol.source.TileWMS({
-                    //     url: geoserver_url,
-                    //     params: {
-                    //         'LAYERS': layer_name,
-                    //         'SLD_BODY': sld_string
-                    //     },
-                    //     serverType: 'geoserver',
-                    //     crossOrigin: 'Anonymous'
-                    // });
-
-                    let ext = ol.extent.boundingExtent([
-                        [parseFloat(extents[0]), parseFloat(extents[2])],
-                        [parseFloat(extents[1]), parseFloat(extents[3])]
-                    ]);
-                    let layerExtent = ol.proj.transformExtent(ext, ol.proj.get('EPSG:4326'), ol.proj.get('EPSG:3857'));
 
                     wmsLayer = new ol.layer.Tile({
-                        extent: layerExtent,
-                        source: new ol.source.TileWMS({
-                            url: geoserver_url,
-                            params: { 'LAYERS': layer_name, 'SLD_BODY': sld_string },
-                            serverType: 'geoserver'
-                        })
+                        extent: projectedExtents,
+                        source: wmsSource
                     });
 
                     map.addLayer(wmsLayer);
                     layersDict[title] = wmsLayer;
-                    // var layer_extent = wmsLayer.getExtent();
-                    // map.getView().fit(layer_extent,map.getSize());
+
                 });
 
-                // rand_lyr.getSource().changed();
-                // var layer_extent = layersDict[Object.keys(layersDict)[2]].getExtent();
-                // var layer_true = ol.proj.transformExtent(layer_extent,'EPSG:3857','EPSG:4326');
                 var layer_extent = [-15478192.4796, -8159805.6435, 15497760.3589, 8159805.6435];
                 map.getView().fit(layer_extent, map.getSize());
                 map.updateSize();
-                // Object.keys(layersDict).forEach(function (key) {
-                //     var layer_extent = layersDict[key].getExtent();
-                //     map.getView().fit(layer_extent,map.getSize());
-                // });
+
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -693,6 +667,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     <input class="chkbx-layer" type="checkbox" checked><span class="server-name">${title}</span>
                     <div class="hmbrgr-div"><img src="${staticPath}/images/hamburger.svg"></div>
                     </li>`;
+
 
                     $(newHtml).appendTo('#current-servers');
 
