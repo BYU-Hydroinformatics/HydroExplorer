@@ -41,8 +41,7 @@ Persistent_Store_Name = 'catalog_db'
 
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
-spatial_dataset_engine = app.get_spatial_dataset_service(
-    'primary_geoserver', as_engine=True)
+spatial_dataset_engine = app.get_spatial_dataset_service('primary_geoserver', as_engine=True)
 
 @login_required()
 def home(request):
