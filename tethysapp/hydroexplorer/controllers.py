@@ -822,6 +822,7 @@ def details(request):
         site_info = client.service.GetSiteInfo(site_desc)  # Get site info
         # Encoding is necessary for making sure that this thing works for sites
         # with weird characters
+
         site_info = site_info.encode('utf-8')
         # Converting xml2dict to make it easier to parse
         info_dict = xmltodict.parse(site_info)
@@ -980,8 +981,21 @@ def details(request):
         # Saving the var_json as a session obj
         request.session['soap_obj'] = soap_obj
 
-    context = {"site_name": site_name, "site_code": site_code, "network": network, "hs_url": hs_url, "service": service, "rest": rest, "soap": soap, "hidenav": hidenav, "select_soap_variable": select_soap_variable,
-               "select_variable": select_variable, "start_date": start_date, "end_date": end_date, "graphs_object": graphs_object, "soap_obj": soap_obj, "error_message": error_message}
+    context = {"site_name": site_name, 
+    "site_code": site_code, 
+    "network": network, 
+    "hs_url": hs_url, 
+    "service": service,
+    "rest": rest, 
+    "soap": soap,
+    "hidenav": hidenav, 
+    "select_soap_variable": select_soap_variable,
+    "select_variable": select_variable, 
+    "start_date": start_date, 
+    "end_date": end_date, 
+    "graphs_object": graphs_object, 
+    "soap_obj": soap_obj, 
+    "error_message": error_message}
 
     return render(request, 'hydroexplorer/details.html', context)
 

@@ -295,18 +295,29 @@ def genShapeFile(input, title, hs_url):
         response = None
         # Connect to a workspace called catalog. If there is no workspace,
         # create one.
-        ws_name = "catalog"
-        result = spatial_dataset_engine.create_workspace(workspace_id=ws_name, uri="www.servir.org",debug=True)
+        ws_name = "catalog" 
+
+        # Check if Workspace Exists:
+
+        result = spatial_dataset_engine.get_workspace(ws_name)
 
         if result['success']:
-            print "Created workspace " + ws_name + " successfully"
+            print "Workspace " + ws_name + " Exists"
         else:
-            print "Creating workspace " + ws_name + " failed"
+            print "Creating workspace: " + ws_name
+            result = spatial_dataset_engine.create_workspace(workspace_id=ws_name, uri="www.servir.org",debug=False)
+            if result['success']:
+                print "Created workspace " + ws_name + " successfully"
+            else:
+                print "Creating workspace " + ws_name + " failed"
+       
 
         store_id = ws_name + ":" + title  # Creating the geoserver storeid
 
         result = None
-        result = spatial_dataset_engine.create_shapefile_resource(store_id=store_id, shapefile_zip=zip_file_full_path, overwrite=True)  # Adding the zipshapefile to geoserver as a layer
+
+        result = spatial_dataset_engine.create_shapefile_resource(store_id=store_id, shapefile_zip=zip_file_full_path, overwrite=True, debug=False)  # Adding the zipshapefile to geoserver as a layer
+
         if result['success']:
             print "Created store " + title + " successfully"
         else:
@@ -315,18 +326,27 @@ def genShapeFile(input, title, hs_url):
         # Returning the layer name and the extents for that layer. This data
         # will be used to add the geoserver layer to the openlayers3 map.
         layer_metadata["layer"] = store_id
-        layer_metadata["extents"] = result['result']['latlon_bbox']
+        
+        print result['result']['latlon_bbox']    
+
+        layer_metadata["extents"] = {
+            "minx": result['result']['latlon_bbox'][0],
+            "miny": result['result']['latlon_bbox'][2],
+            "maxx": result['result']['latlon_bbox'][1],
+            "maxy": result['result']['latlon_bbox'][3],
+            "crs": result['result']['latlon_bbox'][4]
+        }
 
         return layer_metadata
 
     except:
         print "Unexpected error:", sys.exc_info()
         return False
-    finally:
-        # Delete the temp dir after uploading the shapefile
-        if temp_dir is not None:
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
+    # finally:
+        # # Delete the temp dir after uploading the shapefile
+        # if temp_dir is not None:
+        #     if os.path.exists(temp_dir):
+        #         shutil.rmtree(temp_dir)
 
 # Function for parsing the GLDAS data
 
