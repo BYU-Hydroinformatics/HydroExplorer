@@ -1130,6 +1130,11 @@ var HYDROEXPLORER_PACKAGE = (function() {
             success: function(result) {
                 //Using Highcharts JavaScript Code to create a time series plot
                 //Using the json response to render the chart as needed
+
+                let vals = result['values'].filter((val) => {
+                    return val[1] != -9999 && val[1] != "-9999"
+                });
+
                 $('#plotter').highcharts({
                     chart: {
                         type: 'area',
@@ -1162,7 +1167,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         enabled: true
                     },
                     series: [{
-                        data: result['values'],
+                        data: vals,
                         name: result['variable']
                     }]
 
