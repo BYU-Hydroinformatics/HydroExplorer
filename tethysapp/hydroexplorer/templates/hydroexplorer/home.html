@@ -10,7 +10,7 @@
 <!--<select id="type"><option value="" disabled selected>Select Geometry</option><option value="Polygon" default>Polygon</option><option value="None">None</option></select>-->
 <div id="map"></div>
 <div id="popup" class="popup"></div>
-<div id="zoomlevel"></div>
+
 {% endblock %}
 
 {% block app_content_wrapper_override %}
@@ -369,7 +369,11 @@
     </div>
 </form>
 {% endblock %}
-{% block scripts %}
 
+{% block app_actions %}
+<div id="zoomlevel"></div>
+{% endblock %}
+
+{% block scripts %}
 {{ block.super }}
 {% endblock %}

@@ -14,6 +14,8 @@
 var staticPath = baseStatic;
 var apiServer = `${staticPath.replace('\/static','\/apps')}`;
 
+window.onbeforeunload = null;
+
 var HYDROEXPLORER_PACKAGE = (function() {
     // Wrap the library in a package function
     "use strict"; // And enable strict mode for this library
