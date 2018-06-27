@@ -1,0 +1,22 @@
+<div id="modalInterface" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h1>HydroCatalog Settings Interface</h1>
+            </div>
+            <div class="modal-body">
+                <h2>Instructions</h2>
+                <h4>Adding A Server to the Catalog</h4>
+                <p>The Add SOAP URL will show an interface for adding a valid HydroServer SOAP URL</p>
+                <input type="button" id="load-from-soap" class="btn btn-primary" data-toggle="modal" data-target="#modalAddSoap" Value="Add SOAP URL">
+                <br>
+                <br>
+                <h4>Updating the Catalog</h4>
+                <p>Use the Update HS Catalog to delete any servers in the catalog. Once deleted these layers will not show up on load</p>
+                <input type="button" id="delete-server" class="btn btn-primary" data-toggle="modal" data-target="#modalDelete" Value="Update HS Catalog">
+                <div class="success"></div>
+            </div>
+        </div>
+    </div>
+</div>

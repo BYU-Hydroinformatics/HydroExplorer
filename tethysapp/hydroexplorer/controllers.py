@@ -41,7 +41,9 @@ Persistent_Store_Name = 'catalog_db'
 
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
-spatial_dataset_engine = app.get_spatial_dataset_service('primary_geoserver', as_engine=True)
+spatial_dataset_engine = app.get_spatial_dataset_service(
+    'primary_geoserver', as_engine=True)
+
 
 def home(request):
     """
@@ -57,9 +59,9 @@ def home(request):
     services = service_info.ServiceInfo
     for i in services:
         try:
-            url = str(i.servURL)
-            title = str(i.Title)
-            organization = str(i.organization)
+            url = i.servURL.encode('utf-8')
+            title = i.Title.encode('utf-8')
+            organization = i.organization.encode('utf-8')
             variable_str = "Title: %s, Organization: %s" % (
                 title, organization)
             his_servers.append([variable_str, url])
@@ -473,7 +475,8 @@ def delete(request):
 
 def add_server(request):
     return_obj = {}
-    geo_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/rest/"
+    geo_url = spatial_dataset_engine.endpoint.replace(
+        '/geoserver/rest', '') + "/geoserver/rest/"
 
     if request.is_ajax() and request.method == 'POST':
         url = request.POST['hs-url']
@@ -488,7 +491,8 @@ def add_server(request):
         sites_object = parseSites(get_sites)
         shapefile_object = genShapeFile(sites_object, title, url)
 
-        geoserver_rest_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/wms"
+        geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
+            '/geoserver/rest', '') + "/geoserver/wms"
         return_obj['rest_url'] = geoserver_rest_url
         return_obj['wms'] = shapefile_object["layer"]
         return_obj['bounds'] = shapefile_object["extents"]
@@ -521,7 +525,8 @@ def soap(request):
 
         logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
-        geo_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/rest/"
+        geo_url = spatial_dataset_engine.endpoint.replace(
+            '/geoserver/rest', '') + "/geoserver/rest/"
 
         # Defining variables based on the POST request
         url = request.POST['soap-url']
@@ -555,7 +560,8 @@ def soap(request):
             # Generating a shapefile from the sites object and title. Then add
             # it to the local geoserver. See utilities.py.
             shapefile_object = genShapeFile(wml_sites, title,  url)
-            geoserver_rest_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/wms"
+            geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
+                '/geoserver/rest', '') + "/geoserver/wms"
 
             # The json response will have the metadata information about the
             # geoserver layer
@@ -595,7 +601,8 @@ def soap(request):
             # to the geoserver.
             shapefile_object = genShapeFile(sites_object, title, url)
 
-            geoserver_rest_url = spatial_dataset_engine.endpoint.replace('/geoserver/rest', '') + "/geoserver/wms"
+            geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
+                '/geoserver/rest', '') + "/geoserver/wms"
 
             # The json response will have the metadata information about the
             # geoserver layer
@@ -979,21 +986,21 @@ def details(request):
         # Saving the var_json as a session obj
         request.session['soap_obj'] = soap_obj
 
-    context = {"site_name": site_name, 
-    "site_code": site_code, 
-    "network": network, 
-    "hs_url": hs_url, 
-    "service": service,
-    "rest": rest, 
-    "soap": soap,
-    "hidenav": hidenav, 
-    "select_soap_variable": select_soap_variable,
-    "select_variable": select_variable, 
-    "start_date": start_date, 
-    "end_date": end_date, 
-    "graphs_object": graphs_object, 
-    "soap_obj": soap_obj, 
-    "error_message": error_message}
+    context = {"site_name": site_name,
+               "site_code": site_code,
+               "network": network,
+               "hs_url": hs_url,
+               "service": service,
+               "rest": rest,
+               "soap": soap,
+               "hidenav": hidenav,
+               "select_soap_variable": select_soap_variable,
+               "select_variable": select_variable,
+               "start_date": start_date,
+               "end_date": end_date,
+               "graphs_object": graphs_object,
+               "soap_obj": soap_obj,
+               "error_message": error_message}
 
     return render(request, 'hydroexplorer/details.html', context)
 

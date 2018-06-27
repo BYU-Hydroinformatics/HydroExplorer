@@ -1,0 +1,63 @@
+{% load tethys_gizmos %}
+
+<form id="modalClimate" class="modal fade" action="cserv/" method="GET" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"> Climate Serv Console</h4>
+            </div>
+            <div class="modal-body">
+                <div class="warning">
+                </div>
+                <h4>Select Data</h4>
+                {% gizmo select_input select_data_type %}
+                {% gizmo select_input select_operation_type %}
+                {% gizmo select_input select_interval_type %}
+                {% gizmo date_picker forecast_start %}
+                {% gizmo date_picker forecast_end %}
+                {% gizmo date_picker seasonal_forecast_start %}
+                {% gizmo date_picker seasonal_forecast_end %}
+
+                <div id="forecast" >
+                    <label class="control-label" for="cs_forecast_variable">Select a Variable</label>
+                    <select name="cs_forecast_variable" id="cs_forecast_variable" class="select2" style="width:100%;">
+                        <option value="Precipitation">Precipitation</option>
+                        <option value="Temperature">Temperature</option>
+                    </select>
+
+                </div>
+                <br/>
+                <div id="ensemble" >
+                    <label  for="cs_model_ensemble">Select a model ensemble</label>
+                    <select name="cs_model_ensemble" id="cs_model_ensemble" class="select2" style="width:100%;">
+                        <option value="ens01">ens01</option>
+                        <option value="ens02">ens02</option>
+                        <option value="ens03">ens03</option>
+                        <option value="ens04">ens04</option>
+                        <option value="ens05">ens05</option>
+                        <option value="ens06">ens06</option>
+                        <option value="ens07">ens07</option>
+                        <option value="ens08">ens08</option>
+                        <option value="ens09">ens09</option>
+                        <option value="ens10">ens10</option>
+                    </select>
+
+                </div>
+
+
+                <input type="text" name="cserv_lat_lon" id="cserv_lat_lon" hidden>
+                <div class="warning">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="button-group">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" id="get-climate-serv" class="btn btn-default" >Get Data</button>
+                </div>
+            </div>
+        </div>
+        <!--End modal content-->
+    </div>
+</form>

@@ -1,0 +1,26 @@
+{% load tethys_gizmos %}
+
+<form id="modalHISCentral" class="modal fade" role="dialog" action="his-server/" method="POST">
+    {% csrf_token %}
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">HIS Central Servers</h4>
+
+            </div>
+            <div class="modal-body">
+                {% gizmo select_input select_his_server %}
+            </div>
+            <div class="modal-footer">
+                <div class="button-group">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" id="add-from-his" class="btn btn-default">Add</button>
+                </div>
+            </div>
+        </div>
+
+        <!--End modal content-->
+    </div>
+</form>

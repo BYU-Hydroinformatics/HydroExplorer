@@ -1,0 +1,13 @@
+{% load staticfiles %}
+
+<div id="modalViewCS" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <span class="close-modal" id="close-modalViewCS">X</span>
+        <div class="modal-content flex-container-row">
+            <img id="view-cserv-loading" class="view-file" src="{% static 'hydroexplorer/images/loader.gif' %}" />
+            <div id="cserv-container" class="view-cserv hidden" ></div>
+        </div>
+        <!--End modal content-->
+    </div>
+</div>
