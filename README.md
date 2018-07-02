@@ -1,37 +1,38 @@
-#Servir Water Observations Data Integerator
+# HydroExplorer - Water Observations Data Integerator
 
-**This app is created to run in the Teyths Platform programming environment.
-See: https://github.com/tethysplatform/tethys and http://docs.tethysplatform.org/en/latest/**
+This app is created to run in the [Tethys  Platform Environment](https://github.com/tethysplatform/tethys) [(Documentation)](http://docs.tethysplatform.org/en/latest/)
 
-##Prerequisites:
+## Prerequisites:
 - Tethys Platform (CKAN, PostgresQL, GeoServer)
 - pyshp (Python package for uploading shapefiles to geoserver)
 - pyproj (Python package for projecting coordinates)
 - suds (lightweight SOAP python client for consuming Web Services.)
 
-
-###Install Tathys Platform
+## Install Tathys Platform
 See: http://docs.tethysplatform.org/en/latest/installation.html
 
-###Install Dependencies
+## Install Dependencies
+
+### Automatic
+
 The below dependencies will be installed when you run the following command
 
-```
+```bash
 python setup.py develop
 ```
 
 However, if the installation fails, you may be able to install the dependencies individually by following the steps below: 
 
-###Manual Dependency Installation:
+### Manual Dependency Installation:
 
-####Install pyshp into Tethys' Python environment:
+#### Install pyshp into Tethys' Python environment:
 ```
 $ sudo su
 $ . /usr/lib/tethys/bin/activate
 $ pip install pyshp
 $ exit
 ```
-####Install pyproj into Tethys' Python environment:
+#### Install pyproj into Tethys' Python environment:
 ```
 $ sudo su
 $ . /usr/lib/tethys/bin/activate
@@ -46,52 +47,17 @@ $ pip install suds
 $ exit
 ```
 
-##Installation:
-Clone the app into the directory you want:
+## Application Installation:
+Clone and install 
+```bash
+git clone https://github.com/BYU-Hydroinformatics/HydroExplorer.git
+cd HydroExplorer
+python setup.py install/develop
+tethys manage collectstatic (Only required for production installation)
 ```
-$ git clone https://github.com/SarvaPulla/servirdi.git
-$ cd servirdi
-```
+### Enable CORS on geoserver (To enable tiles to show up from the geoserver)
 
-Then install the app into the Tethys Platform.
-
-###Installation for App Development:
-```
-$ . /usr/lib/tethys/bin/activate
-$ cd servirdi
-$ python setup.py develop
-```
-###Installation for Production:
-```
-$ . /usr/lib/tethys/bin/activate
-$ cd servirdi
-$ python setup.py install
-$ tethys manage collectstatic
-```
-####Ensure services are provided to the app : 
-
-@TODO : 
-
-
-
-```
-$ . /usr/lib/tethys/bin/activate
-$ sudo su
-$ cd /usr/lib/tethys/src/tethys_apps
-$ nano settings.py
-```
- Then insert the following in the settings.py file:
- ```
-  GEOSERVER_URL_BASE = 'http://domainname.com:8181' (Insert your geoserver url here)
-  GEOSERVER_URL_SSL_BASE = 'https://domainname.com:8443' (For HTTPS only)
-  GEOSERVER_USER_NAME = 'admin' (Insert your geoserver user name) 
-  GEOSERVER_USER_PASSWORD = 'geoserver' (Insert your geoserver password)
-```
-  Save File: Ctrl + X. When prompted, Press Y.
-
-#### Enable CORS on geoserver
-
-##### For Tethys 1.3
+#### For Tethys 1.3
 Create a new bash session in the tethys_geoserver docker container:
 ```
 $ . /usr/lib/tethys/bin/activate
@@ -121,7 +87,7 @@ Save the web.xml file.
 $ exit
 $ docker restart tethys_geoserver
 ```
-##### For Tethys 1.4
+#### For Tethys 1.4
 Create a new bash session in the tethys_geoserver docker container:
 
 ```
@@ -156,14 +122,22 @@ $ exit
 $ docker restart tethys_geoserver
 ```
 
-##Updating the App:
-Update the local repository and Tethys Platform instance.
-```
-$ . /usr/lib/tethys/bin/activate
-$ cd servirdi
-$ git stash
-$ git pull
-```
+## Changelog
 
-Restart the Apache Server:
-See: http://docs.tethysplatform.org/en/latest/production/installation.html#enable-site-and-restart-apache
+## [Unreleased]
+
+### Added
+- Modularized the home template by breaking all the Modals apart
+
+### Changed
+- Map cleaned up and expanded to fill up the whole screen
+- Moved List of Hydroservers to top actions bar
+- Fix CSV Download
+- ReadMe
+
+### Removed
+- Dependencies on local HighCharts
+
+## [1.0.0] - 2017
+### Added
+- Initial Commit
