@@ -516,6 +516,48 @@ def add_server(request):
     return JsonResponse(return_obj)
 
 
+def add_central(request):
+
+    if request.is_ajax() and request.method == 'POST':
+        url = request.POST['url']
+        title = request.POST['title']
+        title = title.replace(" ", "")
+        if url.endswith('/'):
+            url = url[:-1]
+
+        op = GetWaterOneFlowServiceInfo
+
+        get_sites = url + "/GetSitesObject"
+        sites_object = parseSites(get_sites)
+        shapefile_object = genShapeFile(sites_object, title, url)
+
+        geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
+            '/geoserver/rest', '') + "/geoserver/wms"
+        return_obj['rest_url'] = geoserver_rest_url
+        return_obj['wms'] = shapefile_object["layer"]
+        return_obj['bounds'] = shapefile_object["extents"]
+        extents_string = str(shapefile_object["extents"])
+        return_obj['title'] = title
+        return_obj['url'] = url
+        return_obj['status'] = "true"
+
+        SessionMaker = app.get_persistent_store_database(
+            Persistent_Store_Name, as_sessionmaker=True)
+        session = SessionMaker()
+        hs_one = Catalog(title=title,
+                         url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"], extents=extents_string)
+        session.add(hs_one)
+        session.commit()
+        session.close()
+    else:
+        return_obj[
+            'message'] = 'This request can only be made through a "POST" AJAX call.'
+
+    print request.POST
+
+    return JsonResponse(request.POST)
+
+
 def soap(request):
     '''
     Controller for adding a SOAP endpoint
@@ -629,8 +671,6 @@ def soap(request):
 
     return JsonResponse(return_obj)
 
-# Controller for intitializing the error page
-
 
 def error(request):
     context = {}
@@ -638,10 +678,6 @@ def error(request):
 
 
 def details(request):
-    '''
-    Controller for the Site Details page
-    '''
-
     # Defining the variables for site name, site code, network and hydroserver
     # url.
     site_name = request.GET['sitename']

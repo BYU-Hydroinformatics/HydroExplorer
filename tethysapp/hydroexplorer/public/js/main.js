@@ -16,6 +16,32 @@ var apiServer = `${staticPath.replace('\/static','\/apps')}`;
 
 window.onbeforeunload = null;
 
+var $myGroup = $('#helpGroup');
+$myGroup.on('show.bs.collapse', '.collapse', function() {
+    $myGroup.find('.collapse.in')
+        .collapse('hide');
+});
+
+
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        var forms = document.getElementsByClassName('needs-validation');
+        // Loop over them and prevent submission
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+
 var HYDROEXPLORER_PACKAGE = (function() {
     // Wrap the library in a package function
     "use strict"; // And enable strict mode for this library
@@ -89,8 +115,10 @@ var HYDROEXPLORER_PACKAGE = (function() {
         return color;
     }; // Return a random color from the list of colors
     clear_coords = function() {
-        $("#poly-lat-lon").val('');
-        $("#point-lat-lon").val('');
+        $("#poly-lat-lon")
+            .val('');
+        $("#point-lat-lon")
+            .val('');
     }; //Clear the point/polygon coordinates so that its easier for the post request to process the form
     get_random_color = function() {
         var letters = '012345'.split('');
@@ -181,7 +209,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
         var addInteraction = function(geomtype) {
             var typeSelect = document.getElementById('types');
             var value = typeSelect.value;
-            $('#data').val('');
+            $('#data')
+                .val('');
             if (value !== 'None') {
                 if (draw)
                     map.removeInteraction(draw);
@@ -215,31 +244,34 @@ var HYDROEXPLORER_PACKAGE = (function() {
         };
 
         //Extracting information from the saved json object data
-        vector_layer.getSource().on('addfeature', function(event) {
-            var feature_json = saveData();
-            var parsed_feature = JSON.parse(feature_json);
-            var feature_type = parsed_feature["features"][0]["geometry"]["type"];
+        vector_layer.getSource()
+            .on('addfeature', function(event) {
+                var feature_json = saveData();
+                var parsed_feature = JSON.parse(feature_json);
+                var feature_type = parsed_feature["features"][0]["geometry"]["type"];
 
-            //Save the point values to the point-lat-lon field
-            if (feature_type == 'Point') {
-                var coords = parsed_feature["features"][0]["geometry"]["coordinates"];
-                var proj_coords = ol.proj.transform(coords, 'EPSG:3857', 'EPSG:4326');
-                $("#gldas-lat-lon").val(proj_coords);
-                $modalDataRods.modal('show');
+                //Save the point values to the point-lat-lon field
+                if (feature_type == 'Point') {
+                    var coords = parsed_feature["features"][0]["geometry"]["coordinates"];
+                    var proj_coords = ol.proj.transform(coords, 'EPSG:3857', 'EPSG:4326');
+                    $("#gldas-lat-lon")
+                        .val(proj_coords);
+                    $modalDataRods.modal('show');
 
-            } else if (feature_type == 'Polygon') {
-                //Save the coordinates to the cserv-lat-lon field
-                $modalClimate.modal('show');
-                var coords = parsed_feature["features"][0]["geometry"]["coordinates"][0];
-                proj_coords = [];
-                coords.forEach(function(coord) {
-                    var transformed = ol.proj.transform(coord, 'EPSG:3857', 'EPSG:4326');
-                    proj_coords.push('[' + transformed + ']');
-                });
-                var json_object = '{"type":"Polygon","coordinates":[[' + proj_coords + ']]}';
-                $("#cserv_lat_lon").val(json_object);
-            }
-        });
+                } else if (feature_type == 'Polygon') {
+                    //Save the coordinates to the cserv-lat-lon field
+                    $modalClimate.modal('show');
+                    var coords = parsed_feature["features"][0]["geometry"]["coordinates"][0];
+                    proj_coords = [];
+                    coords.forEach(function(coord) {
+                        var transformed = ol.proj.transform(coord, 'EPSG:3857', 'EPSG:4326');
+                        proj_coords.push('[' + transformed + ']');
+                    });
+                    var json_object = '{"type":"Polygon","coordinates":[[' + proj_coords + ']]}';
+                    $("#cserv_lat_lon")
+                        .val(json_object);
+                }
+            });
 
         //Save the drawn feature as a json object
         function saveData() {
@@ -251,10 +283,12 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 data;
             try {
                 // convert the data of the vector_layer into the chosen format
-                data = format.writeFeatures(vector_layer.getSource().getFeatures());
+                data = format.writeFeatures(vector_layer.getSource()
+                    .getFeatures());
             } catch (e) {
                 // at time of creation there is an error in the GPX format (18.7.2014)
-                $('#data').val(e.name + ": " + e.message);
+                $('#data')
+                    .val(e.name + ": " + e.message);
                 return;
             }
             // $('#data').val(JSON.stringify(data, null, 4));
@@ -263,30 +297,41 @@ var HYDROEXPLORER_PACKAGE = (function() {
         }
 
         //Change the map based on the interaction type. Add/remove interaction accordingly.
-        $('#types').change(function(e) {
-            featureType = $(this).find('option:selected').val();
-            if (featureType == 'None') {
-                $('#data').val('');
-                clear_coords();
-                map.removeInteraction(draw);
-                vector_layer.getSource().clear();
-                shpLayer.getSource().clear();
-            } else if (featureType == 'Point') {
-                clear_coords();
-                shpLayer.getSource().clear();
-                addInteraction(featureType);
-            } else if (featureType == 'Polygon') {
-                clear_coords();
-                shpLayer.getSource().clear();
-                addInteraction(featureType);
-            } else if (featureType == 'Upload') {
-                clear_coords();
-                vector_layer.getSource().clear();
-                shpLayer.getSource().clear();
-                map.removeInteraction(draw);
-                $modalUpload.modal('show');
-            }
-        }).change();
+        $('#types')
+            .change(function(e) {
+                featureType = $(this)
+                    .find('option:selected')
+                    .val();
+                if (featureType == 'None') {
+                    $('#data')
+                        .val('');
+                    clear_coords();
+                    map.removeInteraction(draw);
+                    vector_layer.getSource()
+                        .clear();
+                    shpLayer.getSource()
+                        .clear();
+                } else if (featureType == 'Point') {
+                    clear_coords();
+                    shpLayer.getSource()
+                        .clear();
+                    addInteraction(featureType);
+                } else if (featureType == 'Polygon') {
+                    clear_coords();
+                    shpLayer.getSource()
+                        .clear();
+                    addInteraction(featureType);
+                } else if (featureType == 'Upload') {
+                    clear_coords();
+                    vector_layer.getSource()
+                        .clear();
+                    shpLayer.getSource()
+                        .clear();
+                    map.removeInteraction(draw);
+                    $modalUpload.modal('show');
+                }
+            })
+            .change();
         init_events();
 
 
@@ -327,37 +372,51 @@ var HYDROEXPLORER_PACKAGE = (function() {
     $(function() {
 
         //Change the Climate Serv Modal Form if Seasonal Forecast is selected
-        $('#cs_data_type').change(function() {
-            var selected_option = $(this).find('option:selected').val();
-            $('#seasonal_forecast_start')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
-            $('#seasonal_forecast_end')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
-            $('#forecast_start')[(selected_option == '6|Seasonal Forecast') ? "hide" : "show"]();
-            $('#forecast_end')[(selected_option == '6|Seasonal Forecast') ? "hide" : "show"]();
-            $('#forecast')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
-            $('#ensemble')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
-            if (selected_option == '6|Seasonal Forecast') {
-                $('label[for="forecast_start"]').hide();
-                $('label[for="forecast_end"]').hide();
-                $('label[for="seasonal_forecast_start"]').show();
-                $('label[for="seasonal_forecast_end"]').show();
-            } else {
-                $('label[for="forecast_start"]').show();
-                $('label[for="forecast_end"]').show();
-                $('label[for="seasonal_forecast_start"]').hide();
-                $('label[for="seasonal_forecast_end"]').hide();
-            }
+        $('#cs_data_type')
+            .change(function() {
+                var selected_option = $(this)
+                    .find('option:selected')
+                    .val();
+                $('#seasonal_forecast_start')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
+                $('#seasonal_forecast_end')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
+                $('#forecast_start')[(selected_option == '6|Seasonal Forecast') ? "hide" : "show"]();
+                $('#forecast_end')[(selected_option == '6|Seasonal Forecast') ? "hide" : "show"]();
+                $('#forecast')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
+                $('#ensemble')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
+                if (selected_option == '6|Seasonal Forecast') {
+                    $('label[for="forecast_start"]')
+                        .hide();
+                    $('label[for="forecast_end"]')
+                        .hide();
+                    $('label[for="seasonal_forecast_start"]')
+                        .show();
+                    $('label[for="seasonal_forecast_end"]')
+                        .show();
+                } else {
+                    $('label[for="forecast_start"]')
+                        .show();
+                    $('label[for="forecast_end"]')
+                        .show();
+                    $('label[for="seasonal_forecast_start"]')
+                        .hide();
+                    $('label[for="seasonal_forecast_end"]')
+                        .hide();
+                }
 
 
-        }).change();
+            })
+            .change();
     });
 
 
 
 
 
-    $(".settings").click(function() {
-        $modalInterface.find('.success').html('');
-    });
+    $(".settings")
+        .click(function() {
+            $modalInterface.find('.success')
+                .html('');
+        });
 
     //Get a list of current HydroServers in the CUAHSI HIS central
     get_his_server = function() {
@@ -370,50 +429,64 @@ var HYDROEXPLORER_PACKAGE = (function() {
             success: function(result) {
                 var json_response = JSON.parse(result);
                 var url = json_response.url;
-                $('#soap-url').val(url);
-                $('#modalHISCentral').modal('hide');
+                $('#soap-url')
+                    .val(url);
+                $('#modalHISCentral')
+                    .modal('hide');
 
-                $('#modalHISCentral').each(function() {
-                    this.reset();
-                });
+                $('#modalHISCentral')
+                    .each(function() {
+                        this.reset();
+                    });
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
             }
         });
     };
-    $("#add-from-his").on('click', get_his_server);
+    $("#add-from-his")
+        .on('click', get_his_server);
 
     //Load the data rods page as modal
     get_data_rods = function() {
-        if (($("#gldas-lat-lon").val() == "")) {
-            $modalDataRods.find('.warning').html('<b>Please select a point on the map.</b>');
+        if (($("#gldas-lat-lon")
+                .val() == "")) {
+            $modalDataRods.find('.warning')
+                .html('<b>Please select a point on the map.</b>');
             return false;
         }
-        if (($("#gldas-lat-lon").val() != "")) {
-            $modalDataRods.find('.warning').html('');
+        if (($("#gldas-lat-lon")
+                .val() != "")) {
+            $modalDataRods.find('.warning')
+                .html('');
         }
-        $('#modalDataRods').modal('hide');
+        $('#modalDataRods')
+            .modal('hide');
 
         var datastring = $modalDataRods.serialize();
         var details_url = `${apiServer}/datarods/?${datastring}`; //Sending the datarods modal information via the url
 
         var $loading = $('#view-gldas-loading');
-        $('#gldas-container').addClass('hidden');
+        $('#gldas-container')
+            .addClass('hidden');
         $loading.removeClass('hidden');
 
         $('#gldas-container')
             .empty()
             .append('<iframe id="gldas-viewer" src="' + details_url + '" allowfullscreen></iframe>');
-        $('#modalViewRods').modal('show');
-        $('#gldas-viewer').one('load', function() {
-            $loading.addClass('hidden');
-            $('#gldas-container').removeClass('hidden');
-            $loading.addClass('hidden');
-        });
+        $('#modalViewRods')
+            .modal('show');
+        $('#gldas-viewer')
+            .one('load', function() {
+                $loading.addClass('hidden');
+                $('#gldas-container')
+                    .removeClass('hidden');
+                $loading.addClass('hidden');
+            });
 
     };
-    $("#get-data-rods").on('click', get_data_rods);
+    $("#get-data-rods")
+        .on('click', get_data_rods);
 
     //Loading the climate serv main page as a modal
     get_climate_serv = function() {
@@ -425,7 +498,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
         //     $modalDataRods.find('.warning').html('');
         // }
         var datastring = $modalClimate.serialize();
-        $('#modalClimate').modal('hide');
+        $('#modalClimate')
+            .modal('hide');
         //Sending the climate serv data via the url
         var details_url = `${apiServer}/cserv/?${datastring}`;
         // var data_type = $("#cs_data_type").val();
@@ -441,22 +515,29 @@ var HYDROEXPLORER_PACKAGE = (function() {
         // var new_url = "cserv/?data_type="+data_type+"&operation_type_int="+operation_int+"&forecast_start="+forecast_start+"&forecast_end="+forecast_end+"&cserv_lat_lot="+cserv_lat_lon+"&operation_type_var="+operation_var+"&interval_type="+interval_type;
         // console.log(new_url);
         var $loading = $('#view-cserv-loading');
-        $('#cserv-container').addClass('hidden');
+        $('#cserv-container')
+            .addClass('hidden');
         $loading.removeClass('hidden');
 
-        $('#cserv-container').empty().append('<iframe id="cserv-viewer" src="' + details_url + '" allowfullscreen></iframe>');
-        $('#modalViewCS').modal('show');
-        $('#cserv-viewer').one('load', function() {
-            $loading.addClass('hidden');
-            $('#cserv-container').removeClass('hidden');
-            $loading.addClass('hidden');
-        });
+        $('#cserv-container')
+            .empty()
+            .append('<iframe id="cserv-viewer" src="' + details_url + '" allowfullscreen></iframe>');
+        $('#modalViewCS')
+            .modal('show');
+        $('#cserv-viewer')
+            .one('load', function() {
+                $loading.addClass('hidden');
+                $('#cserv-container')
+                    .removeClass('hidden');
+                $loading.addClass('hidden');
+            });
 
 
 
 
     };
-    $('#get-climate-serv').on('click', get_climate_serv);
+    $('#get-climate-serv')
+        .on('click', get_climate_serv);
 
     //Get a list of current HydroServers in the local database
     get_hs_list = function() {
@@ -469,7 +550,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 var server = result['hydroserver'];
                 var HSTableHtml = '<table id="tbl-hydroservers"><thead><th></th><th>Title</th><th>URL</th></thead><tbody>';
                 if (server.length === 0) {
-                    $modalDelete.find('.modal-body').html('<b>There are no hydroservers in the Catalog.</b>');
+                    $modalDelete.find('.modal-body')
+                        .html('<b>There are no hydroservers in the Catalog.</b>');
                 } else {
                     for (var i = 0; i < server.length; i++) {
                         var title = server[i].title;
@@ -481,7 +563,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                             '</tr>';
                     }
                     HSTableHtml += '</tbody></table>';
-                    $modalDelete.find('.modal-body').html(HSTableHtml);
+                    $modalDelete.find('.modal-body')
+                        .html(HSTableHtml);
                 }
 
 
@@ -492,7 +575,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
         });
     };
-    $("#delete-server").on('click', get_hs_list);
+    $("#delete-server")
+        .on('click', get_hs_list);
 
     //Load all the existing layers from the database
     load_catalog = () => {
@@ -503,7 +587,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
             success: (result) => {
 
                 var servers = result['hydroserver'];
-                $('#current-servers').empty(); //Resetting the catalog
+                $('#current-servers')
+                    .empty(); //Resetting the catalog
                 servers.forEach(function(server) {
                     let {
                         title,
@@ -541,8 +626,10 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         </NamedLayer>
                     </StyledLayerDescriptor>`;
 
-                    $(newHtml).appendTo('#current-servers');
-                    addContextMenuToListItem($('#current-servers').find('li:last-child'));
+                    $(newHtml)
+                        .appendTo('#current-servers');
+                    addContextMenuToListItem($('#current-servers')
+                        .find('li:last-child'));
 
                     wmsSource = new ol.source.TileWMS({
                         url: geoserver_url,
@@ -573,7 +660,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 });
 
                 var layer_extent = [-15478192.4796, -8159805.6435, 15497760.3589, 8159805.6435];
-                map.getView().fit(layer_extent, map.getSize());
+                map.getView()
+                    .fit(layer_extent, map.getSize());
                 map.updateSize();
 
             },
@@ -588,7 +676,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
     //Deleting a layer from the database and then deleting it from the frontend
     update_catalog = function() {
-        $modalInterface.find('.success').html('');
+        $modalInterface.find('.success')
+            .html('');
         var datastring = $modalDelete.serialize(); //Delete the record in the database
         $.ajax({
             type: "POST",
@@ -598,12 +687,15 @@ var HYDROEXPLORER_PACKAGE = (function() {
             success: function(result) {
                 var json_response = JSON.parse(result);
                 var title = json_response.title;
-                $('#current-servers').empty(); //Resetting the catalog. So that it is updated.
+                $('#current-servers')
+                    .empty(); //Resetting the catalog. So that it is updated.
 
-                $('#modalDelete').modal('hide');
-                $('#modalDelete').each(function() {
-                    this.reset();
-                });
+                $('#modalDelete')
+                    .modal('hide');
+                $('#modalDelete')
+                    .each(function() {
+                        this.reset();
+                    });
 
 
                 //Removing layer from the frontend
@@ -612,7 +704,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 map.updateSize();
                 load_catalog(); //Reloading the new catalog
                 // click_catalog();
-                $modalInterface.find('.success').html('<b>Successfully Updated the Catalog!</b>');
+                $modalInterface.find('.success')
+                    .html('<b>Successfully Updated the Catalog!</b>');
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 console.log(Error);
@@ -621,32 +714,43 @@ var HYDROEXPLORER_PACKAGE = (function() {
         });
 
     };
-    $("#btn-del-server").on('click', update_catalog);
+    $("#btn-del-server")
+        .on('click', update_catalog);
 
     //Adding a REST endpoint. Obsolete for now. Can be put enabled to allow REST layers.
     add_server = function() {
         var datastring = $modalAddHS.serialize();
-        if (($("#hs-title").val()) == "") {
-            $modalAddSOAP.find('.warning').html('<b>Please enter a title. This field cannot be blank.</b>');
+        if (($("#hs-title")
+                .val()) == "") {
+            $modalAddSOAP.find('.warning')
+                .html('<b>Please enter a title. This field cannot be blank.</b>');
             return false;
         } else {
-            $modalAddSOAP.find('.warning').html('');
+            $modalAddSOAP.find('.warning')
+                .html('');
         }
-        if (($("#hs-url").val()) == "") {
-            $modalAddSOAP.find('.warning').html('<b>Please enter a valid URL. This field cannot be blank.</b>');
+        if (($("#hs-url")
+                .val()) == "") {
+            $modalAddSOAP.find('.warning')
+                .html('<b>Please enter a valid URL. This field cannot be blank.</b>');
             return false;
         } else {
-            $modalAddSOAP.find('.warning').html('');
+            $modalAddSOAP.find('.warning')
+                .html('');
         }
-        if (($("#hs-title").val()) != "") {
+        if (($("#hs-title")
+                .val()) != "") {
             var regex = new RegExp("^[a-zA-Z ]+$");
-            var title = $("#soap-title").val();
+            var title = $("#soap-title")
+                .val();
             if (!regex.test(title)) {
-                $modalAddSOAP.find('.warning').html('<b>Please enter Letters only for the title.</b>');
+                $modalAddSOAP.find('.warning')
+                    .html('<b>Please enter Letters only for the title.</b>');
                 return false;
             }
         } else {
-            $modalAddSOAP.find('.warning').html('');
+            $modalAddSOAP.find('.warning')
+                .html('');
         }
 
         $.ajax({
@@ -671,16 +775,20 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     </li>`;
 
 
-                    $(newHtml).appendTo('#current-servers');
+                    $(newHtml)
+                        .appendTo('#current-servers');
 
-                    addContextMenuToListItem($('#current-servers').find('li:last-child'));
+                    addContextMenuToListItem($('#current-servers')
+                        .find('li:last-child'));
 
-                    $('#modalAddHS').modal('hide');
+                    $('#modalAddHS')
+                        .modal('hide');
 
                     //map.addLayer(new_layer);
-                    $('#modalAddHS').each(function() {
-                        this.reset();
-                    });
+                    $('#modalAddHS')
+                        .each(function() {
+                            this.reset();
+                        });
                     var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>' + wms_url + '</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">' + set_color() + '</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     wmsSource = new ol.source.TileWMS({
                         url: rest_url,
@@ -701,7 +809,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     layersDict[title] = wmsLayer;
 
                     var layer_extent = wmsLayer.getExtent();
-                    map.getView().fit(layer_extent, map.getSize());
+                    map.getView()
+                        .fit(layer_extent, map.getSize());
                 } else {
                     alert("Please Check your URL and Try Again.");
                 }
@@ -714,52 +823,122 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
     };
 
-    $('#btn-add-server').on('click', add_server);
+    $('#btn-add-server')
+        .on('click', add_server);
+
+    const add_central = () => {
+
+        let modal = $("#addCentral"),
+            mWarning = modal.find('.warning'),
+            titleVal = $("#title").val()
+
+        // Clear all existing Warnings
+        modal.find('.warning').html('');
+
+        if ((titleVal) == "") {
+            mWarning.html('<b>Please enter a title. This field cannot be blank.</b>');
+            return false;
+        } else {
+            let regex = new RegExp("^[a-zA-Z ]+$");
+            if (!regex.test(titleVal)) {
+                mWarning.html('<b>Please enter Letters only for the title.</b>');
+                return false;
+            }
+        }
+
+        if (($("#url").val()) == "") {
+            mWarning.html('<b>Please enter a valid URL. This field cannot be blank.</b>');
+            return false;
+        }
+
+
+        $.ajax({
+            type: "POST",
+            url: `${apiServer}/add-central/`,
+            dataType: 'json',
+            data: {
+                title: titleVal,
+                url: $("#url").val()
+            },
+            success: (result) => {
+                console.log(result)
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+
+    };
+
+
+    $('#btn-add-central').on('click', add_central);
 
     //Adding the SOAP endpoint layer to the map
     add_soap = function() {
-        $modalInterface.find('.success').html('');
+        $modalInterface.find('.success')
+            .html('');
         //Validations to make sure that there are no issues with the form data
-        if (($("#extent")).is(':checked')) {
-            var zoom = map.getView().getZoom();
+        if (($("#extent"))
+            .is(':checked')) {
+            var zoom = map.getView()
+                .getZoom();
             if (zoom < 8) {
-                $modalAddSOAP.find('.warning').html('<b>The zoom level has to be 8 or greater. Please check and try again.</b>');
+                $modalAddSOAP.find('.warning')
+                    .html('<b>The zoom level has to be 8 or greater. Please check and try again.</b>');
                 return false;
             } else {
-                $modalAddSOAP.find('.warning').html('');
+                $modalAddSOAP.find('.warning')
+                    .html('');
             }
-            $("#chk_val").empty();
-            var level = map.getView().calculateExtent(map.getSize());
-            $('<input type="text" name="extent_val" id="extent_val" value=' + '"' + level + '"' + ' hidden>').appendTo($("#chk_val"));
+            $("#chk_val")
+                .empty();
+            var level = map.getView()
+                .calculateExtent(map.getSize());
+            $('<input type="text" name="extent_val" id="extent_val" value=' + '"' + level + '"' + ' hidden>')
+                .appendTo($("#chk_val"));
             // $(this).val(level);
         }
-        if (($("#soap-title").val()) == "") {
-            $modalAddSOAP.find('.warning').html('<b>Please enter a title. This field cannot be blank.</b>');
+        if (($("#soap-title")
+                .val()) == "") {
+            $modalAddSOAP.find('.warning')
+                .html('<b>Please enter a title. This field cannot be blank.</b>');
             return false;
         } else {
-            $modalAddSOAP.find('.warning').html('');
+            $modalAddSOAP.find('.warning')
+                .html('');
         }
-        if (($("#soap-url").val()) == "") {
-            $modalAddSOAP.find('.warning').html('<b>Please enter a valid URL. This field cannot be blank.</b>');
+        if (($("#soap-url")
+                .val()) == "") {
+            $modalAddSOAP.find('.warning')
+                .html('<b>Please enter a valid URL. This field cannot be blank.</b>');
             return false;
         } else {
-            $modalAddSOAP.find('.warning').html('');
+            $modalAddSOAP.find('.warning')
+                .html('');
         }
-        if (($("#soap-url").val()) == "http://hydroportal.cuahsi.org/nwisdv/cuahsi_1_1.asmx?WSDL" || ($("#soap-url").val()) == "http://hydroportal.cuahsi.org/nwisuv/cuahsi_1_1.asmx?WSDL") {
-            $modalAddSOAP.find('.warning').html('<b>Please zoom in further to be able to access the NWIS Values</b>');
+        if (($("#soap-url")
+                .val()) == "http://hydroportal.cuahsi.org/nwisdv/cuahsi_1_1.asmx?WSDL" || ($("#soap-url")
+                .val()) == "http://hydroportal.cuahsi.org/nwisuv/cuahsi_1_1.asmx?WSDL") {
+            $modalAddSOAP.find('.warning')
+                .html('<b>Please zoom in further to be able to access the NWIS Values</b>');
             return false;
         } else {
-            $modalAddSOAP.find('.warning').html('');
+            $modalAddSOAP.find('.warning')
+                .html('');
         }
-        if (($("#soap-title").val()) != "") {
+        if (($("#soap-title")
+                .val()) != "") {
             var regex = new RegExp("^[a-zA-Z ]+$");
-            var title = $("#soap-title").val();
+            var title = $("#soap-title")
+                .val();
             if (!regex.test(title)) {
-                $modalAddSOAP.find('.warning').html('<b>Please enter Letters only for the title.</b>');
+                $modalAddSOAP.find('.warning')
+                    .html('<b>Please enter Letters only for the title.</b>');
                 return false;
             }
         } else {
-            $modalAddSOAP.find('.warning').html('');
+            $modalAddSOAP.find('.warning')
+                .html('');
         }
         var datastring = $modalAddSOAP.serialize();
 
@@ -788,16 +967,20 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     <div class="hmbrgr-div"><img src="${staticPath}/images/hamburger.svg"></div>
                     </li>`;
 
-                    $(newHtml).appendTo('#current-servers');
+                    $(newHtml)
+                        .appendTo('#current-servers');
 
-                    addContextMenuToListItem($('#current-servers').find('li:last-child')); //Adding the element to the Current HydroServers box
+                    addContextMenuToListItem($('#current-servers')
+                        .find('li:last-child')); //Adding the element to the Current HydroServers box
 
-                    $('#modalAddSoap').modal('hide');
+                    $('#modalAddSoap')
+                        .modal('hide');
 
                     //map.addLayer(new_layer);
-                    $('#modalAddSoap').each(function() {
-                        this.reset();
-                    });
+                    $('#modalAddSoap')
+                        .each(function() {
+                            this.reset();
+                        });
 
                     //Stlying string to manage the styling of the points on the layer
                     var sld_string = '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>' + wms_url + '</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">' + set_color() + '</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
@@ -823,28 +1006,36 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     layersDict[title] = wmsLayer;
 
                     var layer_extent = wmsLayer.getExtent();
-                    map.getView().fit(layer_extent, map.getSize());
-                    $modalInterface.find('.success').html('<b>Successfully Added the HydroServer to the Map!</b>');
+                    map.getView()
+                        .fit(layer_extent, map.getSize());
+                    $modalInterface.find('.success')
+                        .html('<b>Successfully Added the HydroServer to the Map!</b>');
                 } else {
-                    $modalAddSOAP.find('.warning').html('<b>Failed to add server. Please check Url and try again.</b>');
+                    $modalAddSOAP.find('.warning')
+                        .html('<b>Failed to add server. Please check Url and try again.</b>');
                 }
 
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 //Error handling
-                $modalAddSOAP.find('.warning').html('<b>Invalid Hydroserver SOAP Url. Please check and try again.</b>');
-                if (($("#extent")).is(':checked')) {
-                    $modalAddSOAP.find('.warning').html('<b>The requested area does not have any sites. Please try another area.</b>');
+                $modalAddSOAP.find('.warning')
+                    .html('<b>Invalid Hydroserver SOAP Url. Please check and try again.</b>');
+                if (($("#extent"))
+                    .is(':checked')) {
+                    $modalAddSOAP.find('.warning')
+                        .html('<b>The requested area does not have any sites. Please try another area.</b>');
                     return false;
                 } else {
-                    $modalAddSOAP.find('.warning').html('');
+                    $modalAddSOAP.find('.warning')
+                        .html('');
                 }
 
             }
         });
 
     };
-    $('#btn-add-soap').on('click', add_soap);
+    $('#btn-add-soap')
+        .on('click', add_soap);
 
 
     //Reverse coding to find the name of the clicked location
@@ -861,33 +1052,44 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 };
 
                 var coords = ol.proj.transform(dbPoint.coordinates, 'EPSG:4326', 'EPSG:3857');
-                map.getView().setCenter(coords);
-                map.getView().setZoom(12);
+                map.getView()
+                    .setCenter(coords);
+                map.getView()
+                    .setZoom(12);
             } else {
                 alert("Geocode was not successful for the following reason: " + status);
             }
         }
         var g = new google.maps.Geocoder();
-        var search_location = document.getElementById('location_input').value;
-        g.geocode({ 'address': search_location }, geocoder_success);
+        var search_location = document.getElementById('location_input')
+            .value;
+        g.geocode({
+            'address': search_location
+        }, geocoder_success);
 
     };
-    $('#location_search').on('click', location_search);
+    $('#location_search')
+        .on('click', location_search);
 
     //On click zoom to the relevant layer
     onClickZoomTo = function(e) {
         var clickedElement = e.trigger.context;
-        var $lyrListItem = $(clickedElement).parent().parent();
+        var $lyrListItem = $(clickedElement)
+            .parent()
+            .parent();
         var layer_name = $lyrListItem.attr('layer-name');
         var layer_extent = layersDict[layer_name].getExtent();
-        map.getView().fit(layer_extent, map.getSize());
+        map.getView()
+            .fit(layer_extent, map.getSize());
         map.updateSize();
     };
 
     //On click delete the layer, but it won't delete it from the database
     onClickDeleteLayer = function(e) {
         var clickedElement = e.trigger.context;
-        var $lyrListItem = $(clickedElement).parent().parent();
+        var $lyrListItem = $(clickedElement)
+            .parent()
+            .parent();
         var layer_name = $lyrListItem.attr('layer-name');
         map.removeLayer(layersDict[layer_name]);
         delete layersDict[layer_name];
@@ -906,28 +1108,37 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     map.updateSize();
                 }, 350);
             });
-            $(window).on('resize', function() {
-                map.updateSize();
-            });
+            $(window)
+                .on('resize', function() {
+                    map.updateSize();
+                });
 
-            config = { attributes: true };
+            config = {
+                attributes: true
+            };
 
             observer.observe(target, config);
         }());
 
         //Toggle the layer on and off on click
-        $(document).on('change', '.chkbx-layer', function() {
-            var displayName = $(this).next().text();
-            layersDict[displayName].setVisible($(this).is(':checked'));
-        });
+        $(document)
+            .on('change', '.chkbx-layer', function() {
+                var displayName = $(this)
+                    .next()
+                    .text();
+                layersDict[displayName].setVisible($(this)
+                    .is(':checked'));
+            });
 
         // $(document).ajaxStart($.blockUI).ajaxStop($.unblockUI);
 
         //Map on zoom function. To keep track of the zoom level. Certain HydroServers can only be added at a certain zoom level.
         map.on("moveend", function() {
-            var zoom = map.getView().getZoom();
+            var zoom = map.getView()
+                .getZoom();
             var zoomInfo = '<h6>Current Zoom level = ' + zoom + '</h6>';
-            document.getElementById('zoomlevel').innerHTML = zoomInfo;
+            document.getElementById('zoomlevel')
+                .innerHTML = zoomInfo;
             // Object.keys(layersDict).forEach(function(key){
             //     var source =  layersDict[key].getSource();
             // });
@@ -935,10 +1146,13 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
         map.on("singleclick", function(evt) {
 
-            $(element).popover('destroy');
+            $(element)
+                .popover('destroy');
 
 
-            if (map.getTargetElement().style.cursor == "pointer" && $('#types').val() == 'None') {
+            if (map.getTargetElement()
+                .style.cursor == "pointer" && $('#types')
+                .val() == 'None') {
                 var clickCoord = evt.coordinate; //Get the coordinate of the clicked point
                 popup.setPosition(clickCoord);
                 // map.getLayers().item(1).getSource().clear();
@@ -947,7 +1161,10 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 var viewResolution = view.getResolution();
 
 
-                var wms_url = current_layer.getSource().getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), { 'INFO_FORMAT': 'application/json' }); //Get the wms url for the clicked point
+                var wms_url = current_layer.getSource()
+                    .getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
+                        'INFO_FORMAT': 'application/json'
+                    }); //Get the wms url for the clicked point
                 if (wms_url) {
                     //Retrieving the details for clicked point via the url
                     $.ajax({
@@ -963,31 +1180,41 @@ var HYDROEXPLORER_PACKAGE = (function() {
                             var service = result["features"][0]["properties"]["service"];
                             var details_html = `${apiServer}/details/?sitename=${site_name}&sitecode=${site_code}&network=${network}&hsurl=${hs_url}&service=${service}&hidenav=true`; //passing the information through the url
 
-                            $(element).popover({
-                                'placement': 'top',
-                                'html': true,
-                                //Dynamically Generating the popup content
-                                'content': '<table border="1"><tbody><tr><th>Site Name</th><th>Site Id</th><th>Details</th></tr>' + '<tr><td>' + site_name + '</td><td>' + site_code + '</td><td><button type="button" class="mod_link btn-primary" data-html="' + details_html + '" >Site Details</button></td></tr>'
-                            });
-
-                            $(element).popover('show');
-                            $(element).next().css('cursor', 'text');
-                            //Showing the details page when clicking on site details
-                            $('.mod_link').on('click', function() {
-                                var $loading = $('#view-file-loading');
-                                $('#iframe-container').addClass('hidden');
-                                $loading.removeClass('hidden');
-                                var details_url = $(this).data('html');
-                                $('#iframe-container')
-                                    .empty()
-                                    .append('<iframe id="iframe-details-viewer" src="' + details_url + '" allowfullscreen></iframe>');
-                                $('#modalViewDetails').modal('show');
-                                $('#iframe-details-viewer').one('load', function() {
-                                    $loading.addClass('hidden');
-                                    $('#iframe-container').removeClass('hidden');
-                                    $loading.addClass('hidden');
+                            $(element)
+                                .popover({
+                                    'placement': 'top',
+                                    'html': true,
+                                    //Dynamically Generating the popup content
+                                    'content': '<table border="1"><tbody><tr><th>Site Name</th><th>Site Id</th><th>Details</th></tr>' + '<tr><td>' + site_name + '</td><td>' + site_code + '</td><td><button type="button" class="mod_link btn-primary" data-html="' + details_html + '" >Site Details</button></td></tr>'
                                 });
-                            });
+
+                            $(element)
+                                .popover('show');
+                            $(element)
+                                .next()
+                                .css('cursor', 'text');
+                            //Showing the details page when clicking on site details
+                            $('.mod_link')
+                                .on('click', function() {
+                                    var $loading = $('#view-file-loading');
+                                    $('#iframe-container')
+                                        .addClass('hidden');
+                                    $loading.removeClass('hidden');
+                                    var details_url = $(this)
+                                        .data('html');
+                                    $('#iframe-container')
+                                        .empty()
+                                        .append('<iframe id="iframe-details-viewer" src="' + details_url + '" allowfullscreen></iframe>');
+                                    $('#modalViewDetails')
+                                        .modal('show');
+                                    $('#iframe-details-viewer')
+                                        .one('load', function() {
+                                            $loading.addClass('hidden');
+                                            $('#iframe-container')
+                                                .removeClass('hidden');
+                                            $loading.addClass('hidden');
+                                        });
+                                });
                         },
                         error: function(XMLHttpRequest, textStatus, errorThrown) {
                             console.log(Error);
@@ -1000,18 +1227,26 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
         });
 
-        $('#close-modalViewDetails').on('click', function() {
-            $('#modalViewDetails').modal('hide');
-        });
-        $('#close-modalViewRods').on('click', function() {
-            $('#modalViewRods').modal('hide');
-        });
-        $('#close-modalClimateServ').on('click', function() {
-            $('#modalClimateServ').modal('hide');
-        });
-        $('#close-modalViewCS').on('click', function() {
-            $('#modalViewCS').modal('hide');
-        });
+        $('#close-modalViewDetails')
+            .on('click', function() {
+                $('#modalViewDetails')
+                    .modal('hide');
+            });
+        $('#close-modalViewRods')
+            .on('click', function() {
+                $('#modalViewRods')
+                    .modal('hide');
+            });
+        $('#close-modalClimateServ')
+            .on('click', function() {
+                $('#modalClimateServ')
+                    .modal('hide');
+            });
+        $('#close-modalViewCS')
+            .on('click', function() {
+                $('#modalViewCS')
+                    .modal('hide');
+            });
 
         //Only show the pointer for layers that aren't base layer, shapefile layer and the point/polygon feature layer
         map.on('pointermove', function(evt) {
@@ -1025,7 +1260,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     return true;
                 }
             });
-            map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+            map.getTargetElement()
+                .style.cursor = hit ? 'pointer' : '';
         });
 
 
@@ -1052,8 +1288,11 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
     //Generate a graph based on the REST endpoint request. Somewhat obsolete now, but leaving it here in case you want to allow REST endpoints in the future.
     generate_graph = function() {
-        $(document).find('.warning').html('');
-        var variable = $('#select_var option:selected').val();
+        $(document)
+            .find('.warning')
+            .html('');
+        var variable = $('#select_var option:selected')
+            .val();
 
         $.ajax({
             type: "GET",
@@ -1063,44 +1302,45 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
                 for (var i = 0; i < result['graph'].length; i++) {
                     if (result['graph'][i]['variable'] == variable) {
-                        $('#container').highcharts({
-                            chart: {
-                                type: 'area',
-                                zoomType: 'x'
-                            },
-                            title: {
-                                text: result['graph'][i]['title'],
-                                style: {
-                                    fontSize: '11px'
-                                }
-                            },
-                            xAxis: {
-                                type: 'datetime',
-                                labels: {
-                                    format: '{value:%d %b %Y}',
-                                    rotation: 45,
-                                    align: 'left'
+                        $('#container')
+                            .highcharts({
+                                chart: {
+                                    type: 'area',
+                                    zoomType: 'x'
                                 },
                                 title: {
-                                    text: 'Date'
-                                }
-                            },
-                            yAxis: {
-                                title: {
-                                    text: result['graph'][i]['unit']
-                                }
+                                    text: result['graph'][i]['title'],
+                                    style: {
+                                        fontSize: '11px'
+                                    }
+                                },
+                                xAxis: {
+                                    type: 'datetime',
+                                    labels: {
+                                        format: '{value:%d %b %Y}',
+                                        rotation: 45,
+                                        align: 'left'
+                                    },
+                                    title: {
+                                        text: 'Date'
+                                    }
+                                },
+                                yAxis: {
+                                    title: {
+                                        text: result['graph'][i]['unit']
+                                    }
 
-                            },
-                            exporting: {
-                                enabled: true,
-                                width: 5000
-                            },
-                            series: [{
-                                data: result['graph'][i]['values'],
-                                name: result['graph'][i]['variable']
-                            }]
+                                },
+                                exporting: {
+                                    enabled: true,
+                                    width: 5000
+                                },
+                                series: [{
+                                    data: result['graph'][i]['values'],
+                                    name: result['graph'][i]['variable']
+                                }]
 
-                        });
+                            });
 
 
                     }
@@ -1109,20 +1349,24 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
-                $(document).find('.warning').html('<b>Unable to generate graph. Please check the start and end dates and try again.</b>');
+                $(document)
+                    .find('.warning')
+                    .html('<b>Unable to generate graph. Please check the start and end dates and try again.</b>');
                 console.log(Error);
             }
         });
 
     };
 
-    $('#generate-graph').on('click', generate_graph);
+    $('#generate-graph')
+        .on('click', generate_graph);
 
     //Generate the time series plot of SOAP request
     generate_plot = function() {
         var $loading = $('#view-file-loading');
         $loading.removeClass('hidden');
-        $("#plotter").addClass('hidden');
+        $("#plotter")
+            .addClass('hidden');
         var datastring = $SoapVariable.serialize(); //Can change this approach by adopting the workflow used in the upload_shp function
         $.ajax({
             type: "POST",
@@ -1137,49 +1381,53 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     return val[1] != -9999 && val[1] != "-9999"
                 });
 
-                $('#plotter').highcharts({
-                    chart: {
-                        type: 'area',
-                        zoomType: 'x'
-                    },
-                    title: {
-                        text: result['title'],
-                        style: {
-                            fontSize: '11px'
-                        }
-                    },
-                    xAxis: {
-                        type: 'datetime',
-                        labels: {
-                            format: '{value:%d %b %Y}',
-                            rotation: 45,
-                            align: 'left'
+                $('#plotter')
+                    .highcharts({
+                        chart: {
+                            type: 'area',
+                            zoomType: 'x'
                         },
                         title: {
-                            text: 'Date'
-                        }
-                    },
-                    yAxis: {
-                        title: {
-                            text: result['unit']
-                        }
+                            text: result['title'],
+                            style: {
+                                fontSize: '11px'
+                            }
+                        },
+                        xAxis: {
+                            type: 'datetime',
+                            labels: {
+                                format: '{value:%d %b %Y}',
+                                rotation: 45,
+                                align: 'left'
+                            },
+                            title: {
+                                text: 'Date'
+                            }
+                        },
+                        yAxis: {
+                            title: {
+                                text: result['unit']
+                            }
 
-                    },
-                    exporting: {
-                        enabled: true
-                    },
-                    series: [{
-                        data: vals,
-                        name: result['variable']
-                    }]
+                        },
+                        exporting: {
+                            enabled: true
+                        },
+                        series: [{
+                            data: vals,
+                            name: result['variable']
+                        }]
 
-                });
-                $("#plotter").removeClass('hidden');
+                    });
+                $("#plotter")
+                    .removeClass('hidden');
                 $loading.addClass('hidden');
 
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
-                $(document).find('.warning').html('<b>Unable to generate graph. Please check the start and end dates and try again.</b>');
+                $(document)
+                    .find('.warning')
+                    .html('<b>Unable to generate graph. Please check the start and end dates and try again.</b>');
                 console.log(Error);
             }
         });
@@ -1187,7 +1435,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
     };
 
-    $('#generate-plot').on('click', generate_plot);
+    $('#generate-plot')
+        .on('click', generate_plot);
 
     //Adding the context menu capability to a list item aka the recently added HydroServer layer
     addContextMenuToListItem = function($listItem) {
@@ -1200,22 +1449,30 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 'mouseClick': 'left',
                 'position': 'right',
                 'onOpen': function(e) {
-                    $('.hmbrgr-div').removeClass('hmbrgr-open');
-                    $(e.trigger.context).parent().addClass('hmbrgr-open');
+                    $('.hmbrgr-div')
+                        .removeClass('hmbrgr-open');
+                    $(e.trigger.context)
+                        .parent()
+                        .addClass('hmbrgr-open');
                 },
                 'onClose': function(e) {
-                    $(e.trigger.context).parent().removeClass('hmbrgr-open');
+                    $(e.trigger.context)
+                        .parent()
+                        .removeClass('hmbrgr-open');
                 }
             });
-        contextMenuId = $('.iw-contextMenu:last-child').attr('id');
+        contextMenuId = $('.iw-contextMenu:last-child')
+            .attr('id');
         $listItem.attr('data-context-menu', contextMenuId);
     };
 
     //This clicks on each element in the Current HydroServers box. This was experimental.
     click_catalog = function() {
-        $('.iw-contextMenu').find('[title="Zoom To"]').each(function(index, obj) {
-            obj.click();
-        });
+        $('.iw-contextMenu')
+            .find('[title="Zoom To"]')
+            .each(function(index, obj) {
+                obj.click();
+            });
         map.updateSize();
     };
 
@@ -1235,44 +1492,46 @@ var HYDROEXPLORER_PACKAGE = (function() {
     };
 
     //The following is hidden for now. But in the future can be used to generate an alert with the screenshot of the map
-    $('#gen-alert').on('click', function() {
-        var dims = {
-            a0: [1189, 841],
-            a1: [841, 594],
-            a2: [594, 420],
-            a3: [420, 297],
-            a4: [297, 210],
-            a5: [210, 148]
-        };
+    $('#gen-alert')
+        .on('click', function() {
+            var dims = {
+                a0: [1189, 841],
+                a1: [841, 594],
+                a2: [594, 420],
+                a3: [420, 297],
+                a4: [297, 210],
+                a5: [210, 148]
+            };
 
-        var dim = dims['a4'];
+            var dim = dims['a4'];
 
-        map.once('postcompose', function(event) {
-            var canvas = createExportCanvas(event.context.canvas);
-            var pdf = new jsPDF('potrait', undefined, 'a4');
-            var data = canvas.toDataURL('image/png');
-            var app_logo = "data:image/jpeg;base64";
-            pdf.setFontSize(25);
-            pdf.setTextColor(255, 0, 0);
-            pdf.text(75, 15, "FLOOD ALERT");
-            pdf.addImage(app_logo, 'JPEG', 165, 150, 15, 15);
-            pdf.addImage(icimod_logo, 'JPEG', 5, 3, 15, 15);
-            pdf.addImage(data, 'JPEG', 25, 20, 160, 120);
-            // var cur_date = new Date();
-            // var rand_str = btoa(pdf.output('datauristring'));
-            // console.log(rand_str);
-            // var pdf_name = cur_date.toString()+'.pdf';
-            pdf.save('FloodAlert.pdf');
+            map.once('postcompose', function(event) {
+                var canvas = createExportCanvas(event.context.canvas);
+                var pdf = new jsPDF('potrait', undefined, 'a4');
+                var data = canvas.toDataURL('image/png');
+                var app_logo = "data:image/jpeg;base64";
+                pdf.setFontSize(25);
+                pdf.setTextColor(255, 0, 0);
+                pdf.text(75, 15, "FLOOD ALERT");
+                pdf.addImage(app_logo, 'JPEG', 165, 150, 15, 15);
+                pdf.addImage(icimod_logo, 'JPEG', 5, 3, 15, 15);
+                pdf.addImage(data, 'JPEG', 25, 20, 160, 120);
+                // var cur_date = new Date();
+                // var rand_str = btoa(pdf.output('datauristring'));
+                // console.log(rand_str);
+                // var pdf_name = cur_date.toString()+'.pdf';
+                pdf.save('FloodAlert.pdf');
+            });
+            map.renderSync();
         });
-        map.renderSync();
-    });
 
     upload_file = function() {
         //Preparing the data to be sent as an ajax request
         var files = $("#shp-upload-input")[0].files;
         var data;
         $modalUpload.modal('hide');
-        $("#modalMapConsole").modal('hide');
+        $("#modalMapConsole")
+            .modal('hide');
         data = prepare_files(files);
         $.ajax({
             url: `${apiServer}/upload-shp/`,
@@ -1287,7 +1546,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
             success: function(response) {
                 var extents = response.bounds;
                 shpSource = new ol.source.Vector({
-                    features: (new ol.format.GeoJSON()).readFeatures(response.geo_json) //Reading the geojson object
+                    features: (new ol.format.GeoJSON())
+                        .readFeatures(response.geo_json) //Reading the geojson object
                 });
                 shpLayer = new ol.layer.Vector({
                     name: 'shp_layer',
@@ -1307,7 +1567,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 map.addLayer(shpLayer);
 
 
-                map.getView().fit(shpLayer.getExtent(), map.getSize()); //Zoom to the map after adding the geojson object
+                map.getView()
+                    .fit(shpLayer.getExtent(), map.getSize()); //Zoom to the map after adding the geojson object
                 map.updateSize();
                 map.render();
 
@@ -1320,22 +1581,25 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 var coord_list = ['[' + min + ']', '[' + max2 + ']', '[' + max + ']', '[' + min2 + ']', '[' + min + ']']; //Creating a list of coordinates
                 var json_str = '{"type":"Polygon","coordinates":[[' + coord_list + ']]}'; //Creating the json string
 
-                $("#cserv_lat_lon").val(json_str); //Setting the json string as the value of the cserv-lat-lon
+                $("#cserv_lat_lon")
+                    .val(json_str); //Setting the json string as the value of the cserv-lat-lon
                 $modalClimate.modal('show');
 
             }
         });
     };
 
-    $("#btn-add-shp").on('click', upload_file);
+    $("#btn-add-shp")
+        .on('click', upload_file);
 
     //Preparing files so that they can be submitted via an ajax request
     prepare_files = function(files) {
         var data = new FormData();
 
-        Object.keys(files).forEach(function(file) {
-            data.append('files', files[file]);
-        });
+        Object.keys(files)
+            .forEach(function(file) {
+                data.append('files', files[file]);
+            });
 
         return data;
     };
