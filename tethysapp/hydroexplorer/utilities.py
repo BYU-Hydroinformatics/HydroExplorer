@@ -1,7 +1,6 @@
 import xml.etree.ElementTree as et
 import shapefile as sf
 
-
 import os
 import urllib2
 import tempfile
@@ -41,6 +40,52 @@ except ImportError:
 
 extract_base_path = '/tmp'
 
+
+def checkCentral(centralUrl):
+    url = centralUrl + "/GetWaterOneFlowServiceInfo"
+    response = urllib2.urlopen(xml)
+    data = response.read()
+
+    parse_xml = et.fromstring(data)
+
+    hs_sites = []
+    for child in parse_xml:
+        for items in child:
+            get_contents = items.tag
+            # Narrowing down to the DataInputs tag
+            if get_contents.find('siteInfo') != -1:
+                for location in items:
+                    descriptor = location.tag
+                    if descriptor.find('siteName') != -1:
+                        site_name = location.text
+                        hs_json = {}
+                        hs_json["sitename"] = site_name
+                        hs_json["service"] = "REST"
+                        # print "Site Name: "+site_name
+                    if descriptor.find('siteCode') != -1:
+                        site_code = location.text
+                        # print "Site Code: "+site_code
+                        source = location.get('network')
+                        hs_json['network'] = source
+                        hs_json["sitecode"] = site_code
+                    if descriptor.find('elevation') != -1:
+                        elevation = location.text
+                        # print "Elevation: " + elevation
+                        hs_json["elevation"] = elevation
+                    for geoLocation in location:
+                        for coords in geoLocation:
+                            latlon = coords.tag
+                            if latlon.find('latitude') != -1:
+                                latitude = coords.text
+                                # print "Latitude: " + latitude
+                                hs_json["latitude"] = latitude
+                            if latlon.find('longitude') != -1:
+                                longitude = coords.text
+                                # print "Longitude: " + longitude
+                                hs_json["longitude"] = longitude
+                hs_sites.append(hs_json)
+
+    return hs_sites
 # Function for parsing a raw xml file. This function is not really used as
 # REST is not supported.
 
@@ -280,7 +325,6 @@ def genShapeFile(input, title, hs_url):
         file_list = os.listdir(temp_dir)
         zip_file_full_path = temp_dir + "/" + "shapefile.zip"
 
-
         # Zipping all the files in the temp directory
         with zipfile.ZipFile(zip_file_full_path, 'a') as myzip:
             for fn in file_list:
@@ -289,13 +333,14 @@ def genShapeFile(input, title, hs_url):
                 myzip.write(shapefile_fp, arcname=new_file_name)
 
         # Connecting to geoserver
-        spatial_dataset_engine = app.get_spatial_dataset_service('primary_geoserver', as_engine=True)
+        spatial_dataset_engine = app.get_spatial_dataset_service(
+            'primary_geoserver', as_engine=True)
         layer_metadata = {}
 
         response = None
         # Connect to a workspace called catalog. If there is no workspace,
         # create one.
-        ws_name = "catalog" 
+        ws_name = "catalog"
 
         # Check if Workspace Exists:
 
@@ -305,18 +350,19 @@ def genShapeFile(input, title, hs_url):
             print "Workspace " + ws_name + " Exists"
         else:
             print "Creating workspace: " + ws_name
-            result = spatial_dataset_engine.create_workspace(workspace_id=ws_name, uri="www.servir.org",debug=False)
+            result = spatial_dataset_engine.create_workspace(
+                workspace_id=ws_name, uri="www.servir.org", debug=False)
             if result['success']:
                 print "Created workspace " + ws_name + " successfully"
             else:
                 print "Creating workspace " + ws_name + " failed"
-       
 
         store_id = ws_name + ":" + title  # Creating the geoserver storeid
 
         result = None
 
-        result = spatial_dataset_engine.create_shapefile_resource(store_id=store_id, shapefile_zip=zip_file_full_path, overwrite=True, debug=False)  # Adding the zipshapefile to geoserver as a layer
+        result = spatial_dataset_engine.create_shapefile_resource(
+            store_id=store_id, shapefile_zip=zip_file_full_path, overwrite=True, debug=False)  # Adding the zipshapefile to geoserver as a layer
 
         if result['success']:
             print "Created store " + title + " successfully"
@@ -326,8 +372,8 @@ def genShapeFile(input, title, hs_url):
         # Returning the layer name and the extents for that layer. This data
         # will be used to add the geoserver layer to the openlayers3 map.
         layer_metadata["layer"] = store_id
-        
-        print result['result']['latlon_bbox']    
+
+        print result['result']['latlon_bbox']
 
         layer_metadata["extents"] = {
             "minx": result['result']['latlon_bbox'][0],

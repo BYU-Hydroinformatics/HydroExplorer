@@ -62,8 +62,17 @@ class HydroExplorer(TethysAppBase):
             UrlMap(name='catalog',
                    url='hydroexplorer/catalog',
                    controller='hydroexplorer.controllers.catalog'),
-            # Returns a list of existing HydroServers in the local
-            # database
+            # Returns a list of existing HydroServers in the local database
+            UrlMap(name='catalogs',
+                   url='hydroexplorer/catalogs',
+                   controller='hydroexplorer.controllers.catalogs'),
+            # Returns a list of existing Catalogs in the local database
+
+
+            UrlMap(name='catalog-servers',
+                   url='hydroexplorer/catalog/servers',
+                   controller='hydroexplorer.controllers.catalog_servers'),
+
             UrlMap(name='delete',
                    url='hydroexplorer/delete',
                    controller='hydroexplorer.controllers.delete'),

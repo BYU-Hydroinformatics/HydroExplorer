@@ -35,7 +35,7 @@ from pyproj import Proj, transform  # Reprojecting/Transforming coordinates
 from owslib.waterml.wml11 import WaterML_1_1 as wml11
 
 from .app import HydroExplorer as app
-from .model import Catalog
+from .model import Catalog, HISCatalog
 
 Persistent_Store_Name = 'catalog_db'
 
@@ -50,32 +50,12 @@ def home(request):
     Controller for the app home page.
     """
 
-    # Connecting to the CUAHSI HIS central to retrieve all the avaialable
-    # HydroServers.
-    his_servers = []
-    his_url = "http://hiscentral.cuahsi.org/webservices/hiscentral.asmx?WSDL"
-    client = Client(his_url)
-    service_info = client.service.GetWaterOneFlowServiceInfo()
-    services = service_info.ServiceInfo
-    for i in services:
-        try:
-            url = i.servURL.encode('utf-8')
-            title = i.Title.encode('utf-8')
-            organization = i.organization.encode('utf-8')
-            variable_str = "Title: %s, Organization: %s" % (
-                title, organization)
-            his_servers.append([variable_str, url])
-        except Exception as e:
-            print e
-
-    select_his_server = SelectInput(display_text='Select HIS Server', name="select_server", multiple=False,
-                                    options=his_servers)  # Dropdown for selecting the HIS server
-
     # Start the GLDAS code
     # Generate the dropdown options for GLDAS. See utilities.py for
     # gen_gldas_dropdown function
     gldas_dropdown = gen_gldas_dropdown()
-    select_gldas_variable = SelectInput(display_text='Select Variable', name="select_gldas_var", multiple=False,
+    select_gldas_variable = SelectInput(display_text='Select Variable',
+                                        name="select_gldas_var", multiple=False,
                                         options=gldas_dropdown)  # Dropdown for selecting the GLDAS Variable
 
     # Get the GLDAS date range. See utilities.py for get_gldas_range function
@@ -90,6 +70,7 @@ def home(request):
                             initial=gldas_dates["start"],
                             start_date=gldas_dates["start"],
                             end_date=gldas_dates["end"])  # Datepicker object for selecting the GLDAS start date
+
     end_date = DatePicker(name='end_date',
                           display_text='End Date',
                           autoclose=True,
@@ -103,21 +84,29 @@ def home(request):
     # End of GLDAS code segment
 
     # Start Climate Serv code
-    data_type_options = [["CHIRPS Precipitation", "0|CHIRPS Precipitation(mm/day)"], ["IMERG 1 Day", "26|IMERG 1 Day(1 mm/day)"], [
-        "Seasonal Forecast", "6|Seasonal Forecast"]]  # Climate Serv Data Type Options
-    operation_type_options = [["Max", "0|max"], ["Min", "1|min"], [
-        "Average", "5|avg"]]  # Climate Serv Operation Type options
+    data_type_options = [["CHIRPS Precipitation", "0|CHIRPS Precipitation(mm/day)"],
+                         ["IMERG 1 Day", "26|IMERG 1 Day(1 mm/day)"],
+                         ["Seasonal Forecast", "6|Seasonal Forecast"]
+                         ]  # Climate Serv Data Type Options
+    operation_type_options = [["Max", "0|max"],
+                              ["Min", "1|min"],
+                              ["Average", "5|avg"]
+                              ]  # Climate Serv Operation Type options
     # Climate Serv interval type options
     interval_type_options = [["Daily", "0"]]
 
     select_data_type = SelectInput(display_text='Select a data type', name='cs_data_type',
                                    multiple=False, options=data_type_options)  # Dropdown object for the select data type
-    select_operation_type = SelectInput(display_text='Select a operation type', name='cs_operation_type', multiple=False,
+    select_operation_type = SelectInput(display_text='Select a operation type',
+                                        name='cs_operation_type', multiple=False,
                                         options=operation_type_options)  # Dropdown for select operation type
-    select_interval_type = SelectInput(display_text='Select a date interval', name='cs_interval_type', multiple=False,
+    select_interval_type = SelectInput(display_text='Select a date interval',
+                                       name='cs_interval_type', multiple=False,
                                        options=interval_type_options)  # Dropdown for select interval type
-    select_forecast_variable = SelectInput(display_text='Select a variable', name='cs_forecast_variable', multiple=False,
-                                           options=[("Precipitation", "Precipitation"), ("Temperature", "Temperature")])  # A dropdown object for selecting the forecast variable
+    select_forecast_variable = SelectInput(display_text='Select a variable',
+                                           name='cs_forecast_variable', multiple=False,
+                                           options=[("Precipitation", "Precipitation"),
+                                                    ("Temperature", "Temperature")])  # A dropdown object for selecting the forecast variable
 
     # Get the seasonal forecast range. See utilities.py.
     seasonal_forecast_range = get_sf_range()
@@ -163,18 +152,18 @@ def home(request):
     # End Climate Serv code block
 
     # Django context variables that will be used in home.html
-    context = {"select_his_server": select_his_server,
-               "select_gldas_variable": select_gldas_variable,
-               "start_date": start_date,
-               "end_date": end_date,
-               "select_data_type": select_data_type,
-               "select_operation_type": select_operation_type,
-               "select_interval_type": select_interval_type,
-               "forecast_start": forecast_start,
-               "forecast_end": forecast_end,
-               "select_forecast_variable": select_forecast_variable,
-               "seasonal_forecast_start": seasonal_forecast_start,
-               "seasonal_forecast_end": seasonal_forecast_end}
+    context = {
+        "select_gldas_variable": select_gldas_variable,
+        "start_date": start_date,
+        "end_date": end_date,
+        "select_data_type": select_data_type,
+        "select_operation_type": select_operation_type,
+        "select_interval_type": select_interval_type,
+        "forecast_start": forecast_start,
+        "forecast_end": forecast_end,
+        "select_forecast_variable": select_forecast_variable,
+        "seasonal_forecast_start": seasonal_forecast_start,
+        "seasonal_forecast_end": seasonal_forecast_end}
 
     return render(request, 'hydroexplorer/home.html', context)
 
@@ -437,6 +426,55 @@ def catalog(request):
     return JsonResponse(list)
 
 
+def catalogs(request):
+
+    SessionMaker = app.get_persistent_store_database(
+        Persistent_Store_Name, as_sessionmaker=True)
+    session = SessionMaker()
+
+    catalogs = session.query(HISCatalog).all()
+
+    hydroCatalogs = list(
+        map(lambda x: (x.title, x.url), catalogs))
+
+    his_catalogs = SelectInput(
+        name="select_catalog",
+        display_text='Select HIS Catalog',
+        multiple=False,
+        options=hydroCatalogs,
+        select2_options={'placeholder': 'Select a Catalog'})
+
+    return render(request, 'hydroexplorer/modals/helpers/catalog.html', {'his_catalogs': his_catalogs})
+
+
+def catalog_servers(request):
+
+    # Connecting to the CUAHSI HIS central to
+    # retrieve all the avaialable HydroServers.
+    url = request.POST['url']
+    his_servers = []
+    his_url = url + "?WSDL"
+    client = Client(his_url)
+    service_info = client.service.GetWaterOneFlowServiceInfo()
+    services = service_info.ServiceInfo
+    for i in services:
+        try:
+            url = i.servURL.encode('utf-8')
+            title = i.Title.encode('utf-8')
+            organization = i.organization.encode('utf-8')
+            variable_str = "Title: %s, Organization: %s" % (
+                title, organization)
+            his_servers.append([variable_str, url])
+        except Exception as e:
+            print e
+
+    select_his_server = SelectInput(display_text='Select HIS Server',
+                                    name="select_server", multiple=False,
+                                    options=his_servers)
+
+    return render(request, 'hydroexplorer/modals/helpers/catalog.html', {"select_his_server": select_his_server})
+
+
 def delete(request):
     '''
     Controller for deleting a user selected HydroServer from the local database
@@ -521,34 +559,16 @@ def add_central(request):
     if request.is_ajax() and request.method == 'POST':
         url = request.POST['url']
         title = request.POST['title']
-        title = title.replace(" ", "")
+
         if url.endswith('/'):
             url = url[:-1]
 
-        op = GetWaterOneFlowServiceInfo
-
-        get_sites = url + "/GetSitesObject"
-        sites_object = parseSites(get_sites)
-        shapefile_object = genShapeFile(sites_object, title, url)
-
-        geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
-            '/geoserver/rest', '') + "/geoserver/wms"
-        return_obj['rest_url'] = geoserver_rest_url
-        return_obj['wms'] = shapefile_object["layer"]
-        return_obj['bounds'] = shapefile_object["extents"]
-        extents_string = str(shapefile_object["extents"])
-        return_obj['title'] = title
-        return_obj['url'] = url
-        return_obj['status'] = "true"
-
-        SessionMaker = app.get_persistent_store_database(
-            Persistent_Store_Name, as_sessionmaker=True)
-        session = SessionMaker()
-        hs_one = Catalog(title=title,
-                         url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"], extents=extents_string)
-        session.add(hs_one)
-        session.commit()
-        session.close()
+        if(checkCentral(url)):
+            return_obj[
+                'message'] = 'Valid HIS Central Found'
+        else:
+            return_obj[
+                'message'] = 'Not a valid HIS Central Catalog'
     else:
         return_obj[
             'message'] = 'This request can only be made through a "POST" AJAX call.'
