@@ -506,6 +506,29 @@ def delete(request):
         list["title"] = title
     return JsonResponse(list)
 
+
+
+def del_catalog(request):
+    list = {}
+
+    SessionMaker = app.get_persistent_store_database(
+        Persistent_Store_Name, as_sessionmaker=True)
+    session = SessionMaker()
+
+    # Query DB for hydroservers
+    if request.is_ajax() and request.method == 'POST':
+        title = request.POST['server']
+        
+        catalogs = session.query(HISCatalog).filter(HISCatalog.title == title).delete(
+            synchronize_session='evaluate')  # Deleting the record from the local catalog
+        session.commit()
+        session.close()
+
+        # Returning the deleted title. To let the user know that the particular
+        # title is deleted.
+        list["title"] = title
+    return JsonResponse(list)
+
 # Controller for adding a REST endpoint. As of today, this controller is
 # not being used in the front end. Just leaving it here for future
 # reference.
@@ -556,6 +579,8 @@ def add_server(request):
 
 def add_central(request):
 
+    return_obj = {}
+
     if request.is_ajax() and request.method == 'POST':
         url = request.POST['url']
         title = request.POST['title']
@@ -564,18 +589,26 @@ def add_central(request):
             url = url[:-1]
 
         if(checkCentral(url)):
-            return_obj[
-                'message'] = 'Valid HIS Central Found'
+            return_obj['message'] = 'Valid HIS Central Found'
+            return_obj['status'] = True
+            # Add to the database
+
+            SessionMaker = app.get_persistent_store_database(
+                Persistent_Store_Name, as_sessionmaker=True)
+            session = SessionMaker()
+            hs_one = HISCatalog(title=title, url=url)
+            session.add(hs_one)
+            session.commit()
+            session.close()
         else:
-            return_obj[
-                'message'] = 'Not a valid HIS Central Catalog'
+            return_obj['message'] = 'Not a valid HIS Central Catalog'
+            return_obj['status'] = False
     else:
         return_obj[
             'message'] = 'This request can only be made through a "POST" AJAX call.'
+        return_obj['status'] = False
 
-    print request.POST
-
-    return JsonResponse(request.POST)
+    return JsonResponse(return_obj)
 
 
 def soap(request):

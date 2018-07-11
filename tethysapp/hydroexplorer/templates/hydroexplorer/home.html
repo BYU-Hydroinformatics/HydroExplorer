@@ -1,6 +1,4 @@
 {% extends "hydroexplorer/base.html" %}
-{% load staticfiles %}
-{% load tethys_gizmos %}
 
 {% block app_content %}
 <div id="map"></div>
@@ -14,9 +12,16 @@
 {% include "hydroexplorer/modals/manageServers.html" %}    
 {% include "hydroexplorer/modals/addHydroServer.html" %}    
 {% include "hydroexplorer/modals/addSoap.html" %}    
+{% include "hydroexplorer/modals/delServer.html" %}    
+
 {% include "hydroexplorer/modals/hisCentral.html" %}    
-{% include "hydroexplorer/modals/delete.html" %}    
+
+
+{# Management of CUAHSI Comatible Catalog Services #}
+
 {% include "hydroexplorer/modals/addCentral.html" %}    
+{% include "hydroexplorer/modals/delCentral.html" %}    
+
 
 {# View File Modal #}
 {% include "hydroexplorer/modals/viewDetails.html" %}    
@@ -31,6 +36,7 @@
 
 {# Help/Info Modal #}
 {% include "hydroexplorer/modals/help.html" %}  
+
 
 {% endblock %}
 

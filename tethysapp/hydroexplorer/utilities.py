@@ -42,50 +42,12 @@ extract_base_path = '/tmp'
 
 
 def checkCentral(centralUrl):
+    # Currently just checking if its a valid endpoint.
     url = centralUrl + "/GetWaterOneFlowServiceInfo"
-    response = urllib2.urlopen(xml)
-    data = response.read()
+    response = urllib2.urlopen(url)
 
-    parse_xml = et.fromstring(data)
+    return response.getcode() == 200
 
-    hs_sites = []
-    for child in parse_xml:
-        for items in child:
-            get_contents = items.tag
-            # Narrowing down to the DataInputs tag
-            if get_contents.find('siteInfo') != -1:
-                for location in items:
-                    descriptor = location.tag
-                    if descriptor.find('siteName') != -1:
-                        site_name = location.text
-                        hs_json = {}
-                        hs_json["sitename"] = site_name
-                        hs_json["service"] = "REST"
-                        # print "Site Name: "+site_name
-                    if descriptor.find('siteCode') != -1:
-                        site_code = location.text
-                        # print "Site Code: "+site_code
-                        source = location.get('network')
-                        hs_json['network'] = source
-                        hs_json["sitecode"] = site_code
-                    if descriptor.find('elevation') != -1:
-                        elevation = location.text
-                        # print "Elevation: " + elevation
-                        hs_json["elevation"] = elevation
-                    for geoLocation in location:
-                        for coords in geoLocation:
-                            latlon = coords.tag
-                            if latlon.find('latitude') != -1:
-                                latitude = coords.text
-                                # print "Latitude: " + latitude
-                                hs_json["latitude"] = latitude
-                            if latlon.find('longitude') != -1:
-                                longitude = coords.text
-                                # print "Longitude: " + longitude
-                                hs_json["longitude"] = longitude
-                hs_sites.append(hs_json)
-
-    return hs_sites
 # Function for parsing a raw xml file. This function is not really used as
 # REST is not supported.
 

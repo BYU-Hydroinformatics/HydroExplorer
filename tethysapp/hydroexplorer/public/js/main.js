@@ -159,10 +159,9 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 }),
                 image: new ol.style.Circle({
                     radius: 7,
-                    fill: new ol.style
-                        .Fill({
-                            color: '#ffcc33'
-                        })
+                    fill: new ol.style.Fill({
+                        color: '#ffcc33'
+                    })
                 })
             })
         });
@@ -212,8 +211,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 });
                 map.addInteraction(draw);
             }
-            if (featureType === 'Point' ||
-                featureType === 'Polygon') {
+            if (featureType === 'Point' || featureType === 'Polygon') {
                 // draw.on('drawend', function (e) {
                 //     removeLastFeature();
                 //     lastFeature = e.feature;
@@ -244,8 +242,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     var proj_coords = ol.proj.transform(
                         coords, 'EPSG:3857',
                         'EPSG:4326');
-                    $("#gldas-lat-lon")
-                        .val(proj_coords);
+                    $("#gldas-lat-lon").val(proj_coords);
                     $modalDataRods.modal('show');
                 } else if (feature_type == 'Polygon') {
                     //Save the coordinates to the cserv-lat-lon field
@@ -266,8 +263,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     var json_object =
                         '{"type":"Polygon","coordinates":[[' +
                         proj_coords + ']]}';
-                    $("#cserv_lat_lon")
-                        .val(json_object);
+                    $("#cserv_lat_lon").val(json_object);
                 }
             });
         //Save the drawn feature as a json object
@@ -298,30 +294,23 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         'option:selected')
                     .val();
                 if (featureType == 'None') {
-                    $('#data')
-                        .val('');
+                    $('#data').val('');
                     clear_coords();
                     map.removeInteraction(draw);
-                    vector_layer.getSource()
-                        .clear();
-                    shpLayer.getSource()
-                        .clear();
+                    vector_layer.getSource().clear();
+                    shpLayer.getSource().clear();
                 } else if (featureType == 'Point') {
                     clear_coords();
-                    shpLayer.getSource()
-                        .clear();
+                    shpLayer.getSource().clear();
                     addInteraction(featureType);
                 } else if (featureType == 'Polygon') {
                     clear_coords();
-                    shpLayer.getSource()
-                        .clear();
+                    shpLayer.getSource().clear();
                     addInteraction(featureType);
                 } else if (featureType == 'Upload') {
                     clear_coords();
-                    vector_layer.getSource()
-                        .clear();
-                    shpLayer.getSource()
-                        .clear();
+                    vector_layer.getSource().clear();
+                    shpLayer.getSource().clear();
                     map.removeInteraction(draw);
                     $modalUpload.modal('show');
                 }
@@ -361,62 +350,36 @@ var HYDROEXPLORER_PACKAGE = (function() {
         //Change the Climate Serv Modal Form if Seasonal Forecast is selected
         $('#cs_data_type')
             .change(function() {
-                var selected_option = $(this)
-                    .find('option:selected')
-                    .val();
-                $('#seasonal_forecast_start')[(
-                    selected_option ==
-                    '6|Seasonal Forecast'
-                ) ? "show" : "hide"]();
-                $('#seasonal_forecast_end')[(
-                    selected_option ==
-                    '6|Seasonal Forecast'
-                ) ? "show" : "hide"]();
-                $('#forecast_start')[(
-                    selected_option ==
-                    '6|Seasonal Forecast'
-                ) ? "hide" : "show"]();
-                $('#forecast_end')[(
-                    selected_option ==
-                    '6|Seasonal Forecast'
-                ) ? "hide" : "show"]();
-                $('#forecast')[(selected_option ==
-                    '6|Seasonal Forecast'
-                ) ? "show" : "hide"]();
-                $('#ensemble')[(selected_option ==
-                    '6|Seasonal Forecast'
-                ) ? "show" : "hide"]();
+                var selected_option = $(this).find('option:selected').val();
+                $('#seasonal_forecast_start')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
+                $('#seasonal_forecast_end')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
+                $('#forecast_start')[(selected_option == '6|Seasonal Forecast') ? "hide" : "show"]();
+                $('#forecast_end')[(selected_option == '6|Seasonal Forecast') ? "hide" : "show"]();
+                $('#forecast')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
+                $('#ensemble')[(selected_option == '6|Seasonal Forecast') ? "show" : "hide"]();
                 if (selected_option ==
                     '6|Seasonal Forecast') {
                     $(
-                            'label[for="forecast_start"]'
-                        )
-                        .hide();
-                    $('label[for="forecast_end"]')
-                        .hide();
+                        'label[for="forecast_start"]'
+                    ).hide();
+                    $('label[for="forecast_end"]').hide();
                     $(
-                            'label[for="seasonal_forecast_start"]'
-                        )
-                        .show();
+                        'label[for="seasonal_forecast_start"]'
+                    ).show();
                     $(
-                            'label[for="seasonal_forecast_end"]'
-                        )
-                        .show();
+                        'label[for="seasonal_forecast_end"]'
+                    ).show();
                 } else {
                     $(
-                            'label[for="forecast_start"]'
-                        )
-                        .show();
-                    $('label[for="forecast_end"]')
-                        .show();
+                        'label[for="forecast_start"]'
+                    ).show();
+                    $('label[for="forecast_end"]').show();
                     $(
-                            'label[for="seasonal_forecast_start"]'
-                        )
-                        .hide();
+                        'label[for="seasonal_forecast_start"]'
+                    ).hide();
                     $(
-                            'label[for="seasonal_forecast_end"]'
-                        )
-                        .hide();
+                        'label[for="seasonal_forecast_end"]'
+                    ).hide();
                 }
             })
             .change();
@@ -540,10 +503,9 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     '<table id="tbl-hydroservers"><thead><th></th><th>Title</th><th>URL</th></thead><tbody>';
                 if (server.length === 0) {
                     $modalDelete.find(
-                            '.modal-body')
-                        .html(
-                            '<b>There are no hydroservers in the Catalog.</b>'
-                        );
+                        '.modal-body').html(
+                        '<b>There are no hydroservers in the Catalog.</b>'
+                    );
                 } else {
                     for (var i = 0; i <
                         server.length; i++) {
@@ -562,8 +524,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     HSTableHtml +=
                         '</tbody></table>';
                     $modalDelete.find(
-                            '.modal-body')
-                        .html(HSTableHtml);
+                        '.modal-body').html(HSTableHtml);
                 }
             },
             error: function(XMLHttpRequest,
@@ -572,8 +533,32 @@ var HYDROEXPLORER_PACKAGE = (function() {
             }
         });
     };
-    $("#delete-server")
-        .on('click', get_hs_list);
+    $("#delete-server").on('click', get_hs_list);
+
+    $("#del-central").on('click', () => {
+        $('#modalDelCentral').modal({
+                    show: false
+                });
+
+        $.ajax({
+            type: "GET",
+            url: `${apiServer}/catalogs/`,
+            success: (result) => {
+
+                $("#modalDelCentral").find('.modal-body').html(result);
+                let select = $("#modalDelCentral").find('.select2');
+                select.select2();
+                 $('#modalDelCentral').modal('show');
+
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    });
+
+
+
     //Load all the existing layers from the database
     load_catalog = () => {
         $.ajax({
@@ -622,10 +607,9 @@ var HYDROEXPLORER_PACKAGE = (function() {
                             </UserStyle>
                         </NamedLayer>
                     </StyledLayerDescriptor>`;
-                    $(newHtml)
-                        .appendTo(
-                            '#current-servers'
-                        );
+                    $(newHtml).appendTo(
+                        '#current-servers'
+                    );
                     addContextMenuToListItem
                         ($(
                                 '#current-servers'
@@ -633,16 +617,15 @@ var HYDROEXPLORER_PACKAGE = (function() {
                             .find(
                                 'li:last-child'
                             ));
-                    wmsSource = new ol
-                        .source.TileWMS({
-                            url: geoserver_url,
-                            params: {
-                                'LAYERS': layer_name,
-                                'SLD_BODY': sld_string
-                            },
-                            serverType: 'geoserver',
-                            crossOrigin: 'Anonymous'
-                        });
+                    wmsSource = new ol.source.TileWMS({
+                        url: geoserver_url,
+                        params: {
+                            'LAYERS': layer_name,
+                            'SLD_BODY': sld_string
+                        },
+                        serverType: 'geoserver',
+                        crossOrigin: 'Anonymous'
+                    });
                     let
                         projectedExtents =
                         ol.proj.transformExtent(
@@ -667,11 +650,10 @@ var HYDROEXPLORER_PACKAGE = (function() {
                             'EPSG:4326',
                             'EPSG:3857'
                         );
-                    wmsLayer = new ol
-                        .layer.Tile({
-                            extent: projectedExtents,
-                            source: wmsSource
-                        });
+                    wmsLayer = new ol.layer.Tile({
+                        extent: projectedExtents,
+                        source: wmsSource
+                    });
                     map.addLayer(
                         wmsLayer);
                     layersDict[title] =
@@ -798,40 +780,35 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     <input class="chkbx-layer" type="checkbox" checked><span class="server-name">${title}</span>
                     <div class="hmbrgr-div"><img src="${staticPath}/images/hamburger.svg"></div>
                     </li>`;
-                    $(newHtml)
-                        .appendTo(
-                            '#current-servers'
-                        );
+                    $(newHtml).appendTo(
+                        '#current-servers'
+                    );
                     addContextMenuToListItem(
                         $(
                             '#current-servers'
-                        )
-                        .find(
+                        ).find(
                             'li:last-child'
                         ));
-                    $('#modalAddHS')
-                        .modal('hide');
+                    $('#modalAddHS').modal('hide');
                     //map.addLayer(new_layer);
-                    $('#modalAddHS')
-                        .each(function() {
-                            this.reset();
-                        });
+                    $('#modalAddHS').each(function() {
+                        this.reset();
+                    });
                     var sld_string =
                         '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>' +
                         wms_url +
                         '</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">' +
                         set_color() +
                         '</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
-                    wmsSource = new ol.source
-                        .TileWMS({
-                            url: rest_url,
-                            params: {
-                                'LAYERS': wms_url,
-                                'SLD_BODY': sld_string
-                            },
-                            serverType: 'geoserver',
-                            crossOrigin: 'Anonymous'
-                        });
+                    wmsSource = new ol.source.TileWMS({
+                        url: rest_url,
+                        params: {
+                            'LAYERS': wms_url,
+                            'SLD_BODY': sld_string
+                        },
+                        serverType: 'geoserver',
+                        crossOrigin: 'Anonymous'
+                    });
                     wmsLayer = new ol.layer.Tile({
                         extent: ol.proj
                             .transformExtent(
@@ -859,9 +836,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         wmsLayer;
                     var layer_extent =
                         wmsLayer.getExtent();
-                    map.getView()
-                        .fit(layer_extent,
-                            map.getSize());
+                    map.getView().fit(layer_extent,
+                        map.getSize());
                 } else {
                     alert(
                         "Please Check your URL and Try Again."
@@ -874,16 +850,15 @@ var HYDROEXPLORER_PACKAGE = (function() {
             }
         });
     };
-    $('#btn-add-server')
-        .on('click', add_server);
+    $('#btn-add-server').on('click', add_server);
+
     const add_central = () => {
         let modal = $("#addCentral"),
             mWarning = modal.find('.warning'),
-            titleVal = $("#title")
-            .val()
+            titleVal = $("#title").val()
         // Clear all existing Warnings
-        modal.find('.warning')
-            .html('');
+        modal.find('.warning').html('');
+
         if ((titleVal) == "") {
             mWarning.html(
                 '<b>Please enter a title. This field cannot be blank.</b>'
@@ -898,8 +873,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 return false;
             }
         }
-        if (($("#url")
-                .val()) == "") {
+        if (($("#url").val()) == "") {
             mWarning.html(
                 '<b>Please enter a valid URL. This field cannot be blank.</b>'
             );
@@ -911,14 +885,45 @@ var HYDROEXPLORER_PACKAGE = (function() {
             dataType: 'json',
             data: {
                 title: titleVal,
-                url: $("#url")
-                    .val()
+                url: $("#url").val()
             },
             success: (result) => {
-                console.log(result)
+                if (result.status) {
+                    // Close main modal
+                    modal.hide();
+                    $.notify({
+                        message: `Server Successfully Added. You may use it to add HydroServers`
+                    }, {
+                        type: 'success',
+                        allow_dismiss: true,
+                        z_index: 20000,
+                        delay: 5000
+                    });
+
+
+                } else {
+                    $.notify({
+                        message: `Error! Couldn't add HIS Catalog service: ${result.message}.`
+                    }, {
+                        type: 'danger',
+                        allow_dismiss: true,
+                        z_index: 20000,
+                        delay: 10000
+                    });
+
+                }
             },
             error: (error) => {
                 console.log(error);
+                $.notify({
+                    message: `Error! Couldn't add HIS Catalog service: ${error.statusText}. Please check the URL`
+                }, {
+                    type: 'danger',
+                    allow_dismiss: true,
+                    z_index: 20000,
+                    delay: 10000
+                });
+
             }
         });
     };
@@ -1020,8 +1025,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     result);
                 if (json_response.status ===
                     'true') {
-                    var title = json_response
-                        .title;
+                    var title = json_response.title;
                     var wms_url =
                         json_response.wms;
                     var extents =
@@ -1038,24 +1042,20 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     <input class="chkbx-layer" type="checkbox" checked><span class="server-name">${title}</span>
                     <div class="hmbrgr-div"><img src="${staticPath}/images/hamburger.svg"></div>
                     </li>`;
-                    $(newHtml)
-                        .appendTo(
-                            '#current-servers'
-                        );
+                    $(newHtml).appendTo(
+                        '#current-servers'
+                    );
                     addContextMenuToListItem(
                         $(
                             '#current-servers'
-                        )
-                        .find(
+                        ).find(
                             'li:last-child'
                         )); //Adding the element to the Current HydroServers box
-                    $('#modalAddSoap')
-                        .modal('hide');
+                    $('#modalAddSoap').modal('hide');
                     //map.addLayer(new_layer);
-                    $('#modalAddSoap')
-                        .each(function() {
-                            this.reset();
-                        });
+                    $('#modalAddSoap').each(function() {
+                        this.reset();
+                    });
                     //Stlying string to manage the styling of the points on the layer
                     var sld_string =
                         '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>' +
@@ -1064,16 +1064,15 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         set_color() +
                         '</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>';
                     //Adding the wms layer to the gloval source/layer
-                    wmsSource = new ol.source
-                        .TileWMS({
-                            url: rest_url,
-                            params: {
-                                'LAYERS': wms_url,
-                                'SLD_BODY': sld_string
-                            },
-                            serverType: 'geoserver',
-                            crossOrigin: 'Anonymous'
-                        });
+                    wmsSource = new ol.source.TileWMS({
+                        url: rest_url,
+                        params: {
+                            'LAYERS': wms_url,
+                            'SLD_BODY': sld_string
+                        },
+                        serverType: 'geoserver',
+                        crossOrigin: 'Anonymous'
+                    });
                     wmsLayer = new ol.layer.Tile({
                         extent: ol.proj
                             .transformExtent(
@@ -1102,20 +1101,17 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         wmsLayer;
                     var layer_extent =
                         wmsLayer.getExtent();
-                    map.getView()
-                        .fit(layer_extent,
-                            map.getSize());
+                    map.getView().fit(layer_extent,
+                        map.getSize());
                     $modalInterface.find(
-                            '.success')
-                        .html(
-                            '<b>Successfully Added the HydroServer to the Map!</b>'
-                        );
+                        '.success').html(
+                        '<b>Successfully Added the HydroServer to the Map!</b>'
+                    );
                 } else {
                     $modalAddSOAP.find(
-                            '.warning')
-                        .html(
-                            '<b>Failed to add server. Please check Url and try again.</b>'
-                        );
+                        '.warning').html(
+                        '<b>Failed to add server. Please check Url and try again.</b>'
+                    );
                 }
             },
             error: function(XMLHttpRequest,
@@ -1128,15 +1124,13 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 if (($("#extent"))
                     .is(':checked')) {
                     $modalAddSOAP.find(
-                            '.warning')
-                        .html(
-                            '<b>The requested area does not have any sites. Please try another area.</b>'
-                        );
+                        '.warning').html(
+                        '<b>The requested area does not have any sites. Please try another area.</b>'
+                    );
                     return false;
                 } else {
                     $modalAddSOAP.find(
-                            '.warning')
-                        .html('');
+                        '.warning').html('');
                 }
             }
         });
@@ -1154,16 +1148,9 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 type: "GET",
                 url: `${apiServer}/catalogs/`,
                 success: (result) => {
-                    $('#modalHISCentral')
-                        .modal(
-                            'show');
-                    $("#catalog_select")
-                        .html(
-                            result);
-                    let select = $(
-                            "#catalog_select"
-                        )
-                        .find('.select2');
+                    $('#modalHISCentral').modal('show');
+                    $("#catalog_select").html(result);
+                    let select = $("#catalog_select").find('.select2');
                     select.select2();
                     select.on('change',
                         function(e) {
@@ -1620,7 +1607,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                                     width: 5000
                                 },
                                 series: [{
-                                    data: rresult['graph'][i]['values']
+                                    data: rresult['graph'][i]['values'],
                                     name: result['graph'][i]['variable']
                                 }]
                             });
@@ -1732,18 +1719,13 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 'mouseClick': 'left',
                 'position': 'right',
                 'onOpen': function(e) {
-                    $('.hmbrgr-div')
-                        .removeClass(
-                            'hmbrgr-open');
-                    $(e.trigger.context)
-                        .parent()
-                        .addClass('hmbrgr-open');
+                    $('.hmbrgr-div').removeClass(
+                        'hmbrgr-open');
+                    $(e.trigger.context).parent().addClass('hmbrgr-open');
                 },
                 'onClose': function(e) {
-                    $(e.trigger.context)
-                        .parent()
-                        .removeClass(
-                            'hmbrgr-open');
+                    $(e.trigger.context).parent().removeClass(
+                        'hmbrgr-open');
                 }
             });
         contextMenuId = $('.iw-contextMenu:last-child')
@@ -1827,11 +1809,10 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 var extents = response.bounds;
                 shpSource = new ol.source.Vector({
                     features: (new ol
-                            .format.GeoJSON()
-                        )
-                        .readFeatures(
-                            response.geo_json
-                        ) //Reading the geojson object
+                        .format.GeoJSON()
+                    ).readFeatures(
+                        response.geo_json
+                    ) //Reading the geojson object
                 });
                 shpLayer = new ol.layer.Vector({
                     name: 'shp_layer',
@@ -1842,23 +1823,22 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         extents[3]
                     ], //Note: If you don't define the extents, you cannot get OpenLayers to zoom to it. It just doesn't do it.
                     source: shpSource,
-                    style: new ol.style
-                        .Style({ //Change the following to change the styling of the shapefile object
-                            stroke: new ol
-                                .style
-                                .Stroke({ //This defines the boundary
-                                    color: 'blue',
-                                    lineDash: [
-                                        4
-                                    ],
-                                    width: 3
-                                }),
-                            fill: new ol
-                                .style
-                                .Fill({
-                                    color: 'rgba(0, 0, 255, 0.1)' //The 0.1 refers to opacity
-                                })
-                        })
+                    style: new ol.style.Style({ //Change the following to change the styling of the shapefile object
+                        stroke: new ol
+                            .style
+                            .Stroke({ //This defines the boundary
+                                color: 'blue',
+                                lineDash: [
+                                    4
+                                ],
+                                width: 3
+                            }),
+                        fill: new ol
+                            .style
+                            .Fill({
+                                color: 'rgba(0, 0, 255, 0.1)' //The 0.1 refers to opacity
+                            })
+                    })
                 });
                 map.addLayer(shpLayer);
                 map.getView()
@@ -1952,6 +1932,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
         }
         return cookieValue;
     };
+
+
     /************************************************************************
      *                  INITIALIZATION / CONSTRUCTOR
      *************************************************************************/
