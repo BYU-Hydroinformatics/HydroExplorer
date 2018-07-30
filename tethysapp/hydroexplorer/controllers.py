@@ -484,9 +484,7 @@ def catalog_servers(request):
 
 
 def delete(request):
-    '''
-    Controller for deleting a user selected HydroServer from the local database
-    '''
+
     list = {}
 
     SessionMaker = app.get_persistent_store_database(
@@ -496,19 +494,11 @@ def delete(request):
     # Query DB for hydroservers
     if request.is_ajax() and request.method == 'POST':
         title = request.POST['server']
-        spatial_dataset_engine = app.get_spatial_dataset_service(
-            'primary_geoserver', as_engine=True)
-        store_string = "catalog" + ":" + str(title)
-        # Deleting the layer on geoserver
-        spatial_dataset_engine.delete_layer(layer_id=store_string, purge=True)
-        # Deleting the store on geoserver
-        spatial_dataset_engine.delete_store(store_id=store_string, purge=True)
         hydroservers = session.query(Catalog).filter(Catalog.title == title).delete(
             synchronize_session='evaluate')  # Deleting the record from the local catalog
         session.commit()
         session.close()
 
-        # spatial_dataset_engine.delete_store(title,purge=True,debug=True)
         # Returning the deleted title. To let the user know that the particular
         # title is deleted.
         list["title"] = title
@@ -535,59 +525,6 @@ def del_catalog(request):
 
     else:
         return JsonResponse({'status':False, 'message':"POST req needed"})
-
-# Controller for adding a REST endpoint. As of today, this controller is
-# not being used in the front end. Just leaving it here for future
-# reference.
-
-
-def add_server(request):
-    return_obj = {}
-    geo_url = spatial_dataset_engine.endpoint.replace(
-        '/geoserver/rest', '') + "/geoserver/rest/"
-
-    if request.is_ajax() and request.method == 'POST':
-        url = request.POST['hs-url']
-        title = request.POST['hs-title']
-        title = title.replace(" ", "")
-        if url.endswith('/'):
-            url = url[:-1]
-
-        #cuahsi_validation_str = "cuahsi_1_1.asmx"
-        # if cuahsi_validation_str in url:
-        get_sites = url + "/GetSitesObject"
-        sites_object = parseSites(get_sites)
-
-        sites_json = json.dumps(sites_object)
-        shapefile_object = genShapeFile(sites_object, title, url)
-
-        geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
-            '/geoserver/rest', '') + "/geoserver/wms"
-        return_obj['rest_url'] = geoserver_rest_url
-        return_obj['wms'] = shapefile_object["layer"]
-        return_obj['bounds'] = shapefile_object["extents"]
-        extents_string = str(shapefile_object["extents"])
-        return_obj['title'] = title
-        return_obj['url'] = url
-        return_obj['status'] = "true"
-
-        SessionMaker = app.get_persistent_store_database(
-            Persistent_Store_Name, as_sessionmaker=True)
-        session = SessionMaker()
-        hs_one = Catalog(title=title,
-                         url=url, 
-                         geoserver_url=geoserver_rest_url, 
-                         layer_name=shapefile_object["layer"], 
-                         extents=extents_string,
-                         siteinfo=sites_json)
-        session.add(hs_one)
-        session.commit()
-        session.close()
-    else:
-        return_obj[
-            'message'] = 'This request can only be made through a "POST" AJAX call.'
-
-    return JsonResponse(return_obj)
 
 
 def add_central(request):
@@ -660,12 +597,9 @@ def soap(request):
             # Generating a shapefile from the sites object and title. Then add
             # it to the local geoserver. See utilities.py.
             shapefile_object = genShapeFile(wml_sites, title,  url)
-            geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
-                '/geoserver/rest', '') + "/geoserver/wms"
-
+          
             # The json response will have the metadata information about the
             # geoserver layer
-            return_obj['rest_url'] = geoserver_rest_url
             return_obj['wms'] = shapefile_object["layer"]
             return_obj['bounds'] = shapefile_object["extents"]
             extents_string = str(shapefile_object["extents"])
@@ -682,7 +616,7 @@ def soap(request):
             session = SessionMaker()
             hs_one = Catalog(title=title,
                              url=url, 
-                             geoserver_url=geoserver_rest_url, 
+                             geoserver_url="none", 
                              layer_name=shapefile_object["layer"],
                              extents=extents_string)  # Adding all the HydroServer geoserver layer metadata to the local database
             session.add(hs_one)
@@ -702,7 +636,6 @@ def soap(request):
             sites_parsed_json = json.dumps(sites_object)
 
             
-            return_obj['rest_url'] = geoserver_rest_url
             return_obj['title'] = title
             return_obj['url'] = url
             return_obj['siteInfo']=sites_parsed_json
@@ -713,7 +646,7 @@ def soap(request):
             session = SessionMaker()
             hs_one = Catalog(title=title,
                              url=url, 
-                             geoserver_url=geoserver_rest_url, 
+                             geoserver_url="none", 
                              layer_name="none", 
                              extents="",
                              siteinfo=sites_parsed_json)  # Adding the HydroServer geosever layer metadata to the local database

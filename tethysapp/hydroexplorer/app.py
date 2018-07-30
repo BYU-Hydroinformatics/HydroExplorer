@@ -25,11 +25,6 @@ class HydroExplorer(TethysAppBase):
             # Home Page controller. Responsible for generating a HTML elements for GLDAS, Climate Serv Modals.
             # It also finds the list of available hydroservers from
             # CUAHSI HIS central.
-            UrlMap(name='add-server',
-                   url='hydroexplorer/add-server',
-                   controller='hydroexplorer.controllers.add_server'),
-            # Create's a geoserver layer based on the HydroServer REST endpoint and
-            # add's that HydroServer metadata to a persistant store
             UrlMap(name='add-central',
                    url='hydroexplorer/add-central',
                    controller='hydroexplorer.controllers.add_central'),

@@ -41,6 +41,23 @@ $myGroup.on("show.bs.collapse", ".collapse", function() {
         false
     );
 })();
+
+function featureStyle() {
+    var style = new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 6,
+            stroke: new ol.style.Stroke({
+                color: "white",
+                width: 1
+            }),
+            fill: new ol.style.Fill({
+                color: `#${(((1 << 24) * Math.random()) | 0).toString(16)}`
+            })
+        })
+    });
+    return style;
+}
+
 var HYDROEXPLORER_PACKAGE = (function() {
     // Wrap the library in a package function
     "use strict"; // And enable strict mode for this library
@@ -381,7 +398,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
     $("#add-from-his").on("click", () => {
         let selector = $("#his_servers").find(".select2"),
             selected = selector.val();
-        $("#modalHISCentral").hide();
+        $("#modalHISCentral").modal("hide");
         $modalAddSOAP.find("#soap-url").val(selected);
     });
     //Load the data rods page as modal
@@ -497,8 +514,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     $modalDelete.find(".modal-body").html(HSTableHtml);
                 }
             },
-            error: function(XMLHttpRequest, textStatus, errorThrown) {
-                console.log(Error);
+            error: function(error) {
+                console.log(error);
             }
         });
     };
@@ -528,7 +545,6 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
     $(`#btn-del-central`).on(`click`, e => {
         let select = $("#modalDelCentral").find(".select2");
-        console.log(select.val());
         $.ajax({
             type: "POST",
             url: `${apiServer}/catalogs/delete/`,
@@ -652,9 +668,10 @@ var HYDROEXPLORER_PACKAGE = (function() {
                             sitesGeoJSON
                         )
                     });
-
+                    
                     const vectorLayer = new ol.layer.Vector({
-                        source: vectorSource
+                        source: vectorSource,
+                        style: featureStyle()
                     });
 
                     map.addLayer(vectorLayer);
@@ -669,12 +686,25 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
                     layersDict[title] = vectorLayer;
                 });
-                map.getView().fit(extent, map.getSize());
 
-                map.updateSize();
+                if (servers.length) {
+                    map.getView().fit(extent, map.getSize());
+                    map.updateSize();
+                }
             },
             error: function(error) {
                 console.log(error);
+                $.notify(
+                    {
+                        message: `Something went wrong loading the catalog. Please see the console for details.`
+                    },
+                    {
+                        type: "danger",
+                        allow_dismiss: true,
+                        z_index: 20000,
+                        delay: 5000
+                    }
+                );
             }
         });
     };
@@ -700,10 +730,18 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 delete layersDict[title];
                 map.updateSize();
                 load_catalog(); //Reloading the new catalog
-                // click_catalog();
-                $modalInterface
-                    .find(".success")
-                    .html("<b>Successfully Updated the Catalog!</b>");
+
+                $.notify(
+                    {
+                        message: `Successfully Deleted the HydroServer!`
+                    },
+                    {
+                        type: "success",
+                        allow_dismiss: true,
+                        z_index: 20000,
+                        delay: 5000
+                    }
+                );
             },
             error: error => {
                 console.log(error);
@@ -904,6 +942,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
 
     //Adding the SOAP endpoint layer to the map
     add_soap = function() {
+
         $modalInterface.find(".success").html("");
         //Validations to make sure that there are no issues with the form data
         if ($("#extent").is(":checked")) {
@@ -978,6 +1017,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
         }
         var datastring = $modalAddSOAP.serialize();
         //Submitting the data to the controller
+        $("#soapAddLoading").removeClass("hidden");
+        $("#btn-add-soap").hide();
         $.ajax({
             type: "POST",
             url: `${apiServer}/soap/`,
@@ -1038,7 +1079,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     });
 
                     const vectorLayer = new ol.layer.Vector({
-                        source: vectorSource
+                        source: vectorSource,
+                        style: featureStyle()
                     });
 
                     map.addLayer(vectorLayer);
@@ -1051,13 +1093,15 @@ var HYDROEXPLORER_PACKAGE = (function() {
                     );
 
                     layersDict[title] = vectorLayer;
+                    $("#soapAddLoading").addClass("hidden");
+                    $("#btn-add-soap").show();
 
                     $("#modalAddSoap").modal("hide");
                     $("#modalAddSoap").each(function() {
                         this.reset();
                     });
 
-                    map.getView().fit(vectorSource.getExtent(), map.getSize());
+                    // map.getView().fit(vectorSource.getExtent(), map.getSize());
 
                     $.notify(
                         {
@@ -1071,6 +1115,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                         }
                     );
                 } else {
+                    $("#soapAddLoading").addClass("hidden");
+                    $("#btn-add-soap").show();
                     $.notify(
                         {
                             message: `Failed to add server. Please check Url and try again.`
@@ -1085,6 +1131,8 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 }
             },
             error: function(error) {
+                $("#soapAddLoading").addClass("hidden");
+                $("#btn-add-soap").show();
                 console.log(error);
                 $.notify(
                     {
@@ -1100,7 +1148,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
             }
         });
     };
-    
+
     $("#btn-add-soap").on("click", add_soap);
     $("#select-his").on("click", () => {
         $("#modalHISCentral").modal({

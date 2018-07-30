@@ -1,3 +1,4 @@
+{% load staticfiles %}
 <form id="modalAddSoap" class="modal fade" action="soap/" method="POST">
     {% csrf_token %}
     <div class="modal-dialog">
@@ -22,6 +23,7 @@
                 <div id="chk_val" name="chk_val"></div>
                 <div class="warning">
                 </div>
+                <img id="soapAddLoading" class="view-file hidden" src="{% static 'hydroexplorer/images/loader.gif' %}" />
             </div>
             <div class="modal-footer">
                 <div class="button-group">

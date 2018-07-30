@@ -7,19 +7,17 @@
             </div>
             <div class="modal-body">
                 <h2>Instructions</h2>
-                <h4>Adding a HydroServer</h4>
-                <p>You can add a SOAP endpoint to an exisitng HydroServer or choose from ma list of HydroServers present in the catalogs</p>
-                <input type="button" id="load-from-soap" class="btn btn-primary" data-toggle="modal" data-target="#modalAddSoap" Value="Add HydroServer">
+                <h4>Add/Delete a HydroServer</h4>
+                <p>You can add a SOAP endpoint to an existing HydroServer or choose from a list of HydroServers present in the catalogs</p>
+                <input type="button" id="load-from-soap" class="btn btn-primary" data-toggle="modal" data-dismiss="modal" data-target="#modalAddSoap" Value="Add HydroServer">
+                <input type="button" id="delete-server" class="btn btn-danger" data-toggle="modal"  data-dismiss="modal" data-target="#modalDelete" Value="Delete HydroServer">
                 <br>
                 <h4>Add/Delete an CUAHSI Compatible Catalog Service</h4>
                 <p>You can add an endpoint to a CUAHSI Compatible Catalog Service. This would allow you to add HydroServers from the CUAHSI Compatible Catalog Service. </p>
                 <p>Please click on the Delete button if you would like to delete an existing CUAHSI Compatible Catalog Service</p>
-                <input type="button" id="add-central" class="btn btn-primary" data-toggle="modal" data-target="#addCentral" Value="Add HIS Catalog Service">
+                <input type="button" id="add-central" class="btn btn-primary"  data-dismiss="modal"data-toggle="modal" data-target="#addCentral" Value="Add HIS Catalog Service">
                 <input type="button" id="del-central" class="btn btn-danger" Value="Delete HIS Catalog Service">
-                <br>
-                <h4>Updating the Catalog</h4>
-                <p>Use the Update HS Catalog to delete any servers in the catalog. Once deleted these layers will not show up on load</p>
-                <input type="button" id="delete-server" class="btn btn-primary" data-toggle="modal" data-target="#modalDelete" Value="Update HS Catalog">
+                
                 <div class="success"></div>
             </div>
         </div>
