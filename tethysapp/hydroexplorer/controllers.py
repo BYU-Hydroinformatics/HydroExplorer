@@ -412,6 +412,7 @@ def catalog(request):
         layer_obj["title"] = server.title
         layer_obj["url"] = server.url
         layer_obj["layer_name"] = server.layer_name
+        layer_obj["siteInfo"] = server.siteinfo
         if server.extents:
             json_encoded = ast.literal_eval(server.extents)
         else:
@@ -447,32 +448,39 @@ def catalogs(request):
     return render(request, 'hydroexplorer/modals/helpers/catalog.html', {'his_catalogs': his_catalogs})
 
 
+
 def catalog_servers(request):
 
-    # Connecting to the CUAHSI HIS central to
-    # retrieve all the avaialable HydroServers.
+    # Connecting to the catalog service to
+    # retrieve all the available HydroServers.
     url = request.POST['url']
-    his_servers = []
-    his_url = url + "?WSDL"
-    client = Client(his_url)
-    service_info = client.service.GetWaterOneFlowServiceInfo()
-    services = service_info.ServiceInfo
-    for i in services:
-        try:
-            url = i.servURL.encode('utf-8')
-            title = i.Title.encode('utf-8')
-            organization = i.organization.encode('utf-8')
-            variable_str = "Title: %s, Organization: %s" % (
-                title, organization)
-            his_servers.append([variable_str, url])
-        except Exception as e:
-            print e
+    servers=[]
+    try:
+        his_url = url + "?WSDL"
+        client = Client(his_url)
+        service_info = client.service.GetWaterOneFlowServiceInfo()
+        services = service_info.ServiceInfo
+    except Exception as e:
+        # Can't use standard Suds API. Using XML directly
+        services = parseService(url)
 
-    select_his_server = SelectInput(display_text='Select HIS Server',
-                                    name="select_server", multiple=False,
-                                    options=his_servers)
+    finally:
+        for i in services:
+            try:
+                url = i['servURL'].encode('utf-8')
+                title = i['Title'].encode('utf-8')
+                organization = i['organization'].encode('utf-8')
+                variable_str = "Title: %s, Organization: %s" % (
+                    title, organization)
+                servers.append([variable_str, url])
+            except Exception as e:
+                print e
 
-    return render(request, 'hydroexplorer/modals/helpers/catalog.html', {"select_his_server": select_his_server})
+        select_his_server = SelectInput(display_text='Select HIS Server',
+                                        name="select_server", 
+                                        multiple=False,
+                                        options=servers)
+        return render(request, 'hydroexplorer/modals/helpers/catalog.html', {"select_his_server": select_his_server})
 
 
 def delete(request):
@@ -509,25 +517,24 @@ def delete(request):
 
 
 def del_catalog(request):
-    list = {}
 
     SessionMaker = app.get_persistent_store_database(
         Persistent_Store_Name, as_sessionmaker=True)
     session = SessionMaker()
 
-    # Query DB for hydroservers
     if request.is_ajax() and request.method == 'POST':
-        title = request.POST['server']
-        
-        catalogs = session.query(HISCatalog).filter(HISCatalog.title == title).delete(
-            synchronize_session='evaluate')  # Deleting the record from the local catalog
+        url = request.POST.get('catalog')
+        catalogs = session.query(HISCatalog).filter(HISCatalog.url == url).delete()  
         session.commit()
         session.close()
 
-        # Returning the deleted title. To let the user know that the particular
-        # title is deleted.
-        list["title"] = title
-    return JsonResponse(list)
+        if catalogs == 1:
+            return JsonResponse({'serverUrl': url, 'status':True, 'message':"Deleted Successfully"})
+        else:
+            return JsonResponse({'serverUrl': url, 'status':False, 'message':"Not located in Database."})
+
+    else:
+        return JsonResponse({'status':False, 'message':"POST req needed"})
 
 # Controller for adding a REST endpoint. As of today, this controller is
 # not being used in the front end. Just leaving it here for future
@@ -550,6 +557,8 @@ def add_server(request):
         # if cuahsi_validation_str in url:
         get_sites = url + "/GetSitesObject"
         sites_object = parseSites(get_sites)
+
+        sites_json = json.dumps(sites_object)
         shapefile_object = genShapeFile(sites_object, title, url)
 
         geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
@@ -566,7 +575,11 @@ def add_server(request):
             Persistent_Store_Name, as_sessionmaker=True)
         session = SessionMaker()
         hs_one = Catalog(title=title,
-                         url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"], extents=extents_string)
+                         url=url, 
+                         geoserver_url=geoserver_rest_url, 
+                         layer_name=shapefile_object["layer"], 
+                         extents=extents_string,
+                         siteinfo=sites_json)
         session.add(hs_one)
         session.commit()
         session.close()
@@ -612,17 +625,10 @@ def add_central(request):
 
 
 def soap(request):
-    '''
-    Controller for adding a SOAP endpoint
-    '''
     return_obj = {}
     if request.is_ajax() and request.method == 'POST':
 
-        logging.getLogger('suds.client').setLevel(logging.CRITICAL)
-
-        geo_url = spatial_dataset_engine.endpoint.replace(
-            '/geoserver/rest', '') + "/geoserver/rest/"
-
+     
         # Defining variables based on the POST request
         url = request.POST['soap-url']
         title = request.POST['soap-title']
@@ -631,7 +637,6 @@ def soap(request):
         true_extent = request.POST.get('extent')
 
         client = Client(url)  # Connecting to the endpoint using SUDS
-
         # True Extent is on and necessary if the user is trying to add USGS or
         # some of the bigger HydroServers.
         if true_extent == 'on':
@@ -676,8 +681,9 @@ def soap(request):
                 Persistent_Store_Name, as_sessionmaker=True)
             session = SessionMaker()
             hs_one = Catalog(title=title,
-                             url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object[
-                                 "layer"],
+                             url=url, 
+                             geoserver_url=geoserver_rest_url, 
+                             layer_name=shapefile_object["layer"],
                              extents=extents_string)  # Adding all the HydroServer geoserver layer metadata to the local database
             session.add(hs_one)
             session.commit()
@@ -689,31 +695,28 @@ def soap(request):
             sites = client.service.GetSites('[:]')
             sites_dict = xmltodict.parse(sites)
             sites_json_object = json.dumps(sites_dict)
+
             sites_json = json.loads(sites_json_object)
             # Parsing the sites and creating a sites object. See utilities.py
             sites_object = parseJSON(sites_json)
-            # Generate a shapefile from the sites object and title. Then add it
-            # to the geoserver.
-            shapefile_object = genShapeFile(sites_object, title, url)
+            sites_parsed_json = json.dumps(sites_object)
 
-            geoserver_rest_url = spatial_dataset_engine.endpoint.replace(
-                '/geoserver/rest', '') + "/geoserver/wms"
-
-            # The json response will have the metadata information about the
-            # geoserver layer
+            
             return_obj['rest_url'] = geoserver_rest_url
-            return_obj['wms'] = shapefile_object["layer"]
-            return_obj['bounds'] = shapefile_object["extents"]
-            extents_string = str(shapefile_object["extents"])
             return_obj['title'] = title
             return_obj['url'] = url
+            return_obj['siteInfo']=sites_parsed_json
             return_obj['status'] = "true"
 
             SessionMaker = app.get_persistent_store_database(
                 Persistent_Store_Name, as_sessionmaker=True)
             session = SessionMaker()
             hs_one = Catalog(title=title,
-                             url=url, geoserver_url=geoserver_rest_url, layer_name=shapefile_object["layer"], extents=extents_string)  # Adding the HydroServer geosever layer metadata to the local database
+                             url=url, 
+                             geoserver_url=geoserver_rest_url, 
+                             layer_name="none", 
+                             extents="",
+                             siteinfo=sites_parsed_json)  # Adding the HydroServer geosever layer metadata to the local database
             session.add(hs_one)
             session.commit()
             session.close()

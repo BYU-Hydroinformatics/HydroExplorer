@@ -48,10 +48,31 @@ def checkCentral(centralUrl):
 
     return response.getcode() == 200
 
+def parseService(centralUrl):
+    url = centralUrl + "/GetWaterOneFlowServiceInfo"
+    response = urllib2.urlopen(url)
+    data = response.read()
+    parse_xml = et.fromstring(data)
+    
+    services=[]
+    for item in parse_xml:
+        newService = {}
+ 
+        for child in item:    
+            if child.tag == '{http://hiscentral.cuahsi.org/20100205/}servURL':
+                newService['servURL'] = child.text
+            if child.tag == '{http://hiscentral.cuahsi.org/20100205/}Title':
+                newService['Title'] = child.text
+            if child.tag == '{http://hiscentral.cuahsi.org/20100205/}organization':
+                newService['organization'] = child.text
+ 
+        services.append(newService)
+    
+    return services
+
+
 # Function for parsing a raw xml file. This function is not really used as
 # REST is not supported.
-
-
 def parseSites(xml):
     response = urllib2.urlopen(xml)
     data = response.read()
@@ -334,8 +355,6 @@ def genShapeFile(input, title, hs_url):
         # Returning the layer name and the extents for that layer. This data
         # will be used to add the geoserver layer to the openlayers3 map.
         layer_metadata["layer"] = store_id
-
-        print result['result']['latlon_bbox']
 
         layer_metadata["extents"] = {
             "minx": result['result']['latlon_bbox'][0],

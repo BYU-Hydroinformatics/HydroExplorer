@@ -128,12 +128,15 @@ $ docker restart tethys_geoserver
 
 ### Added
 - Modularized the home template by breaking all the Modals apart
+- Ability to add/delete a CUAHSI Compatible Catalog Service
 
 ### Changed
 - Map cleaned up and expanded to fill up the whole screen
 - Moved List of Hydroservers to top actions bar
 - Fix CSV Download
 - ReadMe
+- Fetch list of hydroservers from catalog dynamically
+
 
 ### Removed
 - Dependencies on local HighCharts

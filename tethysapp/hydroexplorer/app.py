@@ -73,7 +73,7 @@ class HydroExplorer(TethysAppBase):
                    url='hydroexplorer/catalog/servers',
                    controller='hydroexplorer.controllers.catalog_servers'),
             UrlMap(name='delete-catalog',
-                   url='hydroexplorer/catalog/delete',
+                   url='hydroexplorer/catalogs/delete',
                    controller='hydroexplorer.controllers.del_catalog'),
 
 
