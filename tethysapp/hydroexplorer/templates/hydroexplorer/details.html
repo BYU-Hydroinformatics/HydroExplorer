@@ -5,32 +5,15 @@
 {% block app_content %}
 <h4>Site Details for {{site_name}}</h4>
 <p>Site Code: {{site_code}}</p>
-<p>Service: {{service}}</p>
 <div class="warning">
 </div>
 <div id="domMessage" style="display:none;">
-    <h1>We are processing your request.  Please be patient.</h1>
+    <h3>We are processing your request.  Please be patient.</h3>
 </div>
 {% if error_message != None %}
-    <h1 style="color:red">{{error_message}}</h1>
-    {% endif %}
-
-<!-- This code will be functional once the REST endpoints are enabled again-->
-{% if rest %}
-{% gizmo select_input select_variable %}
-<button id="generate-graph" class="btn btn-primary">Generate Graph</button>
-
-<div>
-    <div class="chart-wrapper">
-        <div class="chart-inner">
-            <div id="container" style="height:275px;width:90%"></div>
-        </div>
-    </div>
-</div>
+<h3 style="color:red">{{error_message}}</h3>
 {% endif %}
 
-<!-- This segment triggers the timeseries plot of the SOAP endpoint-->
-{% if soap %}
 <form id="soap_variable" action="/apps/hydroexplorer/soap-api/" method="POST">
     {% csrf_token %}
 
@@ -48,7 +31,6 @@
         </div>
     </div>
 </form>
-{% endif %}
 
 <!-- Hiding the default tehtys styling-->
 {% if hidenav %}

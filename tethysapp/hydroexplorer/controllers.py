@@ -393,9 +393,6 @@ def his(request):
 
 
 def catalog(request):
-    '''
-    Controller for retrieving the list of available HydroServers in the local database.
-    '''
     list = {}
 
     SessionMaker = app.get_persistent_store_database(
@@ -410,7 +407,7 @@ def catalog(request):
         layer_obj = {}
         layer_obj["geoserver_url"] = server.geoserver_url
         layer_obj["title"] = server.title
-        layer_obj["url"] = server.url
+        layer_obj["url"] = server.url.strip()
         layer_obj["layer_name"] = server.layer_name
         layer_obj["siteInfo"] = server.siteinfo
         if server.extents:
@@ -669,355 +666,191 @@ def error(request):
 def details(request):
     # Defining the variables for site name, site code, network and hydroserver
     # url.
-    site_name = request.GET['sitename']
-    site_code = request.GET['sitecode']
-    network = request.GET['network']
-    hs_url = request.GET['hsurl']
-    hidenav = request.GET['hidenav']
-    service = request.GET['service']
-    rest = None
-    soap = None
+    site_name = request.GET.get('sitename')
+    site_code = request.GET.get('sitecode')
+    network = request.GET.get('network')
+    hs_url = request.GET.get('hsurl')
+    hidenav = request.GET.get('hidenav')
     error_message = None
+    select_soap_variable = []
+    select_variable = []
+    graphs_object = {}
 
-    # REST not really supported. I wont explain this code.
-    if service == 'REST':
-        if hs_url.endswith(''):
-            hs_url = hs_url + "/"
-        site_object = network + ":" + site_code
-        rest = service
-        get_site_info_url = hs_url + "GetSiteInfoObject?site=" + site_object
-        site_info_response = urllib2.urlopen(get_site_info_url)
-        site_info_data = site_info_response.read()
-        site_info_dict = xmltodict.parse(site_info_data)
-        site_info_json_object = json.dumps(site_info_dict)
-        site_info_json = json.loads(site_info_json_object)
+    soap_obj = {}  # soap_obj json dictionary is used so that part of the important metadata can be stored as a session object
+    soap_obj["url"] = hs_url
 
-        start_date = "00-00-00"
-        # variable_series[0]['variableTimeInterval']['beginDateTime'][:-9]
 
-        end_date = "3000-01-01"
-        # variable_series[0]['variableTimeInterval']['endDateTime'][:-9]
+    client = Client(hs_url)  # Connecting to the HydroServer via suds
+    client.set_options(port='WaterOneFlow')
+    site_desc = network + ":" + site_code
+    soap_obj["site"] = site_desc
+    soap_obj["network"] = network
+    site_info = client.service.GetSiteInfo(site_desc)  # Get site info
+    # Encoding is necessary for making sure that this thing works for sites
+    # with weird characters
 
-        site_values_url = hs_url + "GetValuesForASiteObject?site=" + \
-            site_object + "&startDate=" + start_date + "&endDate=" + end_date
+    site_info = site_info.encode('utf-8')
+    # Converting xml2dict to make it easier to parse
+    info_dict = xmltodict.parse(site_info)
+    # Converting the dict to a json object
+    info_json_object = json.dumps(info_dict)
+    info_json = json.loads(info_json_object)
 
-        site_values_response = urllib2.urlopen(site_values_url)
-        site_values_data = site_values_response.read()
-        xml_str = str(site_values_data)
-        site_values_dict = xmltodict.parse(xml_str)
-        site_values_json_object = json.dumps(site_values_dict)
-        site_values_json = json.loads(site_values_json_object)
+    site_variables = []
+    site_object_info = info_json['sitesResponse']['site']['seriesCatalog']
 
-        times_series = site_values_json['timeSeriesResponse']['timeSeries']
+    # This exception was necessary as there were some sites with no data
+    try:
+        site_object = info_json['sitesResponse']['site']['seriesCatalog']['series']
+    except KeyError:
+        error_message = "Site Details do not exist"
+        context = {"site_name": site_name, "site_code": site_code,
+                   "service": "SOAP", "error_message": error_message}
+        return render(request, 'hydroexplorer/error.html', context)
+    graph_variables = []  # List for storing all avaiable variables
+    var_json = []  # List for storing the variable metadata such as the date range for the data for that variable
 
-        graphs = []
-        nodata_message = None
-        if type(times_series) is list:
-            for i in times_series:
-                if i['values'] is not None:
-                    graph_json = {}
-                    graph_json["variable"] = i['variable']['variableName']
-                    graph_json["unit"] = i['variable'][
-                        'unit']['unitAbbreviation']
-                    graph_json["title"] = site_name + \
-                        ':' + i['variable']['variableName']
-                    for j in i['values']:
-                        data_values = []
-                        if j == "value":
-                            if type((i['values']['value'])) is list:
-                                for k in i['values']['value']:
-                                    time = k['@dateTimeUTC']
-                                    time1 = time.replace("T", "-")
-                                    time_split = time1.split("-")
-                                    year = int(time_split[0])
-                                    month = int(time_split[1])
-                                    day = int(time_split[2])
-                                    hour_minute = time_split[3].split(":")
-                                    hour = int(hour_minute[0])
-                                    minute = int(hour_minute[1])
-                                    value = float(str(k['#text']))
-                                    date_string = datetime(
-                                        year, month, day, hour, minute)
-                                    time_stamp = calendar.timegm(
-                                        date_string.utctimetuple()) * 1000
-                                    data_values.append([time_stamp, value])
-                                    data_values.sort()
-                                graph_json["values"] = data_values
-                            else:
-                                time = i['values']['value']['@dateTimeUTC']
-                                time1 = time.replace("T", "-")
-                                time_split = time1.split("-")
-                                year = int(time_split[0])
-                                month = int(time_split[1])
-                                day = int(time_split[2])
-                                hour_minute = time_split[3].split(":")
-                                hour = int(hour_minute[0])
-                                minute = int(hour_minute[1])
-                                value = float(
-                                    str(i['values']['value']['#text']))
-                                date_string = datetime(
-                                    year, month, day, hour, minute)
-                                time_stamp = calendar.timegm(
-                                    date_string.utctimetuple()) * 1000
-                                data_values.append([time_stamp, value])
-                                data_values.sort()
-                                graph_json["values"] = data_values
-                    graphs.append(graph_json)
-        else:
-            if times_series['values'] is not None:
-                graph_json = {}
-                graph_json["variable"] = times_series[
-                    'variable']['variableName']
-                graph_json["unit"] = times_series[
-                    'variable']['unit']['unitAbbreviation']
-                graph_json["title"] = site_name + ':' + \
-                    times_series['variable']['variableName']
-                for j in times_series['values']:
-                    data_values = []
-                    if j == "value":
-                        if type((times_series['values']['value'])) is list:
-                            for k in times_series['values']['value']:
-                                time = k['@dateTimeUTC']
-                                time1 = time.replace("T", "-")
-                                time_split = time1.split("-")
-                                year = int(time_split[0])
-                                month = int(time_split[1])
-                                day = int(time_split[2])
-                                hour_minute = time_split[3].split(":")
-                                hour = int(hour_minute[0])
-                                minute = int(hour_minute[1])
-                                value = float(str(k['#text']))
-                                date_string = datetime(
-                                    year, month, day, hour, minute)
-                                time_stamp = calendar.timegm(
-                                    date_string.utctimetuple()) * 1000
-                                data_values.append([time_stamp, value])
-                                data_values.sort()
-                            graph_json["values"] = data_values
-                        else:
-                            time = times_series['values'][
-                                'value']['@dateTimeUTC']
-                            time1 = time.replace("T", "-")
-                            time_split = time1.split("-")
-                            year = int(time_split[0])
-                            month = int(time_split[1])
-                            day = int(time_split[2])
-                            hour_minute = time_split[3].split(":")
-                            hour = int(hour_minute[0])
-                            minute = int(hour_minute[1])
-                            value = float(
-                                str(times_series['values']['value']['#text']))
-                            date_string = datetime(
-                                year, month, day, hour, minute)
-                            time_stamp = calendar.timegm(
-                                date_string.utctimetuple()) * 1000
-                            data_values.append([time_stamp, value])
-                            data_values.sort()
-                            graph_json["values"] = data_values
-                graphs.append(graph_json)
-            else:
-                nodata_message = "There is no data for this Site"
-                context = {"nodate_message": nodata_message, "site_name": site_name,
-                           "site_code": site_code, "service": service}
-                return render(request, 'hydroexplorer/error.html', context)
+    # Check if there are multiple variables in the selected site
+    if type(site_object) is list:
+        count = 0
+        for i in site_object:
+            var_obj = {}  # var_obj json dictionary is used so that the variable selected by the user can be retrieved as a session object
+            count = count + 1
 
-        graphs_object = {}
-        graphs_object["graph"] = graphs
-        graph_variables = []
-        for var in graphs_object["graph"]:
-            graph_variables.append([var["variable"], var["variable"]])
-
-        select_variable = SelectInput(
-            display_text='Select variable', name="select_var", multiple=False, options=graph_variables)
-        select_soap_variable = []
-
-        json.JSONEncoder.default = lambda self, obj: (
-            obj.isoformat() if isinstance(obj, datetime) else None)
-        request.session['graphs_object'] = graphs_object
-        soap_obj = {}
-        t_now = datetime.now()
-        start_date = {}
-        end_date = {}
-
-    if service == 'SOAP':
-        soap_obj = {}  # soap_obj json dictionary is used so that part of the important metadata can be stored as a session object
-        soap = service
-        soap_obj["url"] = hs_url
-
-        client = Client(hs_url)  # Connecting to the HydroServer via suds
-        client.set_options(port='WaterOneFlow')
-        site_desc = network + ":" + site_code
-        soap_obj["site"] = site_desc
-        soap_obj["network"] = network
-        site_info = client.service.GetSiteInfo(site_desc)  # Get site info
-        # Encoding is necessary for making sure that this thing works for sites
-        # with weird characters
-
-        site_info = site_info.encode('utf-8')
-        # Converting xml2dict to make it easier to parse
-        info_dict = xmltodict.parse(site_info)
-        # Converting the dict to a json object
-        info_json_object = json.dumps(info_dict)
-        info_json = json.loads(info_json_object)
-        site_variables = []
-        site_object_info = info_json['sitesResponse']['site']['seriesCatalog']
-
-        # This exception was necessary as there were some sites with no data
-        try:
-            site_object = info_json['sitesResponse'][
-                'site']['seriesCatalog']['series']
-        except KeyError:
-            error_message = "Site Details do not exist"
-            context = {"site_name": site_name, "site_code": site_code,
-                       "service": service, "error_message": error_message}
-            return render(request, 'hydroexplorer/error.html', context)
-        graph_variables = []  # List for storing all avaiable variables
-        var_json = []  # List for storing the variable metadata such as the date range for the data for that variable
-
-        # Check if there are multiple variables in the selected site
-        if type(site_object) is list:
-            count = 0
-            for i in site_object:
-                var_obj = {}  # var_obj json dictionary is used so that the variable selected by the user can be retrieved as a session object
-                count = count + 1
-
-                variable_name = i['variable']['variableName']
-                variable_id = i['variable']['variableCode']['@variableID']
-                variable_text = i['variable']['variableCode']['#text']
-                var_obj["variableName"] = variable_name
-                var_obj["variableID"] = variable_id
-                # value_type = i['variable']['valueType']
-                value_count = i['valueCount']
-                # data_type = i['variable']['dataType']
-                # unit_name = i['variable']['unit']['unitName']
-                # unit_type = i['variable']['unit']['unitType']
-                # unit_abbr = i['variable']['unit']['unitAbbreviation']
-                # unit_code = i['variable']['unit']['unitCode']
-                # time_support = i['variable']['timeScale']['timeSupport']
-                # time_support_name = i['variable']['timeScale']['unit']['unitName']
-                # time_support_type = i['variable']['timeScale']['unit']['unitAbbreviation']
-                begin_time = i["variableTimeInterval"]["beginDateTimeUTC"]
-                begin_time = begin_time.split("T")
-                begin_time = str(begin_time[0])
-                end_time = i["variableTimeInterval"]["endDateTimeUTC"]
-                end_time = end_time.split("T")
-                end_time = str(end_time[0])
-                var_obj["startDate"] = begin_time
-                var_obj["endDate"] = end_time
-                # print begin_time,end_time
-                method_id = i["method"]["@methodID"]
-                # method_desc = i["method"]["methodDescription"]
-                # source_id = i["source"]["@sourceID"]
-                # source_org = i["source"]["organization"]
-                # source_desc = i["source"]["sourceDescription"]
-                # qc_code = i["qualityControlLevel"]["qualityControlLevelCode"]
-                # qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
-                # qc_definition = i["qualityControlLevel"]["definition"]
-                # print variable_name,variable_id, source_id,method_id, qc_code
-                # Generating the string that the user sees
-                variable_string = str(
-                    count) + '. Variable Name:' + variable_name + ',' + 'Count: ' + value_count + ',Variable ID:' + variable_id + ', Start Date:' + begin_time + ', End Date:' + end_time
-                # value_string = variable_id,variable_text,source_id,method_id,qc_code, variable_name
-                value_list = [variable_text, method_id]
-                value_string = str(value_list)
-                # Creating a list of lists. The graph variables list will be
-                # used for generating a select variable dropdown.
-                graph_variables.append([variable_string, value_string])
-                # Adding all the important variable metadata to a json object,
-                # so that it can be retrieved later through request.session
-                var_json.append(var_obj)
-
-        else:
-            # If there is a single variable do the following. The struture is
-            # slightly different if there is only one variable in the site.
-            # Thus this method is implemented
-            var_obj = {}
-            variable_name = site_object['variable']['variableName']
-            variable_id = site_object['variable'][
-                'variableCode']['@variableID']
-            variable_text = site_object['variable']['variableCode']['#text']
-            value_count = site_object['valueCount']
-
-            # value_type = site_object['variable']['valueType']
-            # data_type = site_object['variable']['dataType']
-            # unit_name = site_object['variable']['unit']['unitName']
-            # unit_type = site_object['variable']['unit']['unitType']
-            # unit_abbr = site_object['variable']['unit']['unitAbbreviation']
-            # unit_code = site_object['variable']['unit']['unitCode']
-            # time_support = site_object['variable']['timeScale']['timeSupport']
-            # time_support_name = site_object['variable']['timeScale']['unit']['unitName']
-            # time_support_type = site_object['variable']['timeScale']['unit']['unitAbbreviation']
-            begin_time = site_object[
-                "variableTimeInterval"]["beginDateTimeUTC"]
-            begin_time = begin_time.split("T")
-            begin_time = str(begin_time[0])
-            end_time = site_object["variableTimeInterval"]["endDateTimeUTC"]
-            end_time = end_time.split("T")
-            end_time = str(end_time[0])
-            method_id = site_object["method"]["@methodID"]
-            # method_desc = site_object["method"]["methodDescription"]
-            # source_id = site_object["source"]["@sourceID"]
-            # source_org = site_object["source"]["organization"]
-            # source_desc = site_object["source"]["sourceDescription"]
-            # qc_code = site_object["qualityControlLevel"]["qualityControlLevelCode"]
-            # qc_id = site_object["qualityControlLevel"]["@qualityControlLevelID"]
-            # qc_definition = site_object["qualityControlLevel"]["definition"]
-            variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: ' + value_count + \
-                ',Variable ID:' + variable_id + ', Start Date:' + \
-                begin_time + ', End Date:' + end_time
-            # print variable_name, variable_id, source_id, method_id, qc_code
-            value_list = [variable_text, method_id]
-            value_string = str(value_list)
+            variable_name = i['variable']['variableName']
+            variable_id = i['variable']['variableCode']['@variableID']
+            variable_text = i['variable']['variableCode']['#text']
             var_obj["variableName"] = variable_name
             var_obj["variableID"] = variable_id
+            # value_type = i['variable']['valueType']
+            value_count = i['valueCount']
+            # data_type = i['variable']['dataType']
+            # unit_name = i['variable']['unit']['unitName']
+            # unit_type = i['variable']['unit']['unitType']
+            # unit_abbr = i['variable']['unit']['unitAbbreviation']
+            # unit_code = i['variable']['unit']['unitCode']
+            # time_support = i['variable']['timeScale']['timeSupport']
+            # time_support_name = i['variable']['timeScale']['unit']['unitName']
+            # time_support_type = i['variable']['timeScale']['unit']['unitAbbreviation']
+            begin_time = i["variableTimeInterval"]["beginDateTimeUTC"]
+            begin_time = begin_time.split("T")
+            begin_time = str(begin_time[0])
+            end_time = i["variableTimeInterval"]["endDateTimeUTC"]
+            end_time = end_time.split("T")
+            end_time = str(end_time[0])
             var_obj["startDate"] = begin_time
             var_obj["endDate"] = end_time
-            # Adding the variable metadata to a json object so that it can
-            # retrieved using request.session
-            var_json.append(var_obj)
-            # Appending the solo variable to the empty list. This will be used
-            # to generate the dropdown.
+            # print begin_time,end_time
+            method_id = i["method"]["@methodID"]
+            # method_desc = i["method"]["methodDescription"]
+            # source_id = i["source"]["@sourceID"]
+            # source_org = i["source"]["organization"]
+            # source_desc = i["source"]["sourceDescription"]
+            # qc_code = i["qualityControlLevel"]["qualityControlLevelCode"]
+            # qc_id = i["qualityControlLevel"]["@qualityControlLevelID"]
+            # qc_definition = i["qualityControlLevel"]["definition"]
+            # print variable_name,variable_id, source_id,method_id, qc_code
+            # Generating the string that the user sees
+            variable_string = str(
+                count) + '. Variable Name:' + variable_name + ',' + 'Count: ' + value_count + ',Variable ID:' + variable_id + ', Start Date:' + begin_time + ', End Date:' + end_time
+            # value_string = variable_id,variable_text,source_id,method_id,qc_code, variable_name
+            value_list = [variable_text, method_id]
+            value_string = str(value_list)
+            # Creating a list of lists. The graph variables list will be
+            # used for generating a select variable dropdown.
             graph_variables.append([variable_string, value_string])
+            # Adding all the important variable metadata to a json object,
+            # so that it can be retrieved later through request.session
+            var_json.append(var_obj)
 
-        # print site_values
-        # values = client.service.GetSiteInfo(site_desc)
-        # print values
-        select_soap_variable = SelectInput(display_text='Select Variable', name="select_var", multiple=False,
-                                           options=graph_variables)  # Dropdown object for selecting a soap variable
+    else:
+        # If there is a single variable do the following. The struture is
+        # slightly different if there is only one variable in the site.
+        # Thus this method is implemented
+        var_obj = {}
+        variable_name = site_object['variable']['variableName']
+        variable_id = site_object['variable'][
+            'variableCode']['@variableID']
+        variable_text = site_object['variable']['variableCode']['#text']
+        value_count = site_object['valueCount']
 
-        t_now = datetime.now()
-        now_str = "{0}-{1}-{2}".format(t_now.year,
-                                       check_digit(t_now.month), check_digit(t_now.day))
-        start_date = DatePicker(name='start_date',
-                                display_text='Start Date',
-                                autoclose=True,
-                                format='yyyy-mm-dd',
-                                start_view='month',
-                                today_button=True,
-                                initial=now_str)  # Datepicker object for selecting the start date. This simply initializes the datepicker. The actual validation is done directly through JavaScript.
-        end_date = DatePicker(name='end_date',
-                              display_text='End Date',
-                              autoclose=True,
-                              format='yyyy-mm-dd',
-                              start_view='month',
-                              today_button=True,
-                              initial=now_str)  # Datepicker object for selecting the end date. Same as above.
+        # value_type = site_object['variable']['valueType']
+        # data_type = site_object['variable']['dataType']
+        # unit_name = site_object['variable']['unit']['unitName']
+        # unit_type = site_object['variable']['unit']['unitType']
+        # unit_abbr = site_object['variable']['unit']['unitAbbreviation']
+        # unit_code = site_object['variable']['unit']['unitCode']
+        # time_support = site_object['variable']['timeScale']['timeSupport']
+        # time_support_name = site_object['variable']['timeScale']['unit']['unitName']
+        # time_support_type = site_object['variable']['timeScale']['unit']['unitAbbreviation']
+        begin_time = site_object[
+            "variableTimeInterval"]["beginDateTimeUTC"]
+        begin_time = begin_time.split("T")
+        begin_time = str(begin_time[0])
+        end_time = site_object["variableTimeInterval"]["endDateTimeUTC"]
+        end_time = end_time.split("T")
+        end_time = str(end_time[0])
+        method_id = site_object["method"]["@methodID"]
+        # method_desc = site_object["method"]["methodDescription"]
+        # source_id = site_object["source"]["@sourceID"]
+        # source_org = site_object["source"]["organization"]
+        # source_desc = site_object["source"]["sourceDescription"]
+        # qc_code = site_object["qualityControlLevel"]["qualityControlLevelCode"]
+        # qc_id = site_object["qualityControlLevel"]["@qualityControlLevelID"]
+        # qc_definition = site_object["qualityControlLevel"]["definition"]
+        variable_string = '1. Variable Name:' + variable_name + ',' + 'Count: ' + value_count + \
+            ',Variable ID:' + variable_id + ', Start Date:' + \
+            begin_time + ', End Date:' + end_time
+        # print variable_name, variable_id, source_id, method_id, qc_code
+        value_list = [variable_text, method_id]
+        value_string = str(value_list)
+        var_obj["variableName"] = variable_name
+        var_obj["variableID"] = variable_id
+        var_obj["startDate"] = begin_time
+        var_obj["endDate"] = end_time
+        # Adding the variable metadata to a json object so that it can
+        # retrieved using request.session
+        var_json.append(var_obj)
+        # Appending the solo variable to the empty list. This will be used
+        # to generate the dropdown.
+        graph_variables.append([variable_string, value_string])
 
-        select_variable = []
-        graphs_object = {}
-        json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(
-            obj, datetime) else None)  # Encoding everything so that it can be retrieved as session object
-        soap_obj["var_list"] = var_json
-        # Saving the var_json as a session obj
-        request.session['soap_obj'] = soap_obj
+    # print site_values
+    # values = client.service.GetSiteInfo(site_desc)
+    # print values
+    select_soap_variable = SelectInput(display_text='Select Variable', name="select_var", multiple=False,
+                                       options=graph_variables)  # Dropdown object for selecting a soap variable
+
+    t_now = datetime.now()
+    now_str = "{0}-{1}-{2}".format(t_now.year,
+                                   check_digit(t_now.month), check_digit(t_now.day))
+    start_date = DatePicker(name='start_date',
+                            display_text='Start Date',
+                            autoclose=True,
+                            format='yyyy-mm-dd',
+                            start_view='month',
+                            today_button=True,
+                            initial=now_str)  # Datepicker object for selecting the start date. This simply initializes the datepicker. The actual validation is done directly through JavaScript.
+    end_date = DatePicker(name='end_date',
+                          display_text='End Date',
+                          autoclose=True,
+                          format='yyyy-mm-dd',
+                          start_view='month',
+                          today_button=True,
+                          initial=now_str)  # Datepicker object for selecting the end date. Same as above.
+
+    select_variable = []
+    graphs_object = {}
+    json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(
+        obj, datetime) else None)  # Encoding everything so that it can be retrieved as session object
+    soap_obj["var_list"] = var_json
+    # Saving the var_json as a session obj
+    request.session['soap_obj'] = soap_obj
 
     context = {"site_name": site_name,
                "site_code": site_code,
                "network": network,
                "hs_url": hs_url,
-               "service": service,
-               "rest": rest,
-               "soap": soap,
                "hidenav": hidenav,
                "select_soap_variable": select_soap_variable,
                "select_variable": select_variable,
