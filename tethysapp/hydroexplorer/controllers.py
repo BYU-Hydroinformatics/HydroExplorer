@@ -41,10 +41,6 @@ Persistent_Store_Name = 'catalog_db'
 
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
-spatial_dataset_engine = app.get_spatial_dataset_service(
-    'primary_geoserver', as_engine=True)
-
-
 def home(request):
     """
     Controller for the app home page.
@@ -405,16 +401,9 @@ def catalog(request):
     hs_list = []
     for server in hydroservers:
         layer_obj = {}
-        layer_obj["geoserver_url"] = server.geoserver_url
         layer_obj["title"] = server.title
         layer_obj["url"] = server.url.strip()
-        layer_obj["layer_name"] = server.layer_name
         layer_obj["siteInfo"] = server.siteinfo
-        if server.extents:
-            json_encoded = ast.literal_eval(server.extents)
-        else:
-            json_encoded = ""
-        layer_obj["extents"] = json_encoded
 
         hs_list.append(layer_obj)
     # A json list object with the HydroServer metadata. This object will be
@@ -562,15 +551,13 @@ def soap(request):
     return_obj = {}
     if request.is_ajax() and request.method == 'POST':
 
-     
-        # Defining variables based on the POST request
-        url = request.POST['soap-url']
-        title = request.POST['soap-title']
+        url = request.POST.get('soap-url')
+        title = request.POST.get('soap-title')
         title = title.replace(" ", "")
         # Getting the current map extent
         true_extent = request.POST.get('extent')
 
-        client = Client(url)  # Connecting to the endpoint using SUDS
+        client = Client(url)
         # True Extent is on and necessary if the user is trying to add USGS or
         # some of the bigger HydroServers.
         if true_extent == 'on':
@@ -586,36 +573,26 @@ def soap(request):
             x1, y1 = transform(inProj, outProj, minx, miny)
             x2, y2 = transform(inProj, outProj, maxx, maxy)
             bbox = client.service.GetSitesByBoxObject(
-                x1, y1, x2, y2, '1', '')  # Get Sites by bounding box using suds
+                x1, y1, x2, y2, '1', '') 
+                 # Get Sites by bounding box using suds
             # Creating a sites object from the endpoint. This site object will
             # be used to generate the geoserver layer. See utilities.py.
             wml_sites = parseWML(bbox)
 
-            # Generating a shapefile from the sites object and title. Then add
-            # it to the local geoserver. See utilities.py.
-            shapefile_object = genShapeFile(wml_sites, title,  url)
-          
-            # The json response will have the metadata information about the
-            # geoserver layer
-            return_obj['wms'] = shapefile_object["layer"]
-            return_obj['bounds'] = shapefile_object["extents"]
-            extents_string = str(shapefile_object["extents"])
+            sites_parsed_json = json.dumps(wml_sites)
 
-            # extents_dict = xmltodict.parse(extents_string)
-            # extents_json_object = json.dumps(extents_dict)
-            # extents_json = json.loads(extents_json_object)
-
+            
             return_obj['title'] = title
             return_obj['url'] = url
+            return_obj['siteInfo']=sites_parsed_json
             return_obj['status'] = "true"
+
             SessionMaker = app.get_persistent_store_database(
                 Persistent_Store_Name, as_sessionmaker=True)
             session = SessionMaker()
             hs_one = Catalog(title=title,
                              url=url, 
-                             geoserver_url="none", 
-                             layer_name=shapefile_object["layer"],
-                             extents=extents_string)  # Adding all the HydroServer geoserver layer metadata to the local database
+                             siteinfo=sites_parsed_json)  # Adding the HydroServer geosever layer metadata to the local database
             session.add(hs_one)
             session.commit()
             session.close()
@@ -632,7 +609,6 @@ def soap(request):
             sites_object = parseJSON(sites_json)
             sites_parsed_json = json.dumps(sites_object)
 
-            
             return_obj['title'] = title
             return_obj['url'] = url
             return_obj['siteInfo']=sites_parsed_json
@@ -643,10 +619,7 @@ def soap(request):
             session = SessionMaker()
             hs_one = Catalog(title=title,
                              url=url, 
-                             geoserver_url="none", 
-                             layer_name="none", 
-                             extents="",
-                             siteinfo=sites_parsed_json)  # Adding the HydroServer geosever layer metadata to the local database
+                             siteinfo=sites_parsed_json)
             session.add(hs_one)
             session.commit()
             session.close()

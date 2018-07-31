@@ -78,7 +78,6 @@ var HYDROEXPLORER_PACKAGE = (function() {
      *                    PRIVATE FUNCTION DECLARATIONS
      *************************************************************************/
     var addContextMenuToListItem,
-        add_server,
         add_soap,
         addDefaultBehaviorToAjax,
         checkCsrfSafe,
@@ -747,110 +746,6 @@ var HYDROEXPLORER_PACKAGE = (function() {
         })
     }
     $("#btn-del-server").on("click", update_catalog)
-    //Adding a REST endpoint. Obsolete for now. Can be put enabled to allow REST layers.
-    add_server = function() {
-        var datastring = $modalAddHS.serialize()
-        if ($("#hs-title").val() == "") {
-            $modalAddSOAP
-                .find(".warning")
-                .html(
-                    "<b>Please enter a title. This field cannot be blank.</b>"
-                )
-            return false
-        } else {
-            $modalAddSOAP.find(".warning").html("")
-        }
-        if ($("#hs-url").val() == "") {
-            $modalAddSOAP
-                .find(".warning")
-                .html(
-                    "<b>Please enter a valid URL. This field cannot be blank.</b>"
-                )
-            return false
-        } else {
-            $modalAddSOAP.find(".warning").html("")
-        }
-        if ($("#hs-title").val() != "") {
-            var regex = new RegExp("^[a-zA-Z ]+$")
-            var title = $("#soap-title").val()
-            if (!regex.test(title)) {
-                $modalAddSOAP
-                    .find(".warning")
-                    .html("<b>Please enter Letters only for the title.</b>")
-                return false
-            }
-        } else {
-            $modalAddSOAP.find(".warning").html("")
-        }
-        $.ajax({
-            type: "POST",
-            url: `${apiServer}/add-server/`,
-            dataType: "HTML",
-            data: datastring,
-            success: function(result) {
-                var json_response = JSON.parse(result)
-                if (json_response.status === "true") {
-                    let {
-                        title,
-                        wms: wms_url,
-                        bounds: extents,
-                        rest_url
-                    } = json_response
-                    let newHtml = `<li class="ui-state-default" layer-name="${title}">
-                    <input class="chkbx-layer" type="checkbox" checked><span class="server-name">${title}</span>
-                    <div class="hmbrgr-div"><img src="${staticPath}/images/hamburger.svg"></div>
-                    </li>`
-                    $(newHtml).appendTo("#current-servers")
-                    addContextMenuToListItem(
-                        $("#current-servers").find("li:last-child")
-                    )
-                    $("#modalAddHS").modal("hide")
-                    //map.addLayer(new_layer);
-                    $("#modalAddHS").each(function() {
-                        this.reset()
-                    })
-                    var sld_string =
-                        '<StyledLayerDescriptor version="1.0.0"><NamedLayer><Name>' +
-                        wms_url +
-                        '</Name><UserStyle><FeatureTypeStyle><Rule><PointSymbolizer><Graphic><Mark><WellKnownName>circle</WellKnownName><Fill><CssParameter name="fill">' +
-                        set_color() +
-                        "</CssParameter></Fill></Mark><Size>10</Size></Graphic></PointSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>"
-                    wmsSource = new ol.source.TileWMS({
-                        url: rest_url,
-                        params: {
-                            LAYERS: wms_url,
-                            SLD_BODY: sld_string
-                        },
-                        serverType: "geoserver",
-                        crossOrigin: "Anonymous"
-                    })
-                    wmsLayer = new ol.layer.Tile({
-                        extent: ol.proj.transformExtent(
-                            [
-                                extents["minx"],
-                                extents["miny"],
-                                extents["maxx"],
-                                extents["maxy"]
-                            ],
-                            "EPSG:4326",
-                            "EPSG:3857"
-                        ),
-                        source: wmsSource
-                    })
-                    map.addLayer(wmsLayer)
-                    layersDict[title] = wmsLayer
-                    var layer_extent = wmsLayer.getExtent()
-                    map.getView().fit(layer_extent, map.getSize())
-                } else {
-                    alert("Please Check your URL and Try Again.")
-                }
-            },
-            error: function(XMLHttpRequest, textStatus, errorThrown) {
-                console.log(Error)
-            }
-        })
-    }
-    $("#btn-add-server").on("click", add_server)
 
     const add_central = () => {
         let modal = $("#addCentral"),
@@ -1023,7 +918,7 @@ var HYDROEXPLORER_PACKAGE = (function() {
                 //Returning the geoserver layer metadata from the controller
                 var json_response = JSON.parse(result)
                 if (json_response.status === "true") {
-                    let {title, siteInfo} = json_response
+                    let {title, siteInfo, url} = json_response
 
                     let newHtml = `<li class="ui-state-default" layer-name="${title}">
                     <input class="chkbx-layer" type="checkbox" checked><span class="server-name">${title}</span>
