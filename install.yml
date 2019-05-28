@@ -8,7 +8,6 @@ conda:
   # Putting in a skip true param will skip the entire section
   channels:
   dependencies:
-    - datetime
     - requests
     - pandas
     - google-api-python-client
