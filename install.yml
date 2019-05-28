@@ -8,12 +8,8 @@ conda:
   # Putting in a skip true param will skip the entire section
   channels:
   dependencies:
-    - pyshp=2.0.0
-    - pyproj
-    - suds-jurko
-    - xmltodict
-    - fiona
-    - geojson
-    - shapely
-    - libgdal<2.0
+    - datetime
+    - requests
+    - pandas
+    - google-api-python-client
 
