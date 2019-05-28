@@ -1,6 +1,8 @@
 import xmltodict
 import json
-import urllib2
+import urllib.request
+import urllib.error
+import urllib.parse
 import time
 import calendar
 import logging
@@ -14,7 +16,7 @@ import shutil
 import sys
 import xml.etree.ElementTree as ET
 
-from utilities import *
+from .utilities import *
 from json import dumps, loads
 from datetime import datetime, timedelta
 from xml.etree.ElementTree import XML, fromstring, tostring
@@ -40,6 +42,7 @@ from .model import Catalog, HISCatalog
 Persistent_Store_Name = 'catalog_db'
 
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
+
 
 def home(request):
     """
@@ -215,7 +218,7 @@ def cserv(request):
     submit_data_request = "http://chirps.nsstc.nasa.gov/chirps/submitDataRequest/?begintime={0}&endtime={1}&datatype={2}&operationtype={3}&intervaltype={4}&geometry={5}".format(
         begin_data, end_data, datatype, operation_type_int, interval_type, geometry)
     # submit_data_request = urllib2.quote(submit_data_request,safe=':/-()&=,?[]"')
-    submit_response = urllib2.urlopen(submit_data_request)
+    submit_response = urllib.request.urlopen(submit_data_request)
     submit_response_data = submit_response.read()
     job_id = str(submit_response_data)
     job_id = job_id.strip('[]"')  # Retrieving the jobid from the request
@@ -282,11 +285,11 @@ def datarods(request):
     gldas_url = "http://hydro1.sci.gsfc.nasa.gov/daac-bin/access/timeseries.cgi?variable=GLDAS:GLDAS_NOAH025_3H.001:{0}&type=asc2&location=GEOM:POINT({1})&startDate={2}&endDate={3}".format(
         var_id, coords_string, start_str, end_str)
     # Using safe as the url as several special characters
-    gldas_url = urllib2.quote(gldas_url, safe=':/-()&=,?')
+    gldas_url = urllib.parse.quote(gldas_url, safe=':/-()&=,?')
     try:
         # Retrieve the data and creating a timeseries object from the request.
         # See utilities.py.
-        gldas_response = urllib2.urlopen(gldas_url)
+        gldas_response = urllib.request.urlopen(gldas_url)
         gldas_data = gldas_response.read()
         parsed_gldas = parse_gldas_data(gldas_data)
 
@@ -370,15 +373,15 @@ def his(request):
         hs = {}
         url = i.servURL
         try:
-            print "Testing %s" % (url)
+            print("Testing %s" % (url))
             url_client = Client(url)
             hs['url'] = url
             hs_list.append(hs)
-            print "%s Works" % (url)
+            print("%s Works" % (url))
         except Exception as e:
-            print e
+            print(e)
             hs['url'] = url
-            print "%s Failed" % (url)
+            print("%s Failed" % (url))
             error_list.append(hs)
         list['servers'] = hs_list
         list['errors'] = error_list
@@ -422,7 +425,7 @@ def catalogs(request):
     catalogs = session.query(HISCatalog).all()
 
     hydroCatalogs = list(
-        map(lambda x: (x.title, x.url), catalogs))
+        [(x.title, x.url) for x in catalogs])
 
     his_catalogs = SelectInput(
         name="select_catalog",
@@ -434,13 +437,12 @@ def catalogs(request):
     return render(request, 'hydroexplorer/modals/helpers/catalog.html', {'his_catalogs': his_catalogs})
 
 
-
 def catalog_servers(request):
 
     # Connecting to the catalog service to
     # retrieve all the available HydroServers.
     url = request.POST['url']
-    servers=[]
+    servers = []
     try:
         his_url = url + "?WSDL"
         client = Client(his_url)
@@ -460,10 +462,10 @@ def catalog_servers(request):
                     title, organization)
                 servers.append([variable_str, url])
             except Exception as e:
-                print e
+                print(e)
 
         select_his_server = SelectInput(display_text='Select HIS Server',
-                                        name="select_server", 
+                                        name="select_server",
                                         multiple=False,
                                         options=servers)
         return render(request, 'hydroexplorer/modals/helpers/catalog.html', {"select_his_server": select_his_server})
@@ -491,7 +493,6 @@ def delete(request):
     return JsonResponse(list)
 
 
-
 def del_catalog(request):
 
     SessionMaker = app.get_persistent_store_database(
@@ -500,17 +501,17 @@ def del_catalog(request):
 
     if request.is_ajax() and request.method == 'POST':
         url = request.POST.get('catalog')
-        catalogs = session.query(HISCatalog).filter(HISCatalog.url == url).delete()  
+        catalogs = session.query(HISCatalog).filter(HISCatalog.url == url).delete()
         session.commit()
         session.close()
 
         if catalogs == 1:
-            return JsonResponse({'serverUrl': url, 'status':True, 'message':"Deleted Successfully"})
+            return JsonResponse({'serverUrl': url, 'status': True, 'message': "Deleted Successfully"})
         else:
-            return JsonResponse({'serverUrl': url, 'status':False, 'message':"Not located in Database."})
+            return JsonResponse({'serverUrl': url, 'status': False, 'message': "Not located in Database."})
 
     else:
-        return JsonResponse({'status':False, 'message':"POST req needed"})
+        return JsonResponse({'status': False, 'message': "POST req needed"})
 
 
 def add_central(request):
@@ -573,25 +574,24 @@ def soap(request):
             x1, y1 = transform(inProj, outProj, minx, miny)
             x2, y2 = transform(inProj, outProj, maxx, maxy)
             bbox = client.service.GetSitesByBoxObject(
-                x1, y1, x2, y2, '1', '') 
-                 # Get Sites by bounding box using suds
+                x1, y1, x2, y2, '1', '')
+            # Get Sites by bounding box using suds
             # Creating a sites object from the endpoint. This site object will
             # be used to generate the geoserver layer. See utilities.py.
             wml_sites = parseWML(bbox)
 
             sites_parsed_json = json.dumps(wml_sites)
 
-            
             return_obj['title'] = title
             return_obj['url'] = url
-            return_obj['siteInfo']=sites_parsed_json
+            return_obj['siteInfo'] = sites_parsed_json
             return_obj['status'] = "true"
 
             SessionMaker = app.get_persistent_store_database(
                 Persistent_Store_Name, as_sessionmaker=True)
             session = SessionMaker()
             hs_one = Catalog(title=title,
-                             url=url, 
+                             url=url,
                              siteinfo=sites_parsed_json)  # Adding the HydroServer geosever layer metadata to the local database
             session.add(hs_one)
             session.commit()
@@ -611,14 +611,14 @@ def soap(request):
 
             return_obj['title'] = title
             return_obj['url'] = url
-            return_obj['siteInfo']=sites_parsed_json
+            return_obj['siteInfo'] = sites_parsed_json
             return_obj['status'] = "true"
 
             SessionMaker = app.get_persistent_store_database(
                 Persistent_Store_Name, as_sessionmaker=True)
             session = SessionMaker()
             hs_one = Catalog(title=title,
-                             url=url, 
+                             url=url,
                              siteinfo=sites_parsed_json)
             session.add(hs_one)
             session.commit()
@@ -651,7 +651,6 @@ def details(request):
 
     soap_obj = {}  # soap_obj json dictionary is used so that part of the important metadata can be stored as a session object
     soap_obj["url"] = hs_url
-
 
     client = Client(hs_url)  # Connecting to the HydroServer via suds
     client.set_options(port='WaterOneFlow')

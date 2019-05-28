@@ -2,7 +2,9 @@ import xml.etree.ElementTree as et
 import shapefile as sf
 
 import os
-import urllib2
+import urllib.request
+import urllib.error
+import urllib.parse
 import tempfile
 import shutil
 import sys
@@ -34,7 +36,7 @@ from .app import HydroExplorer as app
 from .model import Catalog
 
 try:
-    from cStringIO import StringIO
+    from io import StringIO
 except ImportError:
     from io import BytesIO as StringIO
 
@@ -44,37 +46,38 @@ extract_base_path = '/tmp'
 def checkCentral(centralUrl):
     # Currently just checking if its a valid endpoint.
     url = centralUrl + "/GetWaterOneFlowServiceInfo"
-    response = urllib2.urlopen(url)
+    response = urllib.request.urlopen(url)
 
     return response.getcode() == 200
 
+
 def parseService(centralUrl):
     url = centralUrl + "/GetWaterOneFlowServiceInfo"
-    response = urllib2.urlopen(url)
+    response = urllib.request.urlopen(url)
     data = response.read()
     parse_xml = et.fromstring(data)
-    
-    services=[]
+
+    services = []
     for item in parse_xml:
         newService = {}
- 
-        for child in item:    
+
+        for child in item:
             if child.tag == '{http://hiscentral.cuahsi.org/20100205/}servURL':
                 newService['servURL'] = child.text
             if child.tag == '{http://hiscentral.cuahsi.org/20100205/}Title':
                 newService['Title'] = child.text
             if child.tag == '{http://hiscentral.cuahsi.org/20100205/}organization':
                 newService['organization'] = child.text
- 
+
         services.append(newService)
-    
+
     return services
 
 
 # Function for parsing a raw xml file. This function is not really used as
 # REST is not supported.
 def parseSites(xml):
-    response = urllib2.urlopen(xml)
+    response = urllib.request.urlopen(xml)
     data = response.read()
 
     parse_xml = et.fromstring(data)
@@ -150,7 +153,7 @@ def parseOWS(wml):
 def recursive_asdict(d):
     """Convert Suds object into serializable format."""
     out = {}
-    for k, v in asdict(d).iteritems():
+    for k, v in asdict(d).items():
         if hasattr(v, "__keylist__"):
             out[k] = recursive_asdict(v)
         elif isinstance(v, list):
@@ -330,15 +333,15 @@ def genShapeFile(input, title, hs_url):
         result = spatial_dataset_engine.get_workspace(ws_name)
 
         if result['success']:
-            print "Workspace " + ws_name + " Exists"
+            print("Workspace " + ws_name + " Exists")
         else:
-            print "Creating workspace: " + ws_name
+            print("Creating workspace: " + ws_name)
             result = spatial_dataset_engine.create_workspace(
                 workspace_id=ws_name, uri="www.servir.org", debug=False)
             if result['success']:
-                print "Created workspace " + ws_name + " successfully"
+                print("Created workspace " + ws_name + " successfully")
             else:
-                print "Creating workspace " + ws_name + " failed"
+                print("Creating workspace " + ws_name + " failed")
 
         store_id = ws_name + ":" + title  # Creating the geoserver storeid
 
@@ -348,9 +351,9 @@ def genShapeFile(input, title, hs_url):
             store_id=store_id, shapefile_zip=zip_file_full_path, overwrite=True, debug=False)  # Adding the zipshapefile to geoserver as a layer
 
         if result['success']:
-            print "Created store " + title + " successfully"
+            print("Created store " + title + " successfully")
         else:
-            print "Creating store " + title + " failed"
+            print("Creating store " + title + " failed")
 
         # Returning the layer name and the extents for that layer. This data
         # will be used to add the geoserver layer to the openlayers3 map.
@@ -367,7 +370,7 @@ def genShapeFile(input, title, hs_url):
         return layer_metadata
 
     except:
-        print "Unexpected error:", sys.exc_info()
+        print("Unexpected error:", sys.exc_info())
         return False
     # finally:
         # # Delete the temp dir after uploading the shapefile
@@ -414,7 +417,7 @@ def parse_gldas_data(file):
                 # Adding the date and value to the data list
                 data.append(date_val_pair)
         except Exception as e:
-            print str(e), "Exception"
+            print(str(e), "Exception")
             continue
 
     return data
@@ -447,7 +450,7 @@ def get_loc_name(lat, lon):
     geo_coords = str(lat) + "," + str(lon)
     geo_api = "http://maps.googleapis.com/maps/api/geocode/json?latlng={0}&sensor=true".format(
         geo_coords)
-    open_geo = urllib2.urlopen(geo_api)
+    open_geo = urllib.request.urlopen(geo_api)
     open_geo = open_geo.read()
     location_json = json.loads(open_geo, "utf-8")
     # Formatted address as returned by the google api
@@ -468,7 +471,7 @@ def check_digit(num):
 
 def process_job_id(url, operation_type_var):
 
-    open_data_url = urllib2.urlopen(url)
+    open_data_url = urllib.request.urlopen(url)
     read_data_response = open_data_url.read()
     # Converting the response to json
     data_json = json.loads(read_data_response)
@@ -498,13 +501,13 @@ def get_gldas_range():
     try:
         # Get the begin and end dates as the sort key is slightly different
         begin_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=start_date"
-        open_begin_url1 = urllib2.urlopen(begin_url1)
+        open_begin_url1 = urllib.request.urlopen(begin_url1)
         read_begin_url1 = open_begin_url1.read()
         begin_url1_data = xmltodict.parse(read_begin_url1)
         begin_url2 = begin_url1_data['results'][
             'references']['reference']['location']
 
-        open_begin_url2 = urllib2.urlopen(begin_url2)
+        open_begin_url2 = urllib.request.urlopen(begin_url2)
         read_begin_url2 = open_begin_url2.read()
         begin_url2_data = xmltodict.parse(read_begin_url2)
         start_date = begin_url2_data['Granule']['Temporal'][
@@ -512,13 +515,13 @@ def get_gldas_range():
         start_date = start_date.split('T')[0]
         # start_date = datetime.strptime(start_date, '%Y-%m-%d').strftime('%Y-%m-%d')
         end_url1 = "https://cmr.earthdata.nasa.gov/search/granules?short_name=GLDAS_NOAH025SUBP_3H&version=001&page_size=1&sort_key=-start_date"
-        open_end_url1 = urllib2.urlopen(end_url1)
+        open_end_url1 = urllib.request.urlopen(end_url1)
         read_end_url1 = open_end_url1.read()
         end_url1_data = xmltodict.parse(read_end_url1)
         end_url2 = end_url1_data['results'][
             'references']['reference']['location']
 
-        open_end_url2 = urllib2.urlopen(end_url2)
+        open_end_url2 = urllib.request.urlopen(end_url2)
         read_end_url2 = open_end_url2.read()
         end_url2_data = xmltodict.parse(read_end_url2)
         end_date = end_url2_data['Granule']['Temporal'][
@@ -540,7 +543,7 @@ def get_gldas_range():
 def get_sf_range():
     try:
         scenario_url = "http://limateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
-        response = urllib2.urlopen(scenario_url)
+        response = urllib.request.urlopen(scenario_url)
         read_response = response.read()
         data_json = json.loads(read_response)
         capability = data_json["climate_DataTypeCapabilities"][
@@ -563,7 +566,7 @@ def get_sf_range():
 def get_climate_scenario(ensemble, variable):
 
     scenario_url = "http://climateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
-    response = urllib2.urlopen(scenario_url)
+    response = urllib.request.urlopen(scenario_url)
     read_response = response.read()
     data_json = json.loads(read_response)
 
