@@ -13,7 +13,7 @@ app_package_dir = os.path.join(os.path.dirname(
 ### Python Dependencies ###
 dependencies = ['pyshp',
                 'pyproj',
-                'suds',
+                'suds-py3',
                 'xmltodict',
                 'fiona',
                 'geojson',
