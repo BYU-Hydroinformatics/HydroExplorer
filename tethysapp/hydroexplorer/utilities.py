@@ -337,7 +337,7 @@ def genShapeFile(input, title, hs_url):
         else:
             print("Creating workspace: " + ws_name)
             result = spatial_dataset_engine.create_workspace(
-                workspace_id=ws_name, uri="www.servir.org", debug=False)
+                workspace_id=ws_name, url="www.servir.org", debug=False)
             if result['success']:
                 print("Created workspace " + ws_name + " successfully")
             else:
@@ -448,11 +448,11 @@ def gen_gldas_dropdown():
 def get_loc_name(lat, lon):
 
     geo_coords = str(lat) + "," + str(lon)
-    geo_api = "http://maps.googleapis.com/maps/api/geocode/json?latlng={0}&sensor=true".format(
+    geo_api = "http://maps.googleapis.com/maps/api/geocode/json?latlon={0}&sensor=true".format(
         geo_coords)
     open_geo = urllib.request.urlopen(geo_api)
     open_geo = open_geo.read()
-    location_json = json.loads(open_geo, "utf-8")
+    location_json = json.loads(open_geo, {"utf-8"})
     # Formatted address as returned by the google api
     name = location_json['results'][0]['formatted_address']
     # Be sure to encode it to take special characters into consideration
@@ -542,7 +542,7 @@ def get_gldas_range():
 # Functino for getting the Climate Serv seasonal forecast date range
 def get_sf_range():
     try:
-        scenario_url = "http://limateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
+        scenario_url = "http://climateserv.servirglobal.net/chirps/getClimateScenarioInfo/"
         response = urllib.request.urlopen(scenario_url)
         read_response = response.read()
         data_json = json.loads(read_response)
