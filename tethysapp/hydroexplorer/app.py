@@ -1,5 +1,5 @@
 from tethys_sdk.base import TethysAppBase, url_map_maker
-from tethys_sdk.app_settings import PersistentStoreDatabaseSetting, SpatialDatasetServiceSetting
+from tethys_apps.models import PersistentStoreDatabaseSetting, SpatialDatasetServiceSetting
 from tethys_sdk.permissions import Permission, PermissionGroup
 
 
@@ -120,22 +120,22 @@ class HydroExplorer(TethysAppBase):
 
         return url_maps
     
-#    def permissions(self):
-#    
-#        update_default = Permission(
-#            name='update_default',
-#            description='Update Default Settings'
-#        )
-#   
-#        admin = PermissionGroup(
-#            name='admin',
-#            permissions=(update_default,)
-#        )
-#    
-#    
-#        permissions = (admin,)
-#    
-#        return permissions
+    def permissions(self):
+    
+        update_default = Permission(
+            name='update_default',
+            description='Update Default Settings'
+        )
+   
+        admin = PermissionGroup(
+            name='admin',
+            permissions=(update_default,)
+        )
+    
+    
+        permissions = (admin,)
+    
+        return permissions
 
     def persistent_store_settings(self):
         ps_settings = (
@@ -143,7 +143,8 @@ class HydroExplorer(TethysAppBase):
                 name='catalog_db',
                 description='catalogs database',
                 initializer='hydroexplorer.init_stores.init_catalog_db',
-                required=True
+                required=True,
+                spatial=True,
             ),
         )
 
